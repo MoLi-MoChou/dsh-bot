@@ -30,3 +30,6 @@
 # No product telemetry export.
 - id: desktop-product-telemetry
   disabled: true
+# No "upload Session Log to DeepSeek" switch in settings.
+- id: ui-settings-session-log
+  disabled: true

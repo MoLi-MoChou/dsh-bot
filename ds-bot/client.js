@@ -39,6 +39,56 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
+// src/client/shell-quiet.js
+var userAsked = false;
+var noteSignInAsked = () => {
+  userAsked = true;
+};
+var isPreviewNotice = (dialog) => /DeepSeek Harness/.test(dialog.textContent ?? "") && /0\.2/.test(dialog.textContent ?? "");
+var signInRoot = () => document.querySelector('[class*="_76YFJG_"]');
+function quietShellOnboarding({ windowMs = 2e4 } = {}) {
+  if (typeof MutationObserver === "undefined") return () => {
+  };
+  const started = Date.now();
+  const sweep = () => {
+    for (const dialog of document.querySelectorAll("[role=dialog]")) {
+      if (!isPreviewNotice(dialog)) continue;
+      [...dialog.querySelectorAll("button")].find((node) => /^(继续|Continue)$/u.test(node.textContent.trim()))?.click();
+    }
+    const signIn = signInRoot();
+    if (signIn && !userAsked && Date.now() - started < windowMs) {
+      const box = signIn.closest("[role=dialog]") ?? signIn.parentElement;
+      const close = box?.querySelector('button[aria-label="关闭"], button[aria-label="Close"]');
+      if (close) close.click();
+      else document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    }
+  };
+  const observer = new MutationObserver(sweep);
+  observer.observe(document.body, { childList: true, subtree: true });
+  sweep();
+  const stop = setTimeout(() => observer.disconnect(), windowMs + 4e4);
+  return () => {
+    clearTimeout(stop);
+    observer.disconnect();
+  };
+}
+var VERSION_LINE = /^(当前版本：|Current version: )(\d[\w.-]*)$/u;
+function relabelShellVersion(appVersion) {
+  if (typeof MutationObserver === "undefined" || !appVersion) return () => {
+  };
+  const fix = () => {
+    if (!document.querySelector("[role=dialog]")) return;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const match = VERSION_LINE.exec(node.nodeValue.trim());
+      if (match) node.nodeValue = `${match[1]}DSH Bot ${appVersion}（DSH ${match[2]}）`;
+    }
+  };
+  const observer = new MutationObserver(fix);
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  return () => observer.disconnect();
+}
+
 // src/client/i18n.js
 var NAMESPACE = "ds-bot";
 var ZH = {
@@ -6710,6 +6760,7 @@ function showShellSection(section, tries = 40) {
   if (tries > 0) setTimeout(() => showShellSection(section, tries - 1), 50);
 }
 function openHarnessOnboarding(id) {
+  noteSignInAsked();
   requestAnimationFrame(() => {
     if (openShellOnboarding) openShellOnboarding(id);
     else openHarnessSettings();
@@ -15446,6 +15497,8 @@ var STARTERS_CSS = `
 // src/client/index.js
 var inject = ["sessions", "uiWorkspace", "uiConversation", "slots", "theme", "layout"];
 function apply(ctx) {
+  quietShellOnboarding();
+  relabelShellVersion(true ? "0.1.4" : "");
   ctx.effect(() => installLocale(ctx.get("locale")), "ds-bot: interface copy");
   const roster = createSource(EMPTY_ROSTER);
   migrateStorage();
@@ -15945,7 +15998,7 @@ function apply(ctx) {
   }
   actions.signInEntry = () => ctx.slots.entries?.("settings.models.sign-in")?.[0] ?? null;
   actions.canSignIn = () => Boolean(actions.signInEntry());
-  actions.signIn = () => ui2.set((state) => ({ ...state, signIn: (state.signIn ?? 0) + 1 }));
+  actions.signIn = () => noteSignInAsked() ?? ui2.set((state) => ({ ...state, signIn: (state.signIn ?? 0) + 1 }));
   actions.closeSignIn = () => ui2.set((state) => ({ ...state, signIn: null }));
   actions.accountT = () => ctx.get("locale").bind("settings.account");
   actions.speech = () => ctx.get("remote.speech") ?? void 0;

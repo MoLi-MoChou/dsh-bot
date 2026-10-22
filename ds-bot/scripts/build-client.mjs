@@ -26,6 +26,8 @@ export async function bundleClient() {
     platform: 'browser',
     target: 'es2022',
     external: PLATFORM_MODULES,
+    // DSH Bot patch: the app's version, for the settings line that names it.
+    define: { __DSH_BOT_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(PLUGIN, 'package.json'), 'utf8')).version) },
     // Every source declaration ships, used or not, as in the hand-written bundle.
     treeShaking: false,
     // Readable for debugging in the browser: no minification, and Chinese text stays text.

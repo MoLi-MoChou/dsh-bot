@@ -1,3 +1,4 @@
+import { noteSignInAsked } from './shell-quiet.js'
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { LEAN } from './lean.js'
 import { createPortal } from 'react-dom'
@@ -458,6 +459,7 @@ function showShellSection(section, tries = 40) {
 
 // Opens one of the shell's own onboarding editors, such as the DeepSeek API key form.
 export function openHarnessOnboarding(id) {
+  noteSignInAsked()
   requestAnimationFrame(() => {
     if (openShellOnboarding) openShellOnboarding(id)
     else openHarnessSettings()

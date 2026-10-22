@@ -1,3 +1,4 @@
+import { quietShellOnboarding, noteSignInAsked, relabelShellVersion } from './shell-quiet.js'
 import { call } from './api.js'
 import { isHex, inkText, paintCss } from './inks.js'
 import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.js'
@@ -44,6 +45,8 @@ import { StarterChips, STARTERS_CSS } from './starters.js'
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
 
 export function apply(ctx) {
+  quietShellOnboarding()
+  relabelShellVersion(typeof __DSH_BOT_VERSION__ === 'string' ? __DSH_BOT_VERSION__ : '')
   ctx.effect(() => installLocale(ctx.get('locale')), 'ds-bot: interface copy')
   const roster = createSource(EMPTY_ROSTER)
   migrateStorage()
@@ -531,7 +534,7 @@ export function apply(ctx) {
   // Whether AccountLauncher holds the shell's settings seat; FooterAccount steps aside if so.
   actions.signInEntry = () => ctx.slots.entries?.('settings.models.sign-in')?.[0] ?? null
   actions.canSignIn = () => Boolean(actions.signInEntry())
-  actions.signIn = () => ui.set(state => ({ ...state, signIn: (state.signIn ?? 0) + 1 }))
+  actions.signIn = () => noteSignInAsked() ?? ui.set(state => ({ ...state, signIn: (state.signIn ?? 0) + 1 }))
   actions.closeSignIn = () => ui.set(state => ({ ...state, signIn: null }))
   actions.accountT = () => ctx.get('locale').bind('settings.account')
   // The Voice Input plugin's speech Remote; absent while that plugin is off.
