@@ -49,10 +49,14 @@ export async function ensureEngine({ root, engine = engineFor(), fetchImpl = fet
       if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`)
       const total = Number(response.headers.get('content-length')) || undefined
       const hash = createHash(algorithm)
-      let received = 0
+      let received = 0, reported = -1
       const counted = Readable.fromWeb(response.body).on('data', (chunk) => {
         hash.update(chunk)
         received += chunk.length
+        // Report at most once per whole percent (or per MB without a length), not per chunk.
+        const step = total ? Math.floor((received / total) * 100) : Math.floor(received / 2 ** 20)
+        if (step === reported) return
+        reported = step
         onProgress({ phase: 'downloading', received, total, percent: total ? (received / total) * 100 : undefined })
       })
       const { createWriteStream } = await import('node:fs')
