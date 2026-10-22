@@ -4,7 +4,7 @@
 import { useRef, useSyncExternalStore } from 'react'
 import { call } from '../../../core/src/client/api.js'
 import { workPhrase } from '../../../core/src/client/cells.js'
-import { language } from '../../../core/src/client/i18n.js'
+import { language, t } from '../../../core/src/client/i18n.js'
 import { toolState } from '../../../core/src/client/mark.js'
 import { noteLeft, setUnread, sharedMap, toggleReaction } from '../../../core/src/client/shared-map.js'
 import { createSource, EMPTY_ROSTER, indexRoster } from '../../../core/src/client/sources.js'
@@ -12,6 +12,7 @@ import { STORAGE, migrateStorage } from '../../../core/src/client/storage.js'
 import { teamActions } from '../../../core/src/client/team-actions.js'
 import { currentPart } from '../../../core/src/client/text.js'
 import { registry } from '../../../core/src/client/themes.js'
+import { retryNotice, showReconnectNotice } from '../../../core/src/client/reconnect.js'
 import { openFeed } from './api.js'
 
 // Memory news and connector states change without a notice on the feed.
@@ -230,7 +231,18 @@ export function createTeam() {
       })
     }
     read()
+    // The window's only feed is this one: when it drops, the page is stale, so say so at
+    // the top and catch the team up as soon as the feed is back.
+    let feedFailures = 0
     const closeFeed = openFeed((event, data) => {
+      if (event === 'lost') {
+        feedFailures += 1
+        showReconnectNotice(retryNotice(feedFailures))
+      } else if (feedFailures > 0) {
+        feedFailures = 0
+        showReconnectNotice(t('Back online. Catching up…'))
+        setTimeout(() => showReconnectNotice(null), 1500)
+      }
       if (READ_AGAIN.has(event)) read()
       onFeed(event, data)
     })
@@ -240,6 +252,7 @@ export function createTeam() {
     return () => {
       stopped = true
       closeFeed()
+      showReconnectNotice(null)
       clearInterval(timer)
       window.removeEventListener('pagehide', onPageHide)
     }
