@@ -17,6 +17,7 @@ import { copySessions, findTeam, importTeam, teamInUse, userDshHome } from './im
 import { copyData, moveProblem } from './move-data.mjs'
 import { CHECK_PROFILE, PROFILE } from './profile.mjs'
 import { UPDATE_TEXT, watchReleases, watchUpdates } from './updates.mjs'
+import { needsNoSandbox } from './sandbox.mjs'
 import { CAPTION_HEIGHT, cssColor, micaAvailable, nativeThemeSource } from './window-frame.mjs'
 
 const IPC = {
@@ -34,6 +35,7 @@ const iconFile = join(here, '..', 'assets', process.platform === 'win32' ? 'icon
 // Windows 11 draws Mica behind the page; mica.css lets it through the sidebar.
 const mica = micaAvailable(process.platform, release())
 if (process.env.DS_BOT_SHELL_DATA) app.setPath('userData', process.env.DS_BOT_SHELL_DATA)
+if (needsNoSandbox()) app.commandLine.appendSwitch('no-sandbox')
 
 let mainWindow
 let host
