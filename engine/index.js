@@ -23,6 +23,15 @@ export function apply(ctx, config = {}) {
   mkdirSync(home, { recursive: true })
   const store = createStore(home)
   const models = createModels(ctx)
+  // 会话会沿用自己上次请求时的模型；界面里只有一个“默认模型”，所以发送前让会话跟上当前默认。
+  const applied = new Map()
+  const followDefault = async (sessionId) => {
+    const want = ctx.agentDefaultModel.currentSelection()
+    const key = `${want.provider}/${want.model}/${want.reasoningEffort ?? ''}`
+    if (applied.get(sessionId) === key) return
+    try { await ctx.sessionController.selectModel({ sessionId, ...want }); applied.set(sessionId, key) }
+    catch (e) { ctx.logger?.warn?.(`dsh-bot: 切换会话模型失败：${e?.message ?? e}`) }
+  }
   const memory = createMemory(join(home, 'memory'))
   const prefsPath = join(home, 'prefs.json')
   const prefs = { theme: 'deepseek', accent: null, motion: 'normal', cwd: process.env.DSH_BOT_CWD ?? join(home, 'work'), ...(existsSync(prefsPath) ? JSON.parse(readFileSync(prefsPath, 'utf8')) : {}) }
@@ -191,6 +200,7 @@ export function apply(ctx, config = {}) {
       if (body) content.push({ type: 'text', text: body })
       store.current = sessionId
       try {
+        await followDefault(sessionId)
         await ctx.sessionController.prompt({ requestId: randomUUID(), sessionId, mode: 'queue', content, clientTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }, AbortSignal.timeout(60_000))
       } catch (error) {
         const msg = String(error?.message ?? error)
