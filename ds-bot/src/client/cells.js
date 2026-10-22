@@ -14,6 +14,7 @@ import { failureLabel } from './diagnostics.js'
 import { turnReasoning, thinkingStep } from './turn-reasoning.js'
 import { FOLD_AT, FOLD_HUGE, stripLongNote, useFold } from './fold.js'
 import { heldCardKey } from './sources.js'
+import { WorkLine } from './work-process.js'
 
 export { clockLabel }
 
@@ -194,11 +195,12 @@ function useFileMentions({ node, openFile, fileMentions, useTurnData }) {
   }, [fileMentions, openFile, seq, tail, turn])
 }
 
-export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnContext, actions }) {
+export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentions, useTurnData, useRoster, useUi, useTurnSteps, useTurnTools, useTurnContext, actions }) {
   const roster = useRoster(value => value)
   const data = node.data
   const steps = useTurnSteps(String(data.turn))
   const contexts = useTurnContext(String(data.turn))
+  const tools = useTurnTools?.(String(data.turn)) ?? []
   const mentions = useFileMentions({ node, openFile, fileMentions, useTurnData })
   const hidden = Boolean(roster.roomsById[sessionId]) || isHiddenTurn(roster, sessionId, data.turn)
   const texts = groupPart === 'reasoning' ? [] : data.blocks.filter(block => block.kind === 'text' && block.text.trim() !== '').map(block => block.text)
@@ -217,7 +219,15 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
   // DSH 0.2; the step that answers it shows the event line where it was read,
   // once, in the step's first cell.
   const relays = relayPart(data, groupPart) ? relaysBefore(contexts, steps, data) : []
-  if (texts.length === 0 && !reasoning && relays.length === 0) return null
+  // DSH Bot: one work line on the turn's last step, once the turn has settled.
+  const turnInfo = node.location?.turn
+  const lastStep = members[members.length - 1]
+  const settled = !running && members.every(step => step.status !== 'running') && (turnInfo?.status === undefined || turnInfo.status === 'closed')
+  const tail = useTurnData?.('turn-tail')
+  const closingSeq = tail?.closing?.finalNode?.seq
+  const workHere = settled && groupPart !== 'reasoning' && (closingSeq !== undefined ? data.finalNode?.seq === closingSeq : lastStep === data)
+  const workMs = typeof turnInfo?.start?.time === 'number' && typeof turnInfo?.end?.time === 'number' ? turnInfo.end.time - turnInfo.start.time : ms
+  if (texts.length === 0 && relays.length === 0 && !workHere) return null
   const selfId = roster.byId[sessionId]?.id ?? sessionId
   return h(Fragment, null,
     relays.map(relay => {
@@ -231,12 +241,7 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
         whole: true,
       })
     }),
-    reasoning ? h(ThinkingRow, {
-      text: reasoning, live: thinking !== undefined, viewKey: `${sessionId}:${data.turn}`,
-      // The live clock counts the settled steps too: backing `at` by the settled
-      // time makes one Elapsed show settled + running.
-      ...(thinking !== undefined ? { at: typeof thinking.time === 'number' ? thinking.time - (ms ?? 0) : undefined } : { ms }),
-    }) : null,
+    workHere ? h(WorkLine, { steps: members, tools, ms: workMs }) : null,
     texts.length ? h(Bubbles, { texts, roster, selfId, actions, streaming: running, sessionId, msgKey: `${sessionId}:${data.turn}:${node.key ?? data.seq ?? ''}`, useUi, mentions, fold: FOLD_HUGE }) : null)
 }
 
