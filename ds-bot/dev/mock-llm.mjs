@@ -480,6 +480,16 @@ function decide(body) {
   }
   // View cards: 视图选项 and 视图表单 wait for an answer; 视图展示 and 大视图 are
   // display-only — the latter sits just under the view byte limit.
+  // DSH Bot patch: the starter chips' asks come back as cards.
+  if (/表格对比/.test(userText) && tools.has('show_view')) {
+    return [text('我把要点整理成了表格。'), tool('show_view', { title: 'iPhone vs 安卓旗舰', await_reply: false, view: { type: 'table', columns: [{ key: 'a', label: '方面' }, { key: 'b', label: 'iPhone' }, { key: 'c', label: '安卓旗舰' }], rows: [['系统', '封闭、统一', '开放、可定制'], ['更新', '长期、及时', '因品牌而异'], ['价格', '偏高', '跨度大'], ['生态', '与 Mac/iPad 联动', '与 Windows/谷歌服务联动']] } })]
+  }
+  if (/待办清单/.test(userText) && tools.has('show_view')) {
+    return [text('这周的待办在这儿。'), tool('show_view', { title: '本周待办', await_reply: false, view: { type: 'stack', children: [{ type: 'table', columns: [{ key: 't', label: '事项' }, { key: 'd', label: '截止' }, { key: 's', label: '状态' }], rows: [['整理周报', '周一', '☐'], ['和设计对需求', '周三', '☐'], ['发布 v0.1.1', '周五', '☐']] }, { type: 'progress', label: '完成', percent: 0 }] } })]
+  }
+  if (/选项选/.test(userText) && tools.has('show_view')) {
+    return [text('挑一个吧。'), tool('show_view', { title: '周末去哪儿', view: { type: 'options', id: 'trip', options: [{ label: '郊外爬山', description: '空气好，半天来回' }, { label: '城市博物馆', description: '室内，不怕天气' }, { label: '在家看电影', description: '最省力' }] } })]
+  }
   if (/^\s*视图选项/.test(userText) && tools.has('show_view')) {
     return [tool('show_view', { title: 'Pick a lane', view: { type: 'options', id: 'lane', options: [{ label: 'Ship now' }, { label: 'One more pass' }] } })]
   }
