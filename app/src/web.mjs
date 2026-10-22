@@ -65,8 +65,26 @@ async function main() {
   const token = launch.searchParams.get('token')
   const target = { host: launch.hostname, port: Number(launch.port) }
 
+  // DSH accepts only its own loopback origin. A request from this page (its Origin is the
+  // address the browser used) is passed on as from DSH's origin; any other origin is refused
+  // here, so DSH's cross-site protection still holds.
+  const local = `${target.host.includes(':') ? `[${target.host}]` : target.host}:${String(target.port)}`
+  const upstreamHeaders = (req) => {
+    const origin = req.headers.origin
+    if (origin !== undefined && origin !== `http://${req.headers.host}` && origin !== `https://${req.headers.host}`) return undefined
+    const headers = { ...req.headers, host: local }
+    if (origin !== undefined) headers.origin = `http://${local}`
+    if (typeof req.headers.referer === 'string' && req.headers.host && /^https?:\/\//.test(req.headers.referer)) {
+      const ref = new URL(req.headers.referer)
+      if (ref.host === req.headers.host) headers.referer = `http://${local}${ref.pathname}${ref.search}`
+    }
+    return headers
+  }
+
   const forward = (req, res) => {
-    const upstream = httpRequest({ ...target, method: req.method, path: req.url, headers: req.headers }, (answer) => {
+    const headers = upstreamHeaders(req)
+    if (headers === undefined) { res.writeHead(403).end('Cross-origin request refused'); return }
+    const upstream = httpRequest({ ...target, method: req.method, path: req.url, headers }, (answer) => {
       // An unauthenticated page load gets the password page instead of DSH's bare 401.
       if (answer.statusCode === 401 && req.method === 'GET' && (req.headers.accept ?? '').includes('text/html')) {
         answer.resume()
@@ -106,8 +124,10 @@ async function main() {
   })
   // WebSockets (DSH's live connection) go straight through; DSH checks the cookie.
   server.on('upgrade', (req, socket, head) => {
+    const headers = upstreamHeaders(req)
+    if (headers === undefined) { socket.end('HTTP/1.1 403 Forbidden\r\nconnection: close\r\n\r\n'); return }
     const upstream = connect(target.port, target.host, () => {
-      upstream.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n${Object.entries(req.headers).flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map(item => `${k}: ${item}`)).join('\r\n')}\r\n\r\n`)
+      upstream.write(`${req.method} ${req.url} HTTP/${req.httpVersion}\r\n${Object.entries(headers).flatMap(([k, v]) => (Array.isArray(v) ? v : [v]).map(item => `${k}: ${item}`)).join('\r\n')}\r\n\r\n`)
       if (head?.length) upstream.write(head)
       upstream.pipe(socket).pipe(upstream)
     })
