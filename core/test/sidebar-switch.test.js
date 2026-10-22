@@ -26,7 +26,7 @@ let refIndex = 0
 let layoutEffects
 const react = {
   createElement: (type, props, ...children) => ({ type, props: { ...props, children } }), Fragment: Symbol('Fragment'),
-  useEffect() {}, useLayoutEffect: effect => layoutEffects?.push(effect), useState: initial => [initial, () => {}],
+  useEffect() {}, useLayoutEffect: effect => layoutEffects?.push(effect), useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}],
   useMemo: make => make(), useRef: current => renderRefs ? renderRefs[refIndex++] ??= { current } : { current }, useId: () => 'id',
 }
 const module = { exports: {} }
@@ -52,7 +52,9 @@ function navigationSidebar(wide, { shell = true } = {}) {
   const walk = (node) => {
     if (Array.isArray(node)) { node.forEach(walk); return }
     if (!node || typeof node !== 'object') return
-    if (['BotRow', 'RoomRow', 'AgentRow'].includes(node.type?.name)) rows.push(node)
+    if (['BotRow', 'RoomRow', 'AgentRow'].includes(node.type?.name)) { rows.push(node); return }
+    // The list wraps its rows in ReorderList; the fixture renders it to reach them.
+    if (typeof node.type === 'function') { walk(node.type(node.props)); return }
     walk(node.props?.children)
   }
   const render = (nextWide = shell ? wide : !collapsed) => {
