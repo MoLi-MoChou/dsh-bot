@@ -515,3 +515,14 @@ test('declared search API responses are read by shape, skipping media links and 
   assert.deepEqual(readDeclared({ results: [] }), { ran: true, sources: [] })
   assert.deepEqual(readDeclared({ choices: [{ message: { content: 'see https://a.example/' } }] }), { ran: false, sources: [] })
 })
+
+test('a guessed protocol search gets a short budget and is skipped for an hour after it hangs', async () => {
+  const hang = (_url, init) => new Promise((_resolve, reject) => init.signal.addEventListener('abort', () => reject(init.signal.reason)))
+  const { provider, calls } = harness({ route: { ...ACME, api: 'anthropic-messages' }, keys: { ACME_KEY: 'k' }, config: { guessTimeoutMs: 1000 }, fetch: hang })
+  const first = await provider.search({ query: 'q' })
+  assert.match(first.content, /timed out after 1s/)
+  const fetches = calls.fetch.length
+  const second = await provider.search({ query: 'q' })
+  assert.match(second.content, /not retried for 60 min/)
+  assert.equal(calls.fetch.length, fetches)
+})

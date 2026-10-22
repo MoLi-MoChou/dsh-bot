@@ -20,6 +20,9 @@ export const DEFAULTS = Object.freeze({
   engines: ['bing', 'duckduckgo'],
   searchApis: [],
   nativeTimeoutMs: 40_000,
+  // A protocol's standard search tool on a host that declares none is a guess: it gets a
+  // short budget, and a guess that times out is not retried for a while.
+  guessTimeoutMs: 12_000,
   fallbackTimeoutMs: 15_000,
 })
 
@@ -37,6 +40,8 @@ const SKIP_FOR = {
   denied: 30 * MINUTE,
   // Each retry of an endpoint that answers without searching costs a model call.
   ignored: 6 * 60 * MINUTE,
+  // A guessed endpoint that hung: likely it does not search, so the fallback goes first.
+  slow: 60 * MINUTE,
 }
 const STATUS_OUTCOMES = { 404: 'absent', 405: 'absent', 501: 'absent', 400: 'rejected', 415: 'rejected', 422: 'rejected', 401: 'denied', 402: 'denied', 403: 'denied' }
 
@@ -373,7 +378,7 @@ function declaredCandidate(api, origin, model) {
 
 function protocolCandidate(id, base, model) {
   const shape = PROTOCOL_SEARCHES[id]
-  return { id, name: shape.name, url: shape.url(base, model), model, auth: shape.auth, request: call => shape.request({ ...call, model }), read: shape.read }
+  return { id, guessed: true, name: shape.name, url: shape.url(base, model), model, auth: shape.auth, request: call => shape.request({ ...call, model }), read: shape.read }
 }
 
 /**
@@ -508,7 +513,7 @@ export function resolveConfig(config = {}) {
   if (!Array.isArray(resolved.engines) || resolved.engines.some(engine => !Object.hasOwn(ENGINES, engine))) {
     throw new Error(`web-search-auto: engines must be a list of ${Object.keys(ENGINES).join(', ')}`)
   }
-  for (const key of ['nativeTimeoutMs', 'fallbackTimeoutMs']) {
+  for (const key of ['nativeTimeoutMs', 'guessTimeoutMs', 'fallbackTimeoutMs']) {
     if (!Number.isFinite(resolved[key]) || resolved[key] < 1000) throw new Error(`web-search-auto: ${key} must be at least 1000`)
   }
   if (!Array.isArray(resolved.searchApis)) throw new Error('web-search-auto: searchApis must be a list')
@@ -617,8 +622,10 @@ export function createAutoSearchProvider(deps, config = {}) {
       credential ??= await credentialFor(route, candidate.url)
       if (signal?.aborted) throw aborted(signal)
       if (credential.reason !== undefined) return { reason: `route "${route.provider}" could not search natively: ${credential.reason}` }
-      const remaining = deadline - now()
-      if (remaining <= 0) { notes.push(`${where}: skipped, out of time`); continue }
+      const left = deadline - now()
+      if (left <= 0) { notes.push(`${where}: skipped, out of time`); continue }
+      const guess = candidate.guessed === true && memo?.works !== true
+      const remaining = guess ? Math.min(left, options.guessTimeoutMs) : left
       const outcome = await attempt(candidate, route, credential, request, signal, remaining, memo?.works === true)
       if (outcome.sources !== undefined) {
         memory.set(keyOf(candidate), { works: true })
@@ -633,6 +640,7 @@ export function createAutoSearchProvider(deps, config = {}) {
       notes.push(`${where}: ${outcome.reason}`)
       if (outcome.skip !== undefined) memory.set(keyOf(candidate), { until: now() + SKIP_FOR[outcome.skip], reason: outcome.reason })
       if (outcome.final) break
+      if (outcome.timedOut && guess) { memory.set(keyOf(candidate), { until: now() + SKIP_FOR.slow, reason: outcome.reason }); continue }
       // A timed-out attempt had all the time that was left, but the timer and now() use
       // different clocks, so now() can still read a millisecond before the deadline.
       if (outcome.timedOut) deadline = now()
