@@ -8,6 +8,18 @@ files:
   - package.json
   - src/**
   - assets/**
+  # DSH Bot: size. The Office engine is downloaded after install (src/engines.mjs);
+  # source maps, type declarations, TypeScript sources and test folders do not run.
+  - '!node_modules/@deepseek-ai/libreoffice-kit-{win32-x64,win32-arm64,darwin-x64,darwin-arm64,wasm}/**'
+  - '!node_modules/@img/*linuxmusl*/**'
+  - '!**/*.{map,d.ts,d.mts,d.cts,tsbuildinfo}'
+  - '!**/node_modules/zod/src/**'
+  - '!**/node_modules/*/{test,tests,__tests__}/**'
+  - '!**/node_modules/@*/*/{test,tests,__tests__}/**'
+# Chromium UI strings for the two languages the app has; the rest are 45 MB on Windows.
+electronLanguages: [zh-CN, en-US]
+# The installers and the AppImage, at the strongest compression.
+compression: maximum
 # The Host runs pnpm as a separate Node process to install plugins, so it must be a plain file.
 asarUnpack:
   - node_modules/pnpm/**
