@@ -22,6 +22,7 @@ import { CAPTION_HEIGHT, cssColor, micaAvailable, nativeThemeSource } from './wi
 const IPC = {
   caption: 'ds-bot:caption-colors', nativeTheme: 'ds-bot:native-theme', fullscreen: 'ds-bot:fullscreen',
   dataLocation: 'ds-bot:data-location', moveData: 'ds-bot:move-data', teamWorkspace: 'ds-bot:team-workspace',
+  updateState: 'ds-bot:update-state', updateCheck: 'ds-bot:update-check', updateInstall: 'ds-bot:update-install', updateChanged: 'ds-bot:update-changed',
 }
 const MOVE_PROBLEMS = { drive: 'moveDrive', nested: 'moveNested', workspace: 'moveWorkspace', program: 'inProgram', notEmpty: 'moveNotEmpty' }
 const UPDATE_CHECK_WAIT_MS = 15_000
@@ -125,6 +126,10 @@ async function start() {
   ready.catch(fail)
   // A throwaway run (DS_BOT_HOME) keeps its folders where it was told.
   const fixed = Boolean(process.env.DS_BOT_HOME)
+  // DSH Bot patch: Settings > About drives the app's own updater.
+  ipcMain.handle(IPC.updateState, (event) => { assertWindow(event); return updates?.state?.() ?? { phase: 'unsupported', current: app.getVersion(), reason: updateUnsupported() } })
+  ipcMain.handle(IPC.updateCheck, async (event) => { assertWindow(event); if (!updates?.check) return { phase: 'unsupported', current: app.getVersion(), reason: updateUnsupported() }; await updates.check(); return updates.state() })
+  ipcMain.handle(IPC.updateInstall, async (event) => { assertWindow(event); if (updates?.state?.().phase === 'downloaded') await updates.install() })
   ipcMain.handle(IPC.dataLocation, (event) => {
     assertWindow(event)
     return { path: places.dataDir, fixed }
@@ -164,14 +169,14 @@ async function start() {
 // without the copied Sessions' folders, so the old team's folders are not offered as projects.
 // Before that, the app's own DSH reads every chat of the team once: a newer DSH can write
 // records that this one refuses while the log format stays the same. Such a chat stops the
-// copy, as a newer log format does; 'quit' means the user updates DeepSeek Bot first, and
+// copy, as a newer log format does; 'quit' means the user updates DSH Bot first, and
 // 'stopped' that the app quit during the copy.
 async function copyTeam(where, newHost, newCheck, signal) {
   const unreadable = await checkTeam(where, newCheck, signal)
   if (signal.aborted) return 'stopped'
   if (unreadable > 0) {
     const t = text()
-    const { response } = await dialog.showMessageBox({ type: 'warning', title: 'DeepSeek Bot', noLink: true, message: t.newer(unreadable), buttons: [t.quit, t.startEmpty], defaultId: 0, cancelId: 0, signal })
+    const { response } = await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', noLink: true, message: t.newer(unreadable), buttons: [t.quit, t.startEmpty], defaultId: 0, cancelId: 0, signal })
     if (signal.aborted) return 'stopped'
     if (response === 0) return 'quit'
     saveLocations(where)
@@ -188,11 +193,11 @@ async function copyTeam(where, newHost, newCheck, signal) {
     await warm.stop()
     host = undefined
     const summary = await importTeam({ ...where.import, to: where.dataDir, workspace: where.workspace, dsh: getDshRuntimeVersion(), signal })
-    console.log(`DeepSeek Bot: copied ${String(summary.bots)} Bots and ${String(summary.sessions)} Sessions from ${summary.from}`)
+    console.log(`DSH Bot: copied ${String(summary.bots)} Bots and ${String(summary.sessions)} Sessions from ${summary.from}`)
   } catch (error) {
     if (signal.aborted) return 'stopped'
     console.error(error)
-    await dialog.showMessageBox({ type: 'warning', title: 'DeepSeek Bot', message: text().failed(error instanceof Error ? error.message : String(error)), signal })
+    await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', message: text().failed(error instanceof Error ? error.message : String(error)), signal })
     if (signal.aborted) return 'stopped'
   } finally {
     signal.removeEventListener('abort', stopWarm)
@@ -222,14 +227,14 @@ async function checkTeam(where, newCheck, signal) {
     try {
       signal.throwIfAborted()
       const { unreadable } = await check.start()
-      if (unreadable.length > 0) console.warn(`DeepSeek Bot: this DSH cannot read ${unreadable.join(', ')}`)
+      if (unreadable.length > 0) console.warn(`DSH Bot: this DSH cannot read ${unreadable.join(', ')}`)
       return unreadable.length
     } finally {
       signal.removeEventListener('abort', stop)
       await check.stop()
     }
   } catch (error) {
-    if (!signal.aborted) console.error('DeepSeek Bot: the chats were not checked before the copy:', error)
+    if (!signal.aborted) console.error('DSH Bot: the chats were not checked before the copy:', error)
     return 0
   } finally {
     mainWindow?.setProgressBar(-1)
@@ -252,13 +257,13 @@ async function moveData(workspace) {
     for (const current of new Set([workspace, places.workspace])) {
       const problem = moveProblem({ from: places.dataDir, to, workspace: current, dshHome, program: app.isPackaged ? programFolder() : undefined })
       if (problem === undefined) continue
-      await dialog.showMessageBox(owner, { type: 'warning', title: 'DeepSeek Bot', message: problem === 'dsh' ? t.inDsh(dshHome) : t[MOVE_PROBLEMS[problem]], buttons: ['OK'] })
+      await dialog.showMessageBox(owner, { type: 'warning', title: 'DSH Bot', message: problem === 'dsh' ? t.inDsh(dshHome) : t[MOVE_PROBLEMS[problem]], buttons: ['OK'] })
       return true
     }
     return false
   }
   if (await refused()) return false
-  const { response } = await dialog.showMessageBox(owner, { type: 'question', title: 'DeepSeek Bot', noLink: true, message: t.moveConfirm(to), detail: t.moveDetail(places.dataDir), buttons: [t.move, t.cancel], defaultId: 0, cancelId: 1 })
+  const { response } = await dialog.showMessageBox(owner, { type: 'question', title: 'DSH Bot', noLink: true, message: t.moveConfirm(to), detail: t.moveDetail(places.dataDir), buttons: [t.move, t.cancel], defaultId: 0, cancelId: 1 })
   if (response !== 0 || stopping || await refused()) return false
   const signal = copyAbort.signal
   copying = (async () => {
@@ -272,7 +277,7 @@ async function moveData(workspace) {
     }
     // Another DSH on the same data would go on writing while the copy is made.
     if (teamInUse(places.dataDir)) {
-      await dialog.showMessageBox({ type: 'warning', title: 'DeepSeek Bot', message: t.moveInUse })
+      await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', message: t.moveInUse })
       app.relaunch()
       return
     }
@@ -289,7 +294,7 @@ async function moveData(workspace) {
     } catch (error) {
       if (signal.aborted) return
       console.error(error)
-      await dialog.showMessageBox({ type: 'warning', title: 'DeepSeek Bot', message: t.moveFailed(error instanceof Error ? error.message : String(error)) })
+      await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', message: t.moveFailed(error instanceof Error ? error.message : String(error)) })
     } finally {
       mainWindow?.setProgressBar(-1)
     }
@@ -315,17 +320,31 @@ function startUpdates() {
       current: app.getVersion(), arch: process.arch, feed, ask: throwaway ? undefined : askDownload, open: url => shell.openExternal(url),
     })
   }
-  if (process.platform === 'win32') {
-    return watchUpdates({ updater: electronUpdater.autoUpdater, feed, ask: throwaway ? undefined : askRestart, beforeInstall: stopHost })
+  // DSH Bot patch: the Linux AppImage updates itself in place too.
+  if ((process.platform === 'win32' && !process.env.PORTABLE_EXECUTABLE_DIR) || (process.platform === 'linux' && process.env.APPIMAGE)) {
+    // DSH Bot releases are GitHub pre-releases, which /releases/latest skips.
+    electronUpdater.autoUpdater.allowPrerelease = true
+    return watchUpdates({
+      updater: electronUpdater.autoUpdater, feed, ask: throwaway ? undefined : askRestart, beforeInstall: stopHost,
+      onState: (state) => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.updateChanged, state) },
+    })
   }
   return undefined
+}
+
+function updateUnsupported() {
+  if (!app.isPackaged) return 'dev'
+  if (process.platform === 'win32' && process.env.PORTABLE_EXECUTABLE_DIR) return 'portable'
+  if (process.platform === 'linux' && !process.env.APPIMAGE) return 'package'
+  if (process.platform === 'darwin') return 'mac'
+  return 'off'
 }
 
 async function askRestart(version) {
   // After a failed start, fail() installs the update itself.
   if (failed) return false
   const t = localeText(UPDATE_TEXT)
-  const options = { type: 'info', title: 'DeepSeek Bot', message: t.ready(version), detail: t.readyDetail, buttons: [t.restart, t.later], defaultId: 0, cancelId: 1, noLink: true }
+  const options = { type: 'info', title: 'DSH Bot', message: t.ready(version), detail: t.readyDetail, buttons: [t.restart, t.later], defaultId: 0, cancelId: 1, noLink: true }
   const { response } = await (mainWindow ? dialog.showMessageBox(mainWindow, options) : dialog.showMessageBox(options))
   return response === 0
 }
@@ -333,7 +352,7 @@ async function askRestart(version) {
 async function askDownload(version) {
   if (failed) return false
   const t = localeText(UPDATE_TEXT)
-  const options = { type: 'info', title: 'DeepSeek Bot', message: t.available(version), detail: t.availableDetail, buttons: [t.download, t.later], defaultId: 0, cancelId: 1, noLink: true }
+  const options = { type: 'info', title: 'DSH Bot', message: t.available(version), detail: t.availableDetail, buttons: [t.download, t.later], defaultId: 0, cancelId: 1, noLink: true }
   const { response } = await (mainWindow ? dialog.showMessageBox(mainWindow, options) : dialog.showMessageBox(options))
   return response === 0
 }
@@ -343,7 +362,7 @@ function createWindow() {
   const win32 = process.platform === 'win32'
   mainWindow = new BrowserWindow({
     width: 1320, height: 860, minWidth: 720, minHeight: 480,
-    title: 'DeepSeek Bot', show: false, icon: iconFile,
+    title: 'DSH Bot', show: false, icon: iconFile,
     backgroundColor: mica ? '#00000000' : dark ? '#1b1b1c' : '#ffffff',
     // Frameless as in DSH Desktop: the caption buttons overlay the page's band. They keep the
     // sidebar's colors until the page sends the colors of the surface under them.
@@ -417,7 +436,7 @@ function focusWindow() {
 function assertWindow(event) {
   const contents = mainWindow?.webContents
   if (contents === undefined || event.sender !== contents || event.senderFrame !== contents.mainFrame
-    || !event.senderFrame.url.startsWith(`${origin}/`)) throw new Error('DeepSeek Bot: rejected IPC from an unknown page')
+    || !event.senderFrame.url.startsWith(`${origin}/`)) throw new Error('DSH Bot: rejected IPC from an unknown page')
 }
 
 function fromWindow(event) {
@@ -437,7 +456,7 @@ async function fail(error) {
   const throwaway = Boolean(process.env.DS_BOT_HOME)
   const t = localeText(UPDATE_TEXT)
   const next = found ? `\n\n${found.page ? t.onFailurePage(found.version) : t.onFailure(found.version)}` : ''
-  dialog.showErrorBox('DeepSeek Bot', `${text().notStarted}\n\n${error instanceof Error ? error.message : String(error)}${next}`)
+  dialog.showErrorBox('DSH Bot', `${text().notStarted}\n\n${error instanceof Error ? error.message : String(error)}${next}`)
   if (found?.page) {
     if (!throwaway) await shell.openExternal(found.page)
     app.quit()

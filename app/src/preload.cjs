@@ -12,6 +12,17 @@ if (host !== undefined && location.origin === host) {
     dataLocation: () => ipcRenderer.invoke('ds-bot:data-location'),
     moveData: (workspace) => ipcRenderer.invoke('ds-bot:move-data', typeof workspace === 'string' ? workspace : undefined),
     teamWorkspaceChanged: (path) => { ipcRenderer.send('ds-bot:team-workspace', String(path)) },
+    // DSH Bot patch: the app's own updater, for Settings > About.
+    updates: {
+      state: () => ipcRenderer.invoke('ds-bot:update-state'),
+      check: () => ipcRenderer.invoke('ds-bot:update-check'),
+      install: () => ipcRenderer.invoke('ds-bot:update-install'),
+      onChange: (listener) => {
+        const handler = (_event, state) => { listener(state) }
+        ipcRenderer.on('ds-bot:update-changed', handler)
+        return () => { ipcRenderer.removeListener('ds-bot:update-changed', handler) }
+      },
+    },
   })
   const caption = process.argv.find(value => value.startsWith('--ds-bot-caption='))
   if (caption !== undefined) {

@@ -1,3 +1,37 @@
+==============================================================================
+DSH Bot: a modified version of DS Bot
+==============================================================================
+
+DSH Bot (https://github.com/MoLi-MoChou/dsh-bot) is DS Bot
+(https://github.com/Fei2411/DeepSeek-Bot @ ae63b45, Apache-2.0, by Fei2411
+and the DS Bot contributors), imported unchanged and then modified. Every
+change is listed here (Apache-2.0 section 4(b)); code changes carry a
+"DSH Bot patch" comment.
+
+  1. Name: the app is "DSH Bot" (appId io.github.molimochou.dshbot, artifact
+     names DSH-Bot-*, data folders named after it, releases and links point at
+     MoLi-MoChou/dsh-bot). The sidebar, About page and Chinese copy say DSH Bot.
+  2. Slim product (ds-bot/src/client/lean.js): group chats, scheduled /
+     automation tasks, the "Add DSH Agent" entry and the classic Agent mode
+     switch are not offered (menus, settings pages, details drawer). The code
+     stays; one flag brings each back.
+  3. Work steps (ds-bot/src/client/work-process.js): DS Bot's inline thinking
+     row is replaced by one line per finished turn, "已工作 Xs · N 步"; it opens
+     a side panel with the turn's thinking, tool calls (input, output) and
+     replies in order.
+  4. Cards discoverable: starter chips over a fresh chat's composer
+     (ds-bot/src/client/starters.js), one prompt line that maps comparison,
+     to-do and "give me options" asks to show_view cards
+     (ds-bot/src/host/prompt.js), and matching replies in the dev mock model.
+  5. Updates: the Linux AppImage updates itself like the Windows installer;
+     releases are GitHub pre-releases (allowPrerelease); Settings > About shows
+     the app's own updater (check, download progress, restart to update) via
+     the app bridge (app/src/updates.mjs, main.mjs, preload.cjs, about.js); a
+     portable Windows exe is added and points at the releases page.
+  6. CI: .github/workflows/desktop.yml replaces release.yml (no npm publish);
+     a v* tag builds Windows + Linux, runs check-packed, and publishes a
+     pre-release with latest.yml, the .blockmap and latest-linux.yml.
+
 DS Bot
 Copyright 2026 Fei2411 and the DS Bot contributors
 

@@ -38,10 +38,59 @@ function dshHint(dsh, shown) {
   return t('Version {version}', { version: dsh.current })
 }
 
+// DSH Bot patch: the desktop app's own updater (electron-updater in the app's main
+// process): checks at launch and every few hours, downloads only the changed blocks,
+// then installs silently on restart. This row lets the user check, watch, and restart.
+const RELEASES_PAGE = 'https://github.com/MoLi-MoChou/dsh-bot/releases'
+const appBridge = () => (typeof window === 'undefined' ? null : window.dsBotApp?.updates ?? null)
+
+function useAppUpdate() {
+  const bridge = appBridge()
+  const [state, setState] = useState(null)
+  useEffect(() => {
+    if (!bridge) return undefined
+    let live = true
+    bridge.state().then((value) => { if (live) setState(value) }, () => {})
+    const off = bridge.onChange((value) => { if (live) setState(value) })
+    return () => { live = false; off?.() }
+  }, [bridge])
+  return [bridge, state, setState]
+}
+
+function appHint(state) {
+  if (!state) return null
+  switch (state.phase) {
+    case 'checking': return t('Checking for updates…')
+    case 'downloading': return t('Downloading {version} · {percent}%', { version: state.version ?? '', percent: Math.floor(state.percent ?? 0) })
+    case 'downloaded': return t('{version} is ready. Restart to update; nothing to reinstall.', { version: state.version })
+    case 'latest': return t('Up to date') + (state.checkedAt ? ` · ${t('Checked {time}', { time: whenText(state.checkedAt) })}` : '')
+    case 'error': return t('Could not check for updates.') + (state.error ? ` ${state.error}` : '')
+    case 'unsupported': return state.reason === 'portable' ? t('The portable exe does not update itself: download the new one from the releases page and replace this file. Your data stays.') : state.reason === 'dev' ? t('Updates work in the installed app.') : state.reason === 'package' ? t('This package updates through its package manager; the AppImage and Windows installer update themselves.') : t('Update checks are off.')
+    default: return state.current ? t('Version {version}', { version: state.current }) : null
+  }
+}
+
+function AppUpdateRow({ Row, run }) {
+  const [bridge, state, setState] = useAppUpdate()
+  if (!bridge) return null
+  const phase = state?.phase ?? 'idle'
+  const control = phase === 'downloaded'
+    ? h('button', { type: 'button', className: 'bt-fb-primary', onClick: () => run(bridge.install()) }, t('Restart to update'))
+    : phase === 'downloading'
+      ? h('span', { className: 'bt-app-progress', role: 'progressbar', 'aria-valuenow': Math.floor(state.percent ?? 0), 'aria-valuemin': 0, 'aria-valuemax': 100 },
+          h('span', { style: { width: `${Math.max(2, Math.min(100, state.percent ?? 0))}%` } }))
+      : phase === 'unsupported' ? (state.reason === 'portable' ? h('a', linkProps(RELEASES_PAGE), t('Open')) : null)
+        : h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: phase === 'checking', onClick: () => run(bridge.check().then(setState)) }, phase === 'checking' ? t('Checking…') : t('Check for updates'))
+  return h(Row, { label: 'DSH Bot', hint: appHint(state) }, control)
+}
+
 const linkProps = href => ({ className: 'bt-soft bt-soft-sm bt-about-link', href, target: '_blank', rel: 'noopener noreferrer' })
 
 export function AboutPage({ useUpdate, actions, run, Section, Row }) {
   const update = useUpdate(value => value) ?? {}
+  // DSH Bot patch: in the app, the version shown is the app's.
+  const [appVersion, setAppVersion] = useState('')
+  useEffect(() => { appBridge()?.state().then(value => setAppVersion(value?.current ?? ''), () => {}) }, [])
   const [checking, setChecking] = useState(false)
   const [stars, setStars] = useState(null)
   useEffect(() => {
@@ -85,8 +134,8 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
     h('div', { key: 'hero', className: 'bt-about-hero' },
       h('span', { className: 'bt-about-mark' }, h(BotMark, { look: MAIN_LOOK, bot: { id: 'about' }, size: 52, state: markState, live: true, gaze: true, pokeable: true })),
       h('div', { className: 'bt-about-copy' },
-        h('span', { className: 'bt-about-name' }, 'DS Bot'),
-        update.current ? h('span', { className: 'bt-about-version' }, t('Version {version}', { version: update.current })) : null),
+        h('span', { className: 'bt-about-name' }, 'DSH Bot'),
+        appVersion || update.current ? h('span', { className: 'bt-about-version' }, t('Version {version}', { version: appVersion || update.current })) : null),
       repo ? h('a', {
         className: 'bt-star', href: repo, target: '_blank', rel: 'noopener noreferrer', title: t('Star DS Bot on GitHub'),
         'aria-label': stars === null ? t('Star DS Bot on GitHub') : `${t('Star DS Bot on GitHub')} · ${t('{count} stars', { count: stars })}`,
@@ -95,7 +144,8 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
       stars === null ? null : h('span', { className: 'bt-star-count' }, starCount(stars))) : null),
     repo ? h('p', { key: 'ask', className: 'bt-about-ask' }, t('If DS Bot helps you, a star on GitHub helps more people find it.')) : null,
     h(Section, { key: 'updates', title: t('Updates') },
-      h(Row, { label: 'DS Bot', hint: botHint(update) }, botControl, update.available && update.notesUrl ? h('a', linkProps(update.notesUrl), t("What's new")) : null),
+      appBridge() ? h(AppUpdateRow, { Row, run }) : null,
+      appBridge() ? null : h(Row, { label: 'DS Bot', hint: botHint(update) }, botControl, update.available && update.notesUrl ? h('a', linkProps(update.notesUrl), t("What's new")) : null),
       dsh?.current ? h(Row, { label: 'DeepSeek Harness', hint: dshHint(dsh, dshShown) }, dshControl) : null),
     h(Section, { key: 'links', title: t('Links') },
       repo ? h(Row, { label: t('Source code'), hint: repo.replace(/^https:\/\//, '') }, h('a', linkProps(repo), h(GitHubMark), t('Open'))) : null,
@@ -105,6 +155,8 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
 }
 
 export const ABOUT_CSS = `
+.bt-app-progress{display:inline-block;width:140px;height:6px;border-radius:999px;background:var(--bt-line);overflow:hidden}
+.bt-app-progress>span{display:block;height:100%;background:var(--bt-accent);transition:width .3s}
 .bt-about-hero{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid var(--bt-line);border-radius:12px;background:var(--bt-card)}
 .bt-about-mark{flex:none;display:inline-flex;position:relative}
 .bt-about-mark::before{content:'';position:absolute;inset:-20%;border-radius:50%}

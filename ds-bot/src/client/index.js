@@ -39,6 +39,8 @@ import { USER_MESSAGE_CSS, UserMessageCell, canDrawUserMessages } from './user-m
 import { noticeApprovals } from './approval-notices.js'
 import { listedOpener } from './open-listed.js'
 
+import { PROCESS_CSS } from './work-process.js'
+import { StarterChips, STARTERS_CSS } from './starters.js'
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
 
 export function apply(ctx) {
@@ -585,6 +587,11 @@ export function apply(ctx) {
         if (snapshot === undefined) throw new Error('ds-bot: Chat target is unavailable')
         return snapshot.nodes.turnDataSource(Number(turn), 'assistant-step')
       },
+      turnTools: (turn) => {
+        const snapshot = chat.getSnapshot()
+        if (snapshot === undefined) throw new Error('ds-bot: Chat target is unavailable')
+        return snapshot.nodes.turnDataSource(Number(turn), 'tool-call')
+      },
       turnContext: (turn) => {
         const snapshot = chat.getSnapshot()
         if (snapshot === undefined) throw new Error('ds-bot: Chat target is unavailable')
@@ -646,6 +653,7 @@ export function apply(ctx) {
     () => installCompiledStyles(MEMBER_CSS, 'members'),
     () => installCompiledStyles(USER_MESSAGE_CSS, 'user-messages'),
     () => installCompiledStyles(WIDGET_CSS, 'widgets'),
+    () => installCompiledStyles(PROCESS_CSS + STARTERS_CSS, 'work-process'),
     browsers ? () => installCompiledStyles(BROWSER_CSS, 'browser') : null,
     () => installTheme(),
     () => shadow('sidebar.workspaces', { priority: BOT_PRIORITY, inject: face }, TeamSidebar),
@@ -696,6 +704,7 @@ export function apply(ctx) {
     () => shadow('conversation.input.dock', { id: 'bot-question', order: -100, inject: face }, QuestionDock),
     () => shadow('conversation.input.dock', { id: 'bot-view', order: -95, inject: face }, WidgetDock),
     () => shadow('conversation.input.dock', { id: 'bot-secret', order: -90, inject: face }, SecretDock),
+    () => shadow('conversation.input.dock', { id: 'bot-starters', order: -80, inject: face }, StarterChips),
   ]
   // The return button belongs to neither group: it renders only in Agent mode.
   ctx.effect(() => installCompiledStyles(RETURN_CSS, 'return'), 'ds-bot: return styles')
