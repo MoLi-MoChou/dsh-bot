@@ -1,9 +1,0 @@
-{
-  "name": "dsh-bot-engine",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "main": "index.js",
-  "license": "Apache-2.0",
-  "dsh": { "bundle": { "patch": ["./cordis.patch.yml"] } }
-}

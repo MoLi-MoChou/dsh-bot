@@ -1,22 +1,93 @@
-DSH Bot
-Copyright 2026 凯 章
+DS Bot
+Copyright 2026 Fei2411 and the DS Bot contributors
 
-本项目以 Apache License 2.0 发布（见 LICENSE）。
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 
-本项目包含并修改了以下第三方作品：
+==============================================================================
+Third-party code in this repository
+==============================================================================
 
-1. DeepSeek Bot（Fei2411/DeepSeek-Bot），Apache License 2.0。
-   - vendor/ds-bot/client、vendor/ds-bot/shared：原样拷贝自 ds-bot/src/client 与 ds-bot/src/shared（v0.2.0），未修改。
-   - ui/src/app.css、ui/src/locale.js、ui/src/primitives.js：拷贝自 app/ui/src 并修改（文件头已标注）。
-   - vite.config.js、host/host.mjs、engine/cordis.patch.yml、engine/index.js：参照 DS Bot 的 app/ 与 ds-bot/src/host 写成（文件头已标注）。
-   - ui/src/team.js、sidebar.js、chat.js、settings.js、models-page.js：仿照 DS Bot 的 app/ui/src 同名模块写成，沿用其 class 名与结构、并调用上面拷贝的 vendor 组件。
-   - desktop/host-port.mjs、desktop/host-process.mjs、scripts/before-pack.mjs、scripts/icon.mjs：拷贝自 DS Bot app/src 与 app/scripts（少量修改，文件头已标注）。
-   - desktop/main.mjs、electron-builder.yml、.github/workflows/desktop.yml：参照 DS Bot app/src/main.mjs、app/electron-builder.yml 与 .github/workflows/release.yml 写成。
-   - DS Bot 原始 NOTICE 见 vendor/ds-bot/NOTICE.upstream。
+DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness)
+MIT License, Copyright (c) 2026 DeepSeek
 
-2. DeepSeek Harness（deepseek-ai/deepseek-harness），MIT License，作为 npm 依赖使用，未修改。
-   桌面版的做法（Electron 自带 Node 以 RunAsNode 子进程运行 runProfile、只监听 127.0.0.1、IPC 报告就绪、单实例锁、electron-builder 打包）沿用 apps/desktop 的设计。
+  - ds-bot/dev/desktop-linux/launch.mts follows the steps of
+    apps/desktop/scripts/dev.ts in DeepSeek Harness and reuses a few of its
+    lines (the release record and the Electron launch arguments). It is a
+    developer script for screenshots on Linux and is not in the npm package.
+  - app/src/host.mjs and app/src/profile.mjs follow
+    apps/desktop-host/src/index.ts: the profile boot and the ready, fatal and
+    shutdown messages.
+  - app/src/host-process.mjs follows apps/desktop/src/host-process.ts: the
+    Host in Electron's Node mode and the shutdown escalation.
+  - app/src/main.mjs follows apps/desktop/src/main.ts for the Windows window
+    options (the caption-button overlay, its colors and the native theme). app/src/preload.cjs adapts
+    apps/desktop/src/preload-windows.ts, apps/desktop/src/preload-platform.ts
+    and apps/desktop/src/preload-theme.ts: the caption-band marks, the
+    fullscreen mark, the caption-color measure and the theme sync.
+  - app/engine/cordis.patch.yml follows the bundle patch of
+    @deepseek-ai/dsh-web-app (packages/bundle/web-app/cordis.patch.yml): the
+    transport and host-service rows and the agent-plane rows it turns off.
+    app/engine/preset-standard.patch.yml copies its standard preset
+    (presets/standard.patch.yml), including the plan-mode prompt text,
+    without the goal rows.
 
-4. Electron（MIT）与 electron-builder（MIT），作为开发依赖用于打包。
+  Full license text:
 
-3. OpenUI（thesysdev/openui，@openuidev/react-lang），MIT License，作为 npm 依赖使用，未修改。
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+
+No other third-party code is copied into this repository. At run time the
+plugin uses the @deepseek-ai/* packages of the DeepSeek Harness install it
+runs in; they are not bundled. esbuild is a build tool only. The desktop app
+in app/ installs the pinned @deepseek-ai/* packages, Electron and pnpm from
+npm; they keep their own licenses. The build of its window (app/ui) bundles,
+from npm, React and React DOM (MIT, Copyright (c) Meta Platforms, Inc. and
+affiliates), and react-markdown and remark-gfm with the packages they use
+(MIT, most of them Copyright (c) Titus Wormer; @ungap/structured-clone is ISC,
+Copyright (c) Andrea Giammarchi). Vite is a build tool only.
+
+==============================================================================
+Projects that gave us ideas (no code copied)
+==============================================================================
+
+We thank these projects for the designs they published. DS Bot learned from
+their ideas; it does not contain their code.
+
+  - AgentMemoryRepo (https://github.com/AgentMemoryRepo/agentmemoryrepo), MIT:
+    the Markdown format of Bot memory (one entry per line with [key: value]
+    metadata, a MEMORY.md index that links topic files).
+  - OpenAI Codex (https://github.com/openai/codex), Apache-2.0:
+    keeping the user's messages next to the summary in a checkpoint, and
+    message anchors for searching earlier chat.
+  - OpenMausBot (https://github.com/milind-soni/OpenMausBot), Apache-2.0:
+    group chat rounds and @mention relays between Bots.
+  - Hermes Agent (https://github.com/NousResearch/hermes-agent) and
+    Hermes Bot Mode (https://github.com/NousResearch/Hermes-Bot-Mode), MIT:
+    one Session per member per group chat, and the list of earlier user
+    messages that the plugin, not the model, writes into the handoff.
+  - OpenCode (https://github.com/sst/opencode), MIT;
+    goose (https://github.com/block/goose), Apache-2.0;
+    pi (https://github.com/badlogic/pi-mono), MIT;
+    Gemini CLI (https://github.com/google-gemini/gemini-cli), Apache-2.0:
+    when to condense a long conversation, and what a handoff note holds.
+  - obelisk (https://github.com/tommy0103/obelisk), AGPL-3.0:
+    searching a Bot's own chat with a SQLite FTS5 index ranked by BM25.
+  - DeepSeek Harness Voice Input plugin
+    (packages/experimental/client-ui-voice-input), MIT: the voice chat
+    records with the same steps (record, resample to 16 kHz mono, PCM16 WAV)
+    before it calls the plugin's speech service.
