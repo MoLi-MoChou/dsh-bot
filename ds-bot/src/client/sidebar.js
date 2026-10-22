@@ -434,14 +434,26 @@ export function holdShellShortcuts(shortcuts) {
 // the Desktop's account menu holds that seat, its first item (Settings) is the way in;
 // the Desktop on Windows and macOS takes shortcuts natively, so a synthetic key press
 // reaches the shell only where the page delivers them (the Web, Linux).
-export function openHarnessSettings() {
+export function openHarnessSettings(section) {
   // A frame first, so a Bot dialog that closes on this click leaves the modal stack.
   requestAnimationFrame(() => {
+    if (section) showShellSection(section)
     if (openShellSettings) { openShellSettings(); return }
     const desktop = document.querySelector('button[aria-haspopup="menu"][data-signed-out]')
     if (desktop) openThroughMenu(desktop)
     else pressSettingsShortcut()
   })
+}
+
+// DSH Bot patch: the shell's opener takes no section, so its nav row is clicked once the
+// dialog is up (DSH names the models page "Models" / "模型").
+const SECTION_NAMES = { models: /^(Models|模型)$/u }
+function showShellSection(section, tries = 40) {
+  const name = SECTION_NAMES[section]
+  if (!name) return
+  const row = [...document.querySelectorAll('[role=dialog] button')].find(node => name.test(node.textContent.trim()))
+  if (row) { row.click(); return }
+  if (tries > 0) setTimeout(() => showShellSection(section, tries - 1), 50)
 }
 
 // Opens one of the shell's own onboarding editors, such as the DeepSeek API key form.

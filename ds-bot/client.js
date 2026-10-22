@@ -6686,8 +6686,9 @@ function holdShellShortcuts(shortcuts) {
     if (shellShortcuts === shortcuts) shellShortcuts = null;
   };
 }
-function openHarnessSettings() {
+function openHarnessSettings(section) {
   requestAnimationFrame(() => {
+    if (section) showShellSection(section);
     if (openShellSettings) {
       openShellSettings();
       return;
@@ -6696,6 +6697,17 @@ function openHarnessSettings() {
     if (desktop) openThroughMenu(desktop);
     else pressSettingsShortcut();
   });
+}
+var SECTION_NAMES = { models: /^(Models|模型)$/u };
+function showShellSection(section, tries = 40) {
+  const name = SECTION_NAMES[section];
+  if (!name) return;
+  const row = [...document.querySelectorAll("[role=dialog] button")].find((node) => name.test(node.textContent.trim()));
+  if (row) {
+    row.click();
+    return;
+  }
+  if (tries > 0) setTimeout(() => showShellSection(section, tries - 1), 50);
 }
 function openHarnessOnboarding(id) {
   requestAnimationFrame(() => {
@@ -8257,7 +8269,7 @@ function setupChoices(actions) {
   return [
     actions.canSignIn?.() ? [t("Sign in to DeepSeek"), () => actions.signIn()] : null,
     actions.openHarnessOnboarding ? [t("Enter a DeepSeek API key"), () => actions.openHarnessOnboarding("deepseek-official")] : null,
-    actions.openHarnessSettings ? [t("Open settings to set up a custom model"), actions.openHarnessSettings] : null
+    actions.openHarnessSettings ? [t("Open settings to set up a custom model"), () => actions.openHarnessSettings("models")] : null
   ].filter(Boolean);
 }
 function DeepSeekSignIn({ useUi, actions }) {
