@@ -11,7 +11,5 @@ services:
       - "8290:8290"
     volumes:
       - ./data:/data
-    # bubblewrap needs user namespaces; without them DSH confines commands with Landlock.
-    security_opt:
-      - seccomp=unconfined
-      - apparmor=unconfined
+    # Docker's default seccomp profile blocks the user namespaces bubblewrap needs; DSH
+    # then confines the Bots' commands with Landlock instead. No extra privileges.
