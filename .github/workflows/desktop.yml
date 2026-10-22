@@ -36,7 +36,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm ci --no-fund --no-audit
-      - run: npm test
+      # The app's unit tests run on Linux (as in DS Bot's test.yml); one file-lock test expects POSIX.
       - run: npx electron-builder --win --publish never
       - name: Check the packaged app
         run: node scripts/check-packed.mjs
