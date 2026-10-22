@@ -56,8 +56,8 @@ const TEXT_RULES = [
   { id: 'third-party-logo', level: MUST, re: /WhaleLogo|favicon\.svg/g, notFiles: /(^|\/)test\// },
   { id: 'vendor-name', level: KEEP, re: new RegExp(VENDORS.source, 'gi'), notFiles: LOOK_FILES, summary: true },
   // Former names of the project and the package.
-  { id: 'old-project-name', level: MUST, re: /DSH Bot\b/g, legacyOk: true },
-  { id: 'old-package-name', level: MUST, re: /\bdsh-bot\b/g, legacyOk: true },
+  // DSH Bot patch: DS Bot's former name is this fork's name, so the two rules that kept
+  // it out are dropped.
   { id: 'legacy-name-in-migration', level: KEEP, re: /\bdsh-bot\b|DeepSeek Bot\b/gi, onlyLegacy: true, summary: true },
   // Drafts and local-only material.
   { id: 'draft-marker', level: MUST, re: /TBD\(|DRAFT for|草稿/g },
