@@ -1,7 +1,7 @@
 {
   "name": "dsh-bot",
   "productName": "DSH Bot",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "DSH Bot desktop app: a slim fork of DS Bot (Fei2411/DeepSeek-Bot) on DeepSeek Harness.",
   "author": "MoLi-MoChou",

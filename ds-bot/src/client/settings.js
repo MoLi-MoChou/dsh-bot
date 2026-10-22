@@ -65,7 +65,7 @@ function GeneralPage({ roster, actions, run }) {
           })),
           h('label', { className: 'bt-swatch bt-swatch-custom', title: t('Custom accent'), 'data-on': Boolean(prefs.accent) && !ACCENT_INKS.some(ink => INKS[ink][0] === prefs.accent) },
             h('input', { type: 'color', value: custom, 'aria-label': t('Custom accent'), onChange: event => pickCustom(event.target.value) }))))),
-    actions.setSurface ? h(SetSection, { key: 'mode', title: t('Mode') },
+    LEAN.classicMode && actions.setSurface ? h(SetSection, { key: 'mode', title: t('Mode') },
       h(SetRow, { label: t('Classic Agent mode') },
         h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => actions.setSurface('agent') }, t('Switch')))) : null,
     h(LocationsSection, { key: 'places', actions, run }),

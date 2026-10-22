@@ -12704,7 +12704,7 @@ function GeneralPage({ roster, actions, run }) {
         )
       )
     ),
-    actions.setSurface ? (0, import_react34.createElement)(
+    LEAN.classicMode && actions.setSurface ? (0, import_react34.createElement)(
       SetSection,
       { key: "mode", title: t("Mode") },
       (0, import_react34.createElement)(
