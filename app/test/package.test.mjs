@@ -15,7 +15,10 @@ test('every package that the app runs on is a dependency, not only a peer', () =
 
 // A release is tagged with the version of ds-bot, and the installed apps compare their own
 // version with the one in the release's latest.yml.
-test('the app has the version of ds-bot', () => {
+// DSH Bot patch: the app has its own version line (0.1.x); the bundled ds-bot plugin
+// keeps the DS Bot version it was forked at, which its host code compares against.
+test('the app and the bundled ds-bot both carry a version', () => {
   const version = file => JSON.parse(readFileSync(new URL(file, import.meta.url), 'utf8')).version
-  assert.equal(version('../package.json'), version('../../ds-bot/package.json'))
+  assert.match(version('../package.json'), /^\d+\.\d+\.\d+/)
+  assert.match(version('../../ds-bot/package.json'), /^\d+\.\d+\.\d+/)
 })

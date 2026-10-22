@@ -11,6 +11,7 @@ import { ModelMenu, modelOf } from './model-menu.js'
 import { FolderMenu } from './folder-menu.js'
 import { MemoryRow } from './memory-panel.js'
 import { ScheduleSummary } from './schedules.js'
+import { LEAN } from './lean.js'
 import { useGlide, useMorph } from './motion.js'
 import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.js'
 import { PermissionPicker, presetDanger, presetName } from './permission-picker.js'
@@ -276,7 +277,7 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
         roster.memory === false ? null : h(MemoryRow, { key: 'memory', owner: { id: bot.id, name: bot.name }, actions }),
         usage ? h('div', { key: 'usage' }, h('div', { className: 'bt-section-title' }, t('Usage')),
           h('div', { className: 'bt-kv' }, h('span', null, bot.name), h('span', null, usage))) : null,
-        h(ScheduleSummary, { key: 'routines', bot, actions }),
+        LEAN.schedules ? h(ScheduleSummary, { key: 'routines', bot, actions }) : null,
       ] : null,
       bot && tab === 'browser' ? h(BrowserCards, { bot, sessionId, roster, actions, useBrowserTabs, useBrowserPages }) : null)]
 }

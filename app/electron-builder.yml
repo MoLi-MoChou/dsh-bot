@@ -1,7 +1,7 @@
-appId: io.github.fei2411.deepseekbot
-productName: DeepSeek Bot
-copyright: Copyright 2026 Fei2411 and the DS Bot contributors
-artifactName: DeepSeek-Bot-${version}-${os}-${arch}.${ext}
+appId: io.github.molimochou.dshbot
+productName: DSH Bot
+copyright: Copyright 2026 Fei2411, the DS Bot contributors and DSH Bot
+artifactName: DSH-Bot-${version}-${os}-${arch}.${ext}
 directories:
   output: dist-pack
 files:
@@ -20,8 +20,16 @@ win:
   target:
     - target: nsis
       arch: [x64]
+    # DSH Bot: a portable exe as in v0.1.0. It cannot update itself (no installer to run);
+    # Settings > About points it at the release page instead.
+    - target: portable
+      arch: [x64]
   icon: assets/icon.ico
+portable:
+  artifactName: DSH-Bot-${version}-win-${arch}-portable.${ext}
 nsis:
+  # The installer the updater runs again, silently (/S), to update in place.
+  artifactName: DSH-Bot-${version}-win-${arch}-setup.${ext}
   oneClick: false
   perMachine: false
   allowElevation: false
@@ -29,6 +37,14 @@ nsis:
   include: build/installer.nsh
   installerLanguages: [zh_CN, en_US]
   multiLanguageInstaller: true
+linux:
+  # The AppImage updates itself in place (electron-updater, latest-linux.yml); the deb does not.
+  target:
+    - target: AppImage
+      arch: [x64]
+  icon: assets/icon.png
+  category: Utility
+  executableName: dsh-bot
 mac:
   # A zip, not a dmg: macOS 26 calls a downloaded unsigned dmg damaged and will not open it (#351).
   target: zip
@@ -42,5 +58,6 @@ mac:
 # so the build itself never publishes (--publish never).
 publish:
   provider: github
-  owner: Fei2411
-  repo: DeepSeek-Bot
+  owner: MoLi-MoChou
+  repo: dsh-bot
+  releaseType: prerelease

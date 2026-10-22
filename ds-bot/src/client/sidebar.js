@@ -1,4 +1,5 @@
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { LEAN } from './lean.js'
 import { createPortal } from 'react-dom'
 import { FishLogo } from './dsh-primitives.js'
 import { isMainOf } from './sources.js'
@@ -521,12 +522,12 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
     [
       [t('Usage'), GaugeIcon, () => actions.openSettings('usage')],
       [t('Connectors'), ConnectorIcon, () => actions.openConnectors()],
-      [t('Automation tasks'), ClockIcon, () => actions.selectPanel('schedules')],
+      ...(LEAN.schedules ? [[t('Automation tasks'), ClockIcon, () => actions.selectPanel('schedules')]] : []),
       [t('Bot settings'), GearIcon, () => actions.openSettings('general')],
     ],
-    [
+    ...(LEAN.classicMode ? [[
       [t('Switch to classic Agent mode'), SwitchIcon, () => actions.setSurface('agent')],
-    ],
+    ]] : []),
   ]
   return h(Fragment, null,
     h('button', { ref: button, type: 'button', className: 'bt-account', 'aria-label': t('Account'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: toggle },
@@ -602,7 +603,7 @@ export function BrandMark({ size = 24 }) {
   return h('span', { className: 'bt-brand-whale' }, h(BotMark, { look: MAIN_LOOK, size }))
 }
 export function BrandName() {
-  return h('span', { style: { fontWeight: 600, fontSize: 14 } }, 'DS Bot')
+  return h('span', { style: { fontWeight: 600, fontSize: 14 } }, 'DSH Bot')
 }
 
 // With the whale holding the settings seat, the Bot row is just the account menu

@@ -1,4 +1,5 @@
 import { createElement as h, useCallback, useEffect, useRef, useState } from 'react'
+import { LEAN } from './lean.js'
 import { ACCENT_INKS, INKS } from './inks.js'
 import { isMainOf } from './sources.js'
 import { allThemes } from './themes.js'
@@ -26,6 +27,7 @@ const capitalize = word => word[0].toUpperCase() + word.slice(1)
 // their members, and one opens on its own settings form. Usage widens the dialog.
 // Models is there only in a window without DSH's own settings, which carry the providers.
 const SETTINGS_PAGES = [['general', 'General'], ['models', 'Models'], ['bots', 'Bots'], ['groups', 'Group chats'], ['connectors', 'Connectors'], ['capabilities', 'Capabilities'], ['schedules', 'Scheduled tasks'], ['usage', 'Usage'], ['secrets', 'Secrets'], ['feedback', 'Feedback'], ['about', 'About DS Bot']]
+  .filter(([id]) => (id !== 'groups' || LEAN.groups) && (id !== 'schedules' || LEAN.schedules))
 const PAGE_ICONS = { ...SETTINGS_ICONS, models: SlidersIcon, connectors: ConnectorIcon, capabilities: PlugIcon, schedules: ClockIcon, secrets: KeyIcon, feedback: FeedbackIcon, about: InfoIcon }
 
 function SetSection({ title, className = '', children }) {
