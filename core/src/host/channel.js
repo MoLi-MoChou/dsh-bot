@@ -27,6 +27,12 @@ export function install(rt) {
 
   const ok = value => ({ ok: true, value })
   const fail = (message, code = 'bot/error') => ({ ok: false, error: { code, message, details: {} } })
+  // What the browser may see of a Bot or group: never the folder it works in.
+  const publicEntry = (entry) => {
+    if (entry === null || typeof entry !== 'object') return entry
+    const { workDir, folder, ...rest } = entry
+    return rest
+  }
   // Models come from DSH, not state.json, so a provider added in Harness settings
   // changes the view without a new revision.
   const modelsKey = () => `${rt.cachedCatalog().map(entry => `${entry.ref}${entry.needsKey ? '!' : ''}${entry.reasoning ? `:${JSON.stringify(entry.reasoning)}` : ''}`).join(',')}|${rt.cachedDefault() ?? ''}`
@@ -38,11 +44,12 @@ export function install(rt) {
     mainBotIds: state.mainBotIds,
     // `sessionId` is the Bot's current own-chat part; `parts` its earlier ones.
     // `waiting`: the Bot holds its greeting until the user picks its model.
-    bots: Object.values(state.bots).map(({ segments, kickoff, ...bot }) => ({
+    // No folder or path ever leaves the host: the app keeps each Bot's own.
+    bots: Object.values(state.bots).map(({ segments, kickoff, workDir, folder, ...bot }) => ({
       ...bot, sessionId: rt.chatOf(bot.id), parts: (segments ?? []).map(segment => segment.sessionId), ...(kickoff ? { waiting: true } : {}),
     })),
     // `parts`: the members' hidden group Sessions and their earlier segments, for usage.
-    rooms: Object.values(state.rooms).map(({ log, seen, lateRounds, sessions, segments, ...room }) => {
+    rooms: Object.values(state.rooms).map(({ log, seen, lateRounds, sessions, segments, workDir, folder, ...room }) => {
       const parts = [...Object.values(sessions ?? {}), ...Object.values(segments ?? {}).flat().map(segment => segment.sessionId)]
       const last = (log ?? []).filter(line => line.kind === undefined).at(-1)
       return { ...room, parts, ...(last ? { preview: last.who === 'User' ? last.text : `${last.who}：${last.text}` } : {}) }
@@ -81,6 +88,11 @@ export function install(rt) {
     memoryReviews: rt.memoryReviews(),
     connectors: rt.connectorsView(),
     capabilityStatuses: rt.capabilityStatusesView(),
+    // The files each Session's turns wrote, for the chat's file cards (see
+    // docs/plans/2026-10-22-chat-file-cards.md).
+    // The files each Session's turns wrote, for the chat's file cards. No folder path
+    // leaves the host: a card's path is relative to the conversation it is shown in.
+    turnFiles: Object.fromEntries(Object.entries(rt.turnFilesView?.() ?? {}).map(([id, entry]) => [id, { turns: entry.turns }])),
   })
   // What a host that only reads the team may still answer.
   // Updates change the dsh profile, not the team, so a reading host may run them too.
@@ -148,7 +160,7 @@ export function install(rt) {
           return ok(await rt.removeProvider(String(body.provider ?? '')))
         case 'duplicate-bot':
           await rt.load()
-          return ok(await rt.duplicateBot(body.id))
+          return ok(publicEntry(await rt.duplicateBot(body.id)))
         case 'set-prefs':
           await rt.load()
           await setPrefs(body)
@@ -173,10 +185,10 @@ export function install(rt) {
         // Moon Bot: the workspace file panel's Download and its card for files it cannot preview.
         case 'workspace-download':
           await rt.load()
-          return ok(await rt.workspaceDownload(body.path))
+          return ok(await rt.workspaceDownload(body.path, typeof body.sessionId === 'string' ? body.sessionId : undefined))
         case 'workspace-describe':
           await rt.load()
-          return ok(await rt.workspaceDescribe(body.path))
+          return ok(await rt.workspaceDescribe(body.path, typeof body.sessionId === 'string' ? body.sessionId : undefined))
         case 'earlier':
           await rt.load()
           return ok(await rt.earlierPage(String(body.sessionId ?? ''), body.cursor ?? undefined))
@@ -202,11 +214,11 @@ export function install(rt) {
         case 'create-bot': {
           await rt.bootstrap()
           const bot = await rt.createBot({ name: body.name, role: body.role, color: body.color, instructions: body.instructions, brief: body.brief, avatar: body.avatar, model: body.model, effort: body.effort, workDir: body.workDir })
-          return ok(bot)
+          return ok(publicEntry(bot))
         }
         case 'update-bot':
           await rt.load()
-          return ok(await rt.updateBot(body.id, body))
+          return ok(publicEntry(await rt.updateBot(body.id, body)))
         case 'delete-bot':
           await rt.load()
           await rt.deleteBot(body.id)
@@ -222,7 +234,7 @@ export function install(rt) {
           await rt.load()
           const room = await rt.createRoom({ members: Array.isArray(body.members) ? body.members : [], name: body.name, ...(typeof body.admin === 'string' ? { admin: body.admin } : {}) })
           if (body.greet === true) await rt.greetRoom(room.id).catch(error => rt.warn('ds-bot: greeting in %s failed: %s', room.name, error))
-          return ok(room)
+          return ok(publicEntry(room))
         }
         case 'update-room': {
           await rt.load()

@@ -128,14 +128,43 @@ export function install(rt) {
     const real = await Promise.all([...paths].map(path => realpath(resolve(path)).catch(() => undefined)))
     return real.filter(Boolean)
   }
-  // The real path of `path` when it lies inside one of the team's folders.
-  async function allowed(path) {
+  // The folder a conversation works in, for a file card's relative path.
+  async function sessionBase(sessionId) {
+    const agent = await rt.resolveAgent?.(sessionId).catch(() => undefined)
+    if (agent === undefined) throw Object.assign(new Error('This conversation is no longer here'), { code: 'bot/refused' })
+    const folder = rt.sessionFolder?.(agent.session)
+    const real = typeof folder === 'string' && folder !== '' ? await realpath(folder).catch(() => undefined) : undefined
+    if (real === undefined) throw Object.assign(new Error('This conversation has no folder'), { code: 'bot/refused' })
+    return real
+  }
+  // The paths a conversation's turns produced, in the saved team's own shape.
+  const producedPaths = (sessionId) => {
+    const paths = new Set()
+    for (const entry of Object.values(state.turnFiles?.[sessionId]?.turns ?? {})) {
+      const files = Array.isArray(entry) ? entry : entry?.produced ?? []
+      for (const file of files) if (typeof file?.path === 'string') paths.add(file.path)
+    }
+    return paths
+  }
+  // The real path of `path` when it lies inside one of the team's folders. With a
+  // `sessionId` the path is relative to that conversation's own folder and must be one
+  // its turns produced, which is what a chat's file cards use: one Bot's chat cannot
+  // read another's file, and nothing else in the folder is served either.
+  async function allowed(path, sessionId) {
     if (typeof path !== 'string' || path === '') throw Object.assign(new Error('No file named'), { code: 'bot/invalid' })
-    const real = await realpath(resolve(path)).catch(() => undefined)
+    const base = typeof sessionId === 'string' && sessionId !== '' ? await sessionBase(sessionId) : undefined
+    const real = await realpath(base === undefined ? resolve(path) : resolve(base, path)).catch(() => undefined)
     if (real === undefined) throw Object.assign(new Error('This file no longer exists'), { code: 'bot/refused' })
+    if (base !== undefined) {
+      if (!isInside(base, real)) throw Object.assign(new Error('Only files in this conversation\'s folder can be downloaded'), { code: 'bot/refused' })
+      if (!producedPaths(sessionId).has(relative(base, real).split(sep).join('/'))) {
+        throw Object.assign(new Error('This file is not one this conversation produced'), { code: 'bot/refused' })
+      }
+      return real
+    }
     if (!(await roots()).some(root => isInside(root, real))) throw Object.assign(new Error('Only files in the team\'s folders can be downloaded'), { code: 'bot/refused' })
     return real
   }
-  rt.workspaceDownload = async path => readForDownload(await allowed(path))
-  rt.workspaceDescribe = async path => describe(await allowed(path))
+  rt.workspaceDownload = async (path, sessionId) => readForDownload(await allowed(path, sessionId))
+  rt.workspaceDescribe = async (path, sessionId) => describe(await allowed(path, sessionId))
 }

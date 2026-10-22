@@ -47,7 +47,7 @@ export function install(rt) {
       `members: ${members.join(', ')}`,
       room.mode === 'admin' && room.admin ? 'plain messages go to the admin first' : 'every member replies in turn',
       room.notice ? `notice: ${room.notice.split('\n')[0].slice(0, 100)}` : '',
-      room.workDir ? `members work in ${room.workDir} here` : '',
+      room.workDir ? 'members work in a folder the user set for this group' : '',
       room.permission ? `members work with the ${room.permission} permissions here` : '',
     ].filter(Boolean)
     return `- "${room.name}" — ${parts.join('; ')}`
@@ -65,7 +65,7 @@ export function install(rt) {
       const self = rt.selfOf(exec.agent?.id)
       const lines = Object.values(state.bots).map(bot => {
         const model = bot.appliedModel ?? bot.model
-        const tags = [bot.role, model ? `model ${model}` : '', bot.workDir ? `works in ${bot.workDir}` : '', rt.isMain(bot.id) ? 'Main Bot' : '', bot.id === self ? 'you' : ''].filter(Boolean).join(', ')
+        const tags = [bot.role, model ? `model ${model}` : '', rt.isMain(bot.id) ? 'Main Bot' : '', bot.id === self ? 'you' : ''].filter(Boolean).join(', ')
         const job = bot.instructions ? ` — ${bot.instructions.split('\n')[0].slice(0, 120)}` : ''
         const now = bot.id === self ? '' : `\n  now: ${rt.statusOf(bot.id)}`
         return `- ${bot.name}${tags ? ` (${tags})` : ''}${job}${now}`
@@ -277,7 +277,7 @@ export function install(rt) {
         const served = creator?.model && (await rt.catalog()).some(entry => entry.ref === creator.model)
         const model = args.model || (served ? creator.model : undefined)
         const bot = await rt.createBot({ ...args, avatar: avatar === undefined ? undefined : { image: avatar }, model, workDir, effort: args.effort, createdBy: creator?.id })
-        return `Created ${bot.name}${workDir ? `, working in ${workDir}` : ''}. It is greeting the user now.`
+        return `Created ${bot.name}. It is greeting the user now.`
       } catch (error) {
         return `Could not create the Bot: ${error.message}`
       }
@@ -323,8 +323,7 @@ export function install(rt) {
         const avatar = image === undefined ? undefined : { ...rt.botOf(bot.id)?.avatar, image }
         const next = await rt.updateBot(bot.id, { name: newName, role, instructions, color, ...(avatar !== undefined ? { avatar } : {}), ...(model ? { model } : {}), ...(effort === undefined ? {} : { effort }), ...(moving ? { workDir: workDir ?? '' } : {}) })
         if (!moving) return `Updated ${next.name}.`
-        const folder = workDir ?? 'the team workspace'
-        return bot.id === caller.id ? `Updated ${next.name}. From your next step on, you work in ${folder}.` : `Updated ${next.name}. It now works in ${folder}.`
+        return bot.id === caller.id ? `Updated ${next.name}. From your next step on, you work in your new folder.` : `Updated ${next.name}. It now works in its new folder.`
       } catch (error) {
         return `Could not update the Bot: ${error.message}`
       }
@@ -347,7 +346,7 @@ export function install(rt) {
     const home = rt.workDirOf({ botId: bot.id, roomId: room?.id }) ?? rt.teamFolder()
     const target = await rt.folderAt(rt.sessionFolder(session), cd)
     if (target === undefined || !(await rt.isFolder(target)) || home === undefined || within(target, await rt.real(home))) return next()
-    if (room?.workDir) throw new Error(`Every member of "${room.name}" works in ${room.workDir} here, so you stay inside it. The user or a Main Bot can change the group's folder.`)
+    if (room?.workDir) throw new Error(`Every member of "${room.name}" works in the folder the user set for this group, so you stay inside it. The user or a Main Bot can change the group's folder.`)
     const readOnly = rt.readOnly()
     if (readOnly !== undefined) throw new Error(`Your working folder cannot change now: ${readOnly}`)
     // Saved folders are trimmed like typed ones, so such a name would save another folder.

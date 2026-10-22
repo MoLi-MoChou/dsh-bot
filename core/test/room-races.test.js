@@ -108,7 +108,7 @@ test('a change that waits for its folder keeps the member another change added m
   const adding = rt.updateRoom('r1', { add: ['d'] })
   const [moved, added] = await Promise.all([moving, adding])
   assert.deepEqual(added.changes, ['added Tester'])
-  assert.deepEqual(moved.changes, ['added Coder', `every member now works in ${folder} here`])
+  assert.deepEqual(moved.changes, ['added Coder', 'every member now works in a folder the user set'])
   assert.deepEqual(saved().rooms.r1.members, ['a', 'b', 'd', 'c'])
 })
 
@@ -118,7 +118,7 @@ test('a Bot deleted while a change waits for its folder is not added back', asyn
   const moving = rt.updateRoom('r1', { add: ['c'], workDir: folder })
   const deleting = rt.deleteBot('c')
   const [moved] = await Promise.all([moving, deleting])
-  assert.deepEqual(moved.changes, [`every member now works in ${folder} here`])
+  assert.deepEqual(moved.changes, ['every member now works in a folder the user set'])
   assert.deepEqual(saved().rooms.r1.members, ['a', 'b'])
 })
 
