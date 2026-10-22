@@ -17,6 +17,8 @@ DSH_HOME=~/.dsh-bot npm run host        # 打开 http://127.0.0.1:8787
 - **DeepSeek 官方**：填 API key，模型已预置（deepseek-chat / deepseek-reasoner）。
 - **OpenAI 兼容**：填接口地址（如 `https://xxx/v1`）、协议和 key，点“从接口获取模型列表”勾选模型；也可以手动输入模型 ID。
 
+对话里输入栏右侧可以给单个对话换模型（默认跟随全局默认）。记忆由 bot 用 memory_write 工具直接写入，不弹审批。
+
 每个模型可以标“思考”“图片”。“测试连接”会发一次 1 token 的真实请求。可以保存多个配置档，并选一个作为默认模型。配置写进 DSH 的 profile 补丁（`$DSH_HOME/profiles/dsh-bot/cordis.patch.yml`），key 存进 DSH 凭据库，不会以明文回显。
 
 可选环境变量：`DSH_BOT_HOST`（默认 127.0.0.1）、`DSH_BOT_DEBUG=1`。
@@ -26,5 +28,5 @@ DSH_HOME=~/.dsh-bot npm run host        # 打开 http://127.0.0.1:8787
 ```bash
 npm run mock                            # :4010 的 OpenAI 兼容模拟模型，key 为 sk-mock
 DSH_HOME=/tmp/dsh-e2e npm run host
-node scripts/shots-v1.mjs               # 全流程 e2e，截图到 ../screens/v1-*.png
+node scripts/shots.mjs                  # 全流程 e2e，截图到 ../screens/v2-*.png（SHOT_PREFIX 可改）
 ```
