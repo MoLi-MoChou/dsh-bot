@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { currentPart } from './text.js'
+import { currentPart, formatTokens } from './text.js'
 import { CheckIcon, SlidersIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { KeyIcon, MaskedInput } from './secret-card.js'
@@ -135,6 +135,38 @@ export function useAnchoredMenu() {
   return { isOpen: place !== null, shownPlace, leaving, button, menu, open, close }
 }
 
+// DSH Bot: how much of the model's context the Bot's chat uses, as a ring and a line at
+// the top of its model menu (after open-claude-ui's token gauge, MIT).
+export function contextOf(values) {
+  const pressure = values?.contextPressure
+  const used = pressure?.projectedTokens ?? pressure?.pressureTokens
+  if (!Number.isFinite(used) || !(pressure?.contextWindow > 0)) return undefined
+  return { used, total: pressure.contextWindow, ratio: Math.min(1, used / pressure.contextWindow) }
+}
+
+function ContextGauge({ context }) {
+  const r = 7
+  const length = 2 * Math.PI * r
+  const tone = context.ratio >= 0.9 ? 'high' : context.ratio >= 0.7 ? 'mid' : 'low'
+  return h('div', { className: 'bt-ctx', 'data-tone': tone, role: 'status', title: t('{used} of {total} tokens of context in use', { used: formatTokens(context.used), total: formatTokens(context.total) }) },
+    h('svg', { width: 18, height: 18, viewBox: '0 0 18 18', 'aria-hidden': true },
+      h('circle', { cx: 9, cy: 9, r, fill: 'none', stroke: 'currentColor', strokeOpacity: 0.15, strokeWidth: 2 }),
+      h('circle', { className: 'bt-ctx-arc', cx: 9, cy: 9, r, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeDasharray: length, strokeDashoffset: length * (1 - context.ratio), transform: 'rotate(-90 9 9)' })),
+    h('span', null, t('Context {percent}%', { percent: Math.round(context.ratio * 100) })),
+    h('span', { className: 'bt-ctx-n' }, `${formatTokens(context.used)} / ${formatTokens(context.total)}`))
+}
+
+function useContext(botId, isOpen, actions) {
+  const [context, setContext] = useState(undefined)
+  useEffect(() => {
+    if (!isOpen || !actions?.runStats || !botId || botId === 'new-bot') return undefined
+    let live = true
+    actions.runStats(botId).then(values => { if (live) setContext(contextOf(values)) }, () => {})
+    return () => { live = false }
+  }, [botId, isOpen])
+  return context
+}
+
 // The trigger shows the model name over its provider. A Thinking section lists the
 // levels of the shown model when it has them.
 // `onPick`/`onPickEffort` replace saving to the Bot, for a Bot that does not exist yet.
@@ -144,6 +176,7 @@ export function ModelMenu({ bot, roster, actions, run, wide = false, onPick, onP
   const current = bot.model ?? bot.appliedModel
   const served = servedOf(roster, current)
   const reasoning = useEfforts(served, current, actions)
+  const context = useContext(bot.id, isOpen, actions)
   // The level the Bot runs on: its pick when the model serves it, else the model's own.
   const picked = reasoning?.efforts?.some(effort => effort.id === bot.effort) ? bot.effort : undefined
   const currentEffort = picked ?? reasoning?.defaultEffort
@@ -181,6 +214,8 @@ export function ModelMenu({ bot, roster, actions, run, wide = false, onPick, onP
         : t('{provider} · not available', { provider: shown.provider })) : null),
     h(Caret)),
     shownPlace ? createPortal(h('div', { ref: menu, className: `bt-menu bt-model-menu${shownPlace.bottom !== undefined ? ' bt-menu-up' : ''}`, role: 'menu', 'aria-label': t('Model for {name}', { name: bot.name }), style: shownPlace, 'data-leaving': leaving || undefined },
+      context ? h(ContextGauge, { context }) : null,
+      context ? h('div', { className: 'bt-menu-sep', role: 'separator' }) : null,
       models.length > 0 ? h(ModelRows, { roster, current, onPick: pick })
         : h('div', { className: 'bt-model-none' }, t('No models are set up in DeepSeek Harness yet.')),
       effortRows(reasoning).length > 0 ? h(EffortRows, { reasoning, current: picked, onPick: pickEffort }) : null,
@@ -310,6 +345,12 @@ function SignInHost({ entry, actions }) {
 }
 
 export const MODEL_CSS = `
+.bt-ctx{display:flex;align-items:center;gap:8px;padding:8px 10px 6px;font-size:12.5px;color:var(--bt-ink-2);font-variant-numeric:tabular-nums}
+.bt-ctx svg{flex:none;color:var(--bt-accent)}
+.bt-ctx[data-tone=mid] svg{color:var(--bt-warn)}
+.bt-ctx[data-tone=high] svg{color:var(--bt-danger)}
+.bt-ctx-arc{transition:stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1)}
+.bt-ctx-n{margin-left:auto;color:var(--bt-ink-3)}
 .bt-model-trigger{display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;height:auto;min-height:32px;padding:4px 8px 4px 10px;border:0;border-radius:8px;background:var(--bt-hover);color:var(--bt-ink);font:inherit;text-align:left;cursor:pointer;transition:background-color .12s ease}
 .bt-model-trigger:hover,.bt-model-trigger[aria-expanded=true]{background:var(--bt-active)}
 .bt-model-trigger:focus-visible{outline:2px solid var(--bt-accent);outline-offset:1px}

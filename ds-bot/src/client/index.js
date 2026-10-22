@@ -39,6 +39,7 @@ import { MEMBER_CSS, MemberDock } from './member-status.js'
 import { USER_MESSAGE_CSS, UserMessageCell, canDrawUserMessages } from './user-message.js'
 import { noticeApprovals } from './approval-notices.js'
 import { addAlwaysAllow } from './approval-always.js'
+import { installImeGuard } from './ime-guard.js'
 import { listedOpener } from './open-listed.js'
 
 import { PROCESS_CSS } from './work-process.js'
@@ -48,6 +49,7 @@ export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'th
 
 export function apply(ctx) {
   quietShellOnboarding()
+  installImeGuard()
   relabelShellVersion(typeof __DSH_BOT_VERSION__ === 'string' ? __DSH_BOT_VERSION__ : '')
   ctx.effect(() => installLocale(ctx.get('locale')), 'ds-bot: interface copy')
   const roster = createSource(EMPTY_ROSTER)

@@ -1,3 +1,5 @@
+import { STORAGE } from './storage.js'
+import { framerMotion } from './vendor/framer-motion.js'
 import { noteSignInAsked } from './shell-quiet.js'
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { LEAN } from './lean.js'
@@ -245,6 +247,19 @@ function useListGlide(listRef, layout, key) {
   }, [layout, key])
 }
 
+// DSH Bot: the list sorts by recent activity until the user drags a row; then the
+// dragged order holds (pinned rows still first, new rows on top). Saved per browser.
+const readOrder = () => {
+  try { const value = JSON.parse(localStorage.getItem(STORAGE.sidebarOrder) ?? 'null'); return Array.isArray(value) ? value : null } catch { return null }
+}
+const saveOrder = (ids) => { try { localStorage.setItem(STORAGE.sidebarOrder, JSON.stringify(ids)) } catch {} }
+export function manualSort(entries, manual) {
+  if (!manual) return entries
+  const index = new Map(manual.map((id, at) => [id, at]))
+  return [...entries].sort((a, b) => Number(Boolean(b.item.pinned)) - Number(Boolean(a.item.pinned))
+    || (index.get(a.item.id) ?? -1) - (index.get(b.item.id) ?? -1))
+}
+
 export function TeamSidebar(props) {
   const { wide, expandSidebar, useRoster, useUi, useSessions, actions } = props
   const listRef = useRef(null)
@@ -268,8 +283,13 @@ export function TeamSidebar(props) {
     ]
     return entries.sort((a, b) => Number(Boolean(b.item.pinned)) - Number(Boolean(a.item.pinned)) || b.at - a.at)
   }, [roster, updated])
+  const [manual, setManual] = useState(readOrder)
+  const shown = useMemo(() => manualSort(order, manual), [order, manual])
+  const dragging = useRef(false)
+  const reorder = (ids) => { dragging.current = true; setManual(ids) }
+  const dropped = () => { saveOrder(shown.map(entry => entry.item.id)); setTimeout(() => { dragging.current = false }, 0) }
   const main = roster.byId[roster.mainBotId]
-  useListGlide(listRef, wide, order.map(entry => entry.item.id).join(','))
+  useListGlide(listRef, wide && !dragging.current, shown.map(entry => entry.item.id).join(','))
   useLandOnMainBot(roster, useSessions, actions)
   // The shell keeps wide content during its collapse fade. Normalize through its
   // public expansion action before toggling; coalesce synchronous activations
@@ -311,11 +331,22 @@ export function TeamSidebar(props) {
     wide && roster.readOnly ? h('div', { className: 'bt-hint bt-read-only', role: 'status' }, hostText(roster.readOnly)) : null,
     h('div', { ref: listRef, className: 'bt-list', role: 'region', 'aria-label': t('Bot list') },
       main ? h(BotRow, { ...rowProps, bot: main, marked: markedUnread[main.id] === true }) : roster.ready ? null : h('div', { className: 'bt-hint' }, t('Setting up your Main Bot…')),
-      order.map(entry => (entry.kind === 'bot'
-        ? h(BotRow, { key: entry.item.id, ...rowProps, bot: entry.item, marked: markedUnread[entry.item.id] === true })
-        : entry.kind === 'room'
-          ? h(RoomRow, { key: entry.item.id, ...rowProps, room: entry.item, marked: markedUnread[entry.item.id] === true })
-          : h(AgentRow, { key: entry.item.id, ...rowProps, agent: entry.item, marked: markedUnread[entry.item.id] === true })))))
+      h(ReorderList, { shown, wide, reorder, dropped, dragging, render: entry => entry.kind === 'bot'
+          ? h(BotRow, { ...rowProps, bot: entry.item, marked: markedUnread[entry.item.id] === true })
+          : entry.kind === 'room'
+            ? h(RoomRow, { ...rowProps, room: entry.item, marked: markedUnread[entry.item.id] === true })
+            : h(AgentRow, { ...rowProps, agent: entry.item, marked: markedUnread[entry.item.id] === true }) })))
+}
+function ReorderList({ shown, wide, reorder, dropped, dragging, render }) {
+  const Reorder = framerMotion()?.Reorder
+  if (!Reorder) return h(Fragment, null, shown.map(entry => h(Fragment, { key: entry.item.id }, render(entry))))
+  return h(Reorder.Group, { as: 'div', axis: 'y', values: shown.map(entry => entry.item.id), onReorder: reorder, className: 'bt-reorder' },
+        shown.map(entry => h(Reorder.Item, {
+          key: entry.item.id, value: entry.item.id, as: 'div', className: 'bt-reorder-item',
+          dragListener: wide, onDragEnd: dropped,
+          whileDrag: { scale: 1.02, boxShadow: '0 6px 18px rgba(0,0,0,.12)', zIndex: 5 },
+          onClickCapture: (event) => { if (dragging.current) { event.stopPropagation(); event.preventDefault() } },
+        }, render(entry))))
 }
 
 // The update button at the sidebar's top right: a cloud while a newer DS Bot —
@@ -645,6 +676,9 @@ export const SIDEBAR_CSS = `
 @keyframes bt-update-in{from{opacity:0;transform:scale(.6);filter:blur(4px)}}
 .bt-update[data-phase=installing] .bt-cloud-arrow{animation:bt-cloud-drop 1.1s cubic-bezier(.45,0,.55,1) infinite}
 @keyframes bt-cloud-drop{0%{transform:translateY(-3px);opacity:0}35%{opacity:1}70%{transform:translateY(1px);opacity:1}100%{transform:translateY(2px);opacity:0}}
+.bt-reorder{display:contents}
+.bt-reorder-item{position:relative;border-radius:10px;background:transparent;touch-action:pan-y}
+.bt-reorder-item:active{cursor:grabbing}
 .bt-update-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#E5484D;box-shadow:0 0 0 1.5px var(--bt-sidebar)}
 .bt-update-pop{position:fixed;z-index:60;width:280px;padding:14px 14px 12px;border-radius:14px;background:var(--bt-main);border:.5px solid var(--bt-line-2);box-shadow:0 10px 20px -3px rgba(0,0,0,.1),0 4px 6px -4px rgba(0,0,0,.1);color:var(--bt-ink);box-sizing:border-box;transform-origin:top left;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;animation:bt-update-pop ${SPRING_SHAPE.duration}ms ${SPRING_SHAPE.easing}}
 @keyframes bt-update-pop{from{opacity:0;transform:scale(.96);filter:blur(4px)}}

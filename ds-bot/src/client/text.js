@@ -235,7 +235,7 @@ export function previewOf(list, id, hiddenTurns = []) {
   return ''
 }
 
-const formatTokens = count => (count >= 1e6 ? `${(count / 1e6).toFixed(1)}M` : count >= 1e3 ? `${(count / 1e3).toFixed(1)}K` : String(count))
+export const formatTokens = count => (count >= 1e6 ? `${(count / 1e6).toFixed(1)}M` : count >= 1e3 ? `${(count / 1e3).toFixed(1)}K` : String(count))
 
 // Same buckets as the shell's usage pill: every prompt-side billing bucket plus output.
 export function usageOf(list, ids) {

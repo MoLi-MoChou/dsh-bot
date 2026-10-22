@@ -55,6 +55,9 @@ change is listed here (Apache-2.0 section 4(b)); code changes carry a
      DSH_BOT_SANDBOX=1 keeps the sandbox.
  12. About lists "基于 DS Bot" with a link to the upstream project. The dev mock
      model answers "提权" in a Bot's own chat with a full-access shell request.
+ 13. Web mode (app/src/web.mjs): the same UI served by the Node host behind a
+     password page, `npm run web` and a Dockerfile. Themes are DeepSeek, Claude
+     and Grok Bot (light and dark). Motion and chat details follow open-claude-ui.
 
 DS Bot
 Copyright 2026 Fei2411 and the DS Bot contributors
@@ -108,6 +111,30 @@ MIT License, Copyright (c) 2026 DeepSeek
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
+
+open-claude-ui (https://github.com/Caho1/open-claude-ui)
+MIT License, Copyright (c) 2026 Caho1
+
+  - ds-bot/src/client/ime-guard.js follows code-examples/ChatComposer.tsx and
+    RichComposerWithMentions.tsx: the isComposing / keyCode 229 Enter guard and
+    the stray Enter after compositionend.
+  - The thinking dots (styles.js), the context ring in the model menu
+    (model-menu.js, after ModelSwitcherWithTokenGauge.tsx), the scroll-edge
+    fade (styles.js, after ScrollFadeContainer.tsx), the 0fr to 1fr fold of the
+    work line (work-process.js, after ThinkingAccordion.tsx), drag to reorder
+    in the sidebar (sidebar.js, after DraggableSessionList.tsx) and the retry
+    countdown (retry-cell.js, after useRateLimitBackoff.ts) adapt their code.
+  - The "Claude" theme in ds-bot/src/client/themes.js takes its colors, surface
+    ladder and radii from code-examples/cds-theme.css. No logos or marks.
+
+  The MIT license text above applies, with this copyright notice.
+
+framer-motion (https://github.com/motiondivision/motion)
+MIT License, Copyright (c) 2018 Framer B.V.
+
+  - ds-bot/src/client/vendor/framer-motion.js is a tree-shaken bundle of
+    framer-motion 12 (motion, AnimatePresence, Reorder), made by
+    ds-bot/scripts/build-vendor.mjs. The MIT license text above applies.
 
 No other third-party code is copied into this repository. At run time the
 plugin uses the @deepseek-ai/* packages of the DeepSeek Harness install it

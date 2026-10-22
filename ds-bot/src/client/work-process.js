@@ -8,6 +8,7 @@ import { contentText, toolName, elapsedLabel } from './text.js'
 import { callTree } from './cells.js'
 import { t } from './i18n.js'
 import { useTurnRetries } from './retry-cell.js'
+import { framerMotion } from './vendor/framer-motion.js'
 
 // Steps carry no seq; both carry the time they began, which orders them.
 const seqOf = item => item?.time ?? item?.root?.time ?? item?.finalNode?.seq ?? item?.seq ?? item?.root?.seq ?? 0
@@ -26,24 +27,48 @@ export function processCount(steps, tools) {
   return thoughts + turnCalls(tools).length
 }
 
+// One line per step, for the fold under the work line.
+function summaryRows(steps, tools, retries) {
+  const rows = []
+  for (const step of steps ?? []) {
+    for (const block of step?.blocks ?? []) {
+      const text = String(block?.text ?? '').trim()
+      if (block?.kind === 'reasoning' && text) rows.push({ seq: seqOf(step), kind: 'reasoning', text: text.split('\n')[0].slice(0, 90) })
+    }
+  }
+  turnCalls(tools).forEach(({ call, seq }, index) => rows.push({ seq: seq + 0.5 + index / 1000, kind: 'tool', text: toolName(call) ?? '?', failed: call.kind === 'tool-result' && call.isError }))
+  for (const retry of retries) rows.push({ seq: retry.seq, kind: 'retry', text: `${t('Retried')} ${retry.retry}/${retry.maximum}` })
+  return rows.sort((a, b) => a.seq - b.seq)
+}
+
 export function WorkLine({ steps, tools, ms, sessionId, turn }) {
   const [open, setOpen] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const retries = useTurnRetries(sessionId, turn)
   const count = processCount(steps, tools) + retries.length
   if (count === 0) return null
   const label = ms !== undefined && ms >= 1000
     ? t('Worked for {time} · {count} steps', { time: elapsedLabel(ms), count })
     : t('{count} steps', { count })
+  const rows = expanded ? summaryRows(steps, tools, retries) : []
   return h(Fragment, null,
-    h('button', { type: 'button', className: 'bt-work-line', 'aria-haspopup': 'dialog', onClick: () => setOpen(true) },
+    h('button', { type: 'button', className: 'bt-work-line', 'aria-expanded': expanded, onClick: () => setExpanded(value => !value) },
       h('span', null, label), h('span', { 'aria-hidden': true, className: 'bt-work-chev' }, '›')),
-    open ? h(ProcessPanel, { steps, tools, retries, label, onClose: () => setOpen(false) }) : null)
+    h('div', { className: 'bt-work-fold', 'data-open': expanded || undefined, 'aria-hidden': !expanded },
+      h('div', { className: 'bt-work-fold-in' },
+        h('ol', { className: 'bt-work-steps' }, rows.map((row, index) => h('li', { key: index, 'data-kind': row.kind, 'data-failed': row.failed || undefined },
+          h('span', { className: 'bt-work-kind' }, row.kind === 'tool' ? t('Tool') : row.kind === 'retry' ? t('Model retry') : t('Thinking')),
+          h('span', { className: 'bt-work-text' }, row.text)))),
+        h('button', { type: 'button', className: 'bt-work-all', tabIndex: expanded ? 0 : -1, 'aria-haspopup': 'dialog', onClick: () => setOpen(true) }, t('Full process')))),
+    h(framerMotion()?.AnimatePresence ?? Fragment, null, open ? h(ProcessPanel, { key: 'panel', steps, tools, retries, label, onClose: () => setOpen(false) }) : null))
 }
 
 function pretty(raw) {
   if (raw === undefined || raw === null || raw === '') return ''
   try { return JSON.stringify(JSON.parse(raw), null, 2) } catch { return String(raw) }
 }
+
+const PANEL_SPRING = { type: 'spring', stiffness: 420, damping: 38 }
 
 function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
   useEffect(() => {
@@ -62,8 +87,11 @@ function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
   turnCalls(tools).forEach(({ call, seq }, index) => items.push({ seq: seq + 0.5 + index / 1000, key: `c${call.callId ?? index}`, kind: 'tool', call }))
   for (const retry of retries) items.push({ seq: retry.seq, key: `r${retry.seq}`, kind: 'retry', retry })
   items.sort((a, b) => a.seq - b.seq)
-  return createPortal(h('div', { className: 'bt-process-scrim', onMouseDown: (event) => { if (event.target === event.currentTarget) onClose() } },
-    h('aside', { className: 'bt-process', role: 'dialog', 'aria-label': t('Work process') },
+  const motion = framerMotion()?.motion ?? { div: 'div', aside: 'aside' }
+  const moving = typeof motion.div !== 'string'
+  const anim = props => (moving ? props : {})
+  return createPortal(h(motion.div, { className: 'bt-process-scrim', ...anim({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.18 } }), onMouseDown: (event) => { if (event.target === event.currentTarget) onClose() } },
+    h(motion.aside, { className: 'bt-process', role: 'dialog', 'aria-label': t('Work process'), ...anim({ initial: { x: 48, opacity: 0.6 }, animate: { x: 0, opacity: 1 }, exit: { x: 48, opacity: 0 }, transition: PANEL_SPRING }) },
       h('header', null,
         h('div', null, h('strong', null, t('Work process')), h('span', null, label)),
         h('button', { type: 'button', className: 'bt-process-close', 'aria-label': t('Close'), onClick: onClose }, '×')),
@@ -94,7 +122,20 @@ function ToolItem({ call }) {
 export const PROCESS_CSS = `
 .bt-work-line{display:inline-flex;align-items:center;gap:4px;margin:2px 0 6px;padding:2px 0;border:0;background:none;color:var(--bt-ink-3);font:inherit;font-size:13px;cursor:pointer}
 .bt-work-line:hover{color:var(--bt-ink-2)}
-.bt-work-chev{font-size:14px;line-height:1}
+.bt-work-chev{font-size:14px;line-height:1;transition:transform .2s ease}
+.bt-work-line[aria-expanded=true] .bt-work-chev{transform:rotate(90deg)}
+.bt-work-fold{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s cubic-bezier(.2,.8,.2,1),opacity .2s ease}
+.bt-work-fold[data-open]{grid-template-rows:1fr;opacity:1}
+.bt-work-fold-in{overflow:hidden;min-height:0}
+.bt-work-steps{list-style:none;margin:0 0 6px;padding:2px 0 2px 10px;border-left:.5px solid var(--bt-line-2);display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--bt-ink-2)}
+.bt-work-steps li{display:flex;gap:8px;min-width:0}
+.bt-work-kind{flex:none;color:var(--bt-ink-3)}
+.bt-work-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bt-work-steps li[data-kind=tool] .bt-work-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.bt-work-steps li[data-failed] .bt-work-text{color:var(--bt-danger)}
+.bt-work-all{margin:0 0 8px 10px;padding:2px 8px;border:.5px solid var(--bt-line-2);border-radius:999px;background:none;color:var(--bt-ink-2);font:inherit;font-size:12px;cursor:pointer}
+.bt-work-all:hover{background:var(--bt-hover)}
+@media (prefers-reduced-motion:reduce){.bt-work-fold,.bt-work-chev{transition:none}}
 .bt-process-scrim{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.18);display:flex;justify-content:flex-end}
 .bt-process{width:min(480px,92vw);height:100%;display:flex;flex-direction:column;background:var(--bt-main);color:var(--bt-ink);box-shadow:-8px 0 32px rgba(0,0,0,.14);font-size:14px}
 .bt-process header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bt-line-2)}

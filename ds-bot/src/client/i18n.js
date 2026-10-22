@@ -283,6 +283,7 @@ const ZH = {
   'Rate limited, retrying in {seconds}s': '请求受限，{seconds}s 后重试',
   'Request failed, retrying in {seconds}s': '请求失败，{seconds}s 后重试',
   'Model retry': '模型请求重试',
+  'Full process': '查看完整过程',
   'Retried': '已重试',
   'Retry cancelled': '重试已取消',
   'Always allow for this Bot': '始终允许此 Bot',

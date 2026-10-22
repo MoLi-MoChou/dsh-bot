@@ -109,7 +109,7 @@ const code = text => text.split(/\r?\n/)
 
 export function findStyles(dir = CLIENT) {
   const found = Object.fromEntries(Object.keys(checks).map(kind => [kind, {}]))
-  for (const file of readdirSync(dir, { recursive: true }).filter(name => name.endsWith('.js')).map(name => name.replaceAll('\\', '/'))) {
+  for (const file of readdirSync(dir, { recursive: true }).filter(name => name.endsWith('.js') && !name.replaceAll('\\', '/').startsWith('vendor/')).map(name => name.replaceAll('\\', '/'))) {
     const text = code(readFileSync(join(dir, file), 'utf8'))
     for (const [kind, check] of Object.entries(checks)) {
       for (const value of check(file, text)) {
