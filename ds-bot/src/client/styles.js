@@ -676,6 +676,21 @@ button:hover .bt-you{background:color-mix(in srgb,var(--bt-ink) 9%,var(--bt-side
 .bt-pick[aria-pressed=true]{border-color:var(--bt-line-2);background:var(--bt-hover)}
 .bt-pick>span:last-child:not(.bt-mark){max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt-pick:hover .bt-mark[data-state=idle] .bt-eye{animation:bt-blink .5s linear 1}
+.bt-theme-pick{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.bt-theme-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px;border:0;border-radius:12px;background:none;color:var(--bt-ink-2);font:inherit;font-size:12px;cursor:pointer}
+.bt-theme-card:hover{color:var(--bt-ink)}
+.bt-theme-preview{display:flex;width:96px;height:58px;border-radius:10px;overflow:hidden;box-shadow:0 0 0 .5px var(--bt-line-2);transition:box-shadow .15s ease,transform .15s ease}
+.bt-theme-card:hover .bt-theme-preview{transform:translateY(-1px)}
+.bt-theme-card[aria-checked=true]{color:var(--bt-ink);font-weight:500}
+.bt-theme-card[aria-checked=true] .bt-theme-preview{box-shadow:0 0 0 2px var(--bt-accent)}
+.bt-theme-card:focus-visible{outline:none}
+.bt-theme-card:focus-visible .bt-theme-preview{box-shadow:0 0 0 2px var(--bt-accent),0 0 0 4px color-mix(in srgb,var(--bt-accent) 30%,transparent)}
+.bt-theme-half{flex:1;display:flex;min-width:0}
+.bt-theme-side{width:12px;flex:none}
+.bt-theme-lines{flex:1;display:flex;flex-direction:column;gap:4px;padding:8px 5px;min-width:0}
+.bt-theme-lines span{display:block;height:6px;border-radius:4px;width:80%}
+.bt-theme-lines .bt-theme-user{align-self:flex-end;width:55%}
+.bt-theme-lines .bt-theme-dot{width:10px;height:10px;border-radius:50%;margin-top:auto;align-self:flex-end}
 .bt-select{width:100%;height:34px;box-sizing:border-box;border-radius:8px;border:1px solid var(--bt-line);background:var(--bt-card);color:var(--bt-ink);padding:0 8px;font:inherit;font-size:13px}
 .bt-note{font-size:12px;line-height:16px;color:var(--bt-ink-2);margin-top:6px}
 .bt-swatch-sep{width:1px;height:22px;background:var(--bt-line-2);margin:0 2px}

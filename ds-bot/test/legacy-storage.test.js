@@ -17,7 +17,7 @@ test('values saved under the dsh-bot keys move to the ds-bot keys', () => {
     'dsh-bot:unread': '{"a":true}',
     'dsh-bot:reactions': '{"t1":"👍"}',
     'dsh-bot:seen': '{"a":1}',
-    'dsh-bot:prefs': '{"theme":"paper"}',
+    'dsh-bot:prefs': '{"theme":"claude"}',
     'dsh-bot:browser-width': '600',
     'dsh-bot.browser.v1': '{"a":{"url":"https://example.com/"}}',
     'other:key': 'kept',
@@ -27,7 +27,7 @@ test('values saved under the dsh-bot keys move to the ds-bot keys', () => {
     'ds-bot:unread': '{"a":true}',
     'ds-bot:reactions': '{"t1":"👍"}',
     'ds-bot:seen': '{"a":1}',
-    'ds-bot:prefs': '{"theme":"paper"}',
+    'ds-bot:prefs': '{"theme":"claude"}',
     'ds-bot:browser-width': '600',
     'ds-bot.browser.v2': '{"a":{"tabs":[{"id":"v1-a","url":"https://example.com/","title":""}],"active":"v1-a"}}',
     'other:key': 'kept',
@@ -57,9 +57,9 @@ test('every current key has its legacy keys, and unusable storage is no error', 
   assert.doesNotThrow(() => migrateStorage(broken))
 })
 
-test('a saved legacy grok theme becomes the mono theme', () => {
-  const storage = memoryStorage({ 'dsh-bot:prefs': '{"theme":"grok","accent":"#123456"}' })
+test('a saved legacy mono theme becomes the grok theme', () => {
+  const storage = memoryStorage({ 'dsh-bot:prefs': '{"theme":"mono","accent":"#123456"}' })
   migrateStorage(storage)
-  assert.deepEqual(JSON.parse(storage.getItem(STORAGE.prefs)), { theme: 'mono', accent: '#123456' })
+  assert.deepEqual(JSON.parse(storage.getItem(STORAGE.prefs)), { theme: 'grok', accent: '#123456' })
   migrateStorage(memoryStorage({ 'ds-bot:prefs': 'not json' }))
 })

@@ -2,7 +2,7 @@ import { createElement as h, useCallback, useEffect, useRef, useState } from 're
 import { LEAN } from './lean.js'
 import { ACCENT_INKS, INKS } from './inks.js'
 import { isMainOf } from './sources.js'
-import { allThemes } from './themes.js'
+import { allThemes, resolveThemeId } from './themes.js'
 import { CloseIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, ConnectorIcon, InfoIcon, PlugIcon, PlusIcon, SlidersIcon, SETTINGS_ICONS } from './icons.js'
 import { AdminStar, BotAvatar, RoomAvatar } from './mark.js'
 import { useEscape } from './overlay-hooks.js'
@@ -39,10 +39,27 @@ function SetRow({ label, hint, children }) {
     children ? h('div', { className: 'bt-set-control' }, children) : null)
 }
 
+// Each theme as a small card: its light and dark surfaces side by side, with the
+// accent and a user bubble, so the choice reads before it applies.
+function ThemePicker({ themes, current, onPick }) {
+  const half = (mode, side) => h('span', { className: 'bt-theme-half', 'data-side': side, style: { background: mode.bg } },
+    h('span', { className: 'bt-theme-side', style: { background: mode.sidebar } }),
+    h('span', { className: 'bt-theme-lines' },
+      h('span', { style: { background: mode.bubble } }),
+      h('span', { className: 'bt-theme-user', style: { background: mode.user } }),
+      h('span', { className: 'bt-theme-dot', style: { background: mode.accent } })))
+  return h('div', { className: 'bt-theme-pick', role: 'radiogroup', 'aria-label': t('Theme') },
+    Object.entries(themes).map(([id, theme]) => h('button', {
+      key: id, type: 'button', role: 'radio', 'aria-checked': id === current, className: 'bt-theme-card', onClick: () => onPick(id),
+    },
+    h('span', { className: 'bt-theme-preview', 'aria-hidden': true }, half(theme.light, 'light'), half(theme.dark, 'dark')),
+    h('span', { className: 'bt-theme-name' }, t(theme.label)))))
+}
+
 function GeneralPage({ roster, actions, run }) {
   const prefs = roster.prefs ?? {}
   const themes = allThemes()
-  const current = themes[prefs.theme] ? prefs.theme : 'deepseek'
+  const current = resolveThemeId(themes, prefs.theme)
   const [custom, setCustom] = useState(prefs.accent ?? '#4d6bfe')
   const timer = useRef(0)
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -54,8 +71,7 @@ function GeneralPage({ roster, actions, run }) {
   return [
     h(SetSection, { key: 'look', title: t('Appearance') },
       h(SetRow, { label: t('Theme'), hint: t('Colors for the whole team, on every device.') },
-        h('select', { className: 'bt-select', 'aria-label': t('Theme'), value: current, onChange: event => run(actions.setPrefs({ theme: event.target.value })) },
-          Object.entries(themes).map(([id, theme]) => h('option', { key: id, value: id }, t(theme.label))))),
+        h(ThemePicker, { themes, current, onPick: id => run(actions.setPrefs({ theme: id })) })),
       h(SetRow, { label: t('Accent'), hint: t('Unread marks, badges, and the brand mark.') },
         h('div', { className: 'bt-swatches' },
           h('button', { type: 'button', className: 'bt-swatch bt-swatch-default', title: t('Theme accent'), 'aria-label': t('Theme accent'), 'aria-pressed': !prefs.accent, onClick: () => run(actions.setPrefs({ accent: null })) }),

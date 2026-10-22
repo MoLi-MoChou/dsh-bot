@@ -4,7 +4,7 @@ import { isHex, inkText, paintCss } from './inks.js'
 import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.js'
 import { createSource, EMPTY_ROSTER, indexRoster, isAgentSession } from './sources.js'
 import { teamActions } from './team-actions.js'
-import { themeCss, shellTokens, registry, registerShape, registerTheme, allThemes } from './themes.js'
+import { themeCss, shellTokens, registry, registerShape, registerTheme, allThemes, resolveThemeId } from './themes.js'
 import { MENTION_ORIGIN, currentPart } from './text.js'
 import { SHELL_CSS, CONVERSATION_CSS, installStyles, installCompiledStyles } from './styles.js'
 import { lookOf } from './mark.js'
@@ -299,8 +299,9 @@ export function apply(ctx) {
       const snapshot = roster.getSnapshot()
       const prefs = snapshot.ready ? snapshot.prefs ?? {} : savedPrefs
       const themes = allThemes()
-      const id = themes[prefs.theme] ? prefs.theme : 'deepseek'
+      const id = resolveThemeId(themes, prefs.theme)
       const accent = isHex(prefs.accent) ? prefs.accent : undefined
+      document.body.dataset.btTheme = id
       const motion = prefs.motion === 'quiet' || prefs.motion === 'lively' ? prefs.motion : 'normal'
       document.body.dataset.btMotion = motion
       const next = `${id}|${accent ?? ''}|${motion}|${registry.getSnapshot()}`
@@ -308,7 +309,8 @@ export function apply(ctx) {
       key = next
       style.textContent = themeCss(themes[id], accent)
       const release = releaseTokens
-      releaseTokens = ctx.theme.overrideTokens('ds-bot', shellTokens(themes[id]))
+      const theme = themes[id]
+      releaseTokens = ctx.theme.overrideTokens('ds-bot', shellTokens(accent ? { ...theme, light: { ...theme.light, accent }, dark: { ...theme.dark, accent } } : theme))
       if (typeof release === 'function') release()
       if (snapshot.ready) {
         try { localStorage.setItem(PREFS_KEY, JSON.stringify({ theme: prefs.theme, accent: prefs.accent, motion: prefs.motion })) } catch { /* storage unavailable */ }

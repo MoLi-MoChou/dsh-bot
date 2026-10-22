@@ -1659,28 +1659,64 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
 
 // src/client/themes.js
 var THEME_KEYS = ["bg", "sidebar", "bubble", "card", "text", "user", "userText", "accent"];
+var SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif';
+var both = (value) => ({ light: value, dark: value });
 var THEMES = {
   deepseek: {
     label: "DeepSeek",
     light: { bg: "#fcfcfc", sidebar: "#f7f7f7", bubble: "#eeeeee", card: "#ffffff", text: "#141414", user: "#070707", userText: "#fcfcfc", accent: "#4d6bfe" },
     dark: { bg: "#141414", sidebar: "#1b1b1b", bubble: "#262626", card: "#1f1f1f", text: "#f2f2f2", user: "#f2f2f2", userText: "#141414", accent: "#5b7bff" }
   },
-  mono: {
-    label: "Mono",
-    light: { bg: "#ffffff", sidebar: "#f9f9f9", bubble: "#f0f0f0", card: "#ffffff", text: "#0d0d0d", user: "#0d0d0d", userText: "#ffffff", accent: "#0d0d0d" },
-    dark: { bg: "#0f0f0f", sidebar: "#171717", bubble: "#242424", card: "#1c1c1c", text: "#f4f4f4", user: "#f4f4f4", userText: "#0f0f0f", accent: "#f4f4f4" }
+  // Warm clay on a cream surface ladder, serif headings, softer radii (after
+  // open-claude-ui's cds-theme.css, MIT). Colors and feel only.
+  claude: {
+    label: "Claude",
+    light: { bg: "#faf9f5", sidebar: "#f3f1ea", bubble: "#f0eee6", card: "#ffffff", text: "#141413", user: "#e8e5da", userText: "#141413", accent: "#d97757" },
+    dark: { bg: "#262624", sidebar: "#1f1e1d", bubble: "#30302e", card: "#2b2a27", text: "#f5f4ef", user: "#3a3935", userText: "#f5f4ef", accent: "#d97757" },
+    tokens: {
+      "--dsw-radius-sm": both("6px"),
+      "--dsw-radius-md": both("10px"),
+      "--dsw-radius-lg": both("14px"),
+      "--dsw-radius-xl": both("20px")
+    },
+    css: `
+body[data-bt-theme=claude] :is(.bt-bubble,.bt-ububble){border-radius:12px}
+body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]){border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.035),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 4px 24px rgba(0,0,0,.08),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 45%,var(--bt-line-2))}
+body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong,.bt-section-title,.bt-brand-name,[role=dialog] h2){font-family:${SERIF};font-weight:500;letter-spacing:-.01em}
+body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-section-title){font-size:15px}
+body[data-bt-theme=claude] .bt-process,body[data-bt-theme=claude] .bt-menu{border-radius:12px}
+body[data-bt-theme=claude] :is(.bt-work-all,.bt-retry){border-color:color-mix(in srgb,var(--bt-accent) 28%,var(--bt-line-2))}
+body[data-bt-theme=claude] [data-composer-input]{caret-color:var(--bt-accent)}
+`
   },
-  paper: {
-    label: "Paper",
-    light: { bg: "#faf9f5", sidebar: "#f3f0e8", bubble: "#ebe7dc", card: "#ffffff", text: "#1f1e1b", user: "#2b2a26", userText: "#faf9f5", accent: "#d97757" },
-    dark: { bg: "#1f1e1b", sidebar: "#262521", bubble: "#34322d", card: "#2a2925", text: "#f3f0e8", user: "#f3f0e8", userText: "#1f1e1b", accent: "#e08a6d" }
-  },
-  moonlight: {
-    label: "Moonlight",
-    light: { bg: "#f7f9fc", sidebar: "#eef2f8", bubble: "#e5ebf5", card: "#ffffff", text: "#121826", user: "#1e3a8a", userText: "#ffffff", accent: "#1e86ff" },
-    dark: { bg: "#0b1020", sidebar: "#10172a", bubble: "#1a2340", card: "#141c33", text: "#e8edf7", user: "#3b6fd8", userText: "#ffffff", accent: "#4f9dff" }
+  // Near-black / near-white, monochrome: the foreground is the accent, hairline
+  // borders, pill controls, almost no shadow (after grok.com's web UI).
+  grok: {
+    label: "Grok Bot",
+    light: { bg: "#ffffff", sidebar: "#fafafa", bubble: "#f2f2f2", card: "#ffffff", text: "#0d0d0d", user: "#f0f0f0", userText: "#0d0d0d", accent: "#0d0d0d" },
+    dark: { bg: "#030404", sidebar: "#070807", bubble: "#171717", card: "#171717", text: "#f4f4f0", user: "#202020", userText: "#f4f4f0", accent: "#f4f4f0" },
+    tokens: {
+      "--dsw-radius-sm": both("8px"),
+      "--dsw-radius-md": both("14px"),
+      "--dsw-radius-lg": both("20px"),
+      "--dsw-radius-xl": both("24px"),
+      "--dsw-shadow-lv3": both("none")
+    },
+    css: `
+html body[data-bt-theme=grok]{--bt-line:rgba(13,13,13,.07);--bt-line-2:rgba(13,13,13,.12)}
+body[data-bt-theme=grok] :is(.bt-bubble,.bt-ububble){border-radius:20px}
+body[data-bt-theme=grok] [class*="_card"]:has([data-composer-input]){border-radius:22px;box-shadow:inset 0 0 0 1px var(--bt-line-2);background:var(--bt-card)}
+body[data-bt-theme=grok][data-ds-dark-theme] [class*="_card"]:has([data-composer-input]){background:#171717}
+html body[data-bt-theme=grok][data-ds-dark-theme]{--bt-line:#252525;--bt-line-2:#2b2b2b;--bt-hover:#202020;--bt-active:#303030;--bt-ink-2:#a7a7a2;--bt-ink-3:#74746f}
+body[data-bt-theme=grok] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong){font-weight:600;letter-spacing:-.015em}
+body[data-bt-theme=grok] :is(.bt-process,.bt-menu,.bt-update-pop){box-shadow:0 0 0 .5px var(--bt-line-2),0 12px 32px -12px rgba(0,0,0,.25)}
+body[data-bt-theme=grok] .bt-work-all,body[data-bt-theme=grok] .bt-retry{border-radius:999px}
+`
   }
 };
+var THEME_ALIASES = { mono: "grok", paper: "claude", moonlight: "deepseek" };
+var resolveThemeId = (themes, id) => themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : "deepseek";
 var DARK_INK = "#141414";
 var accentInk = (accent) => (luminance(accent) + 0.05) ** 2 > 1.05 * (luminance(DARK_INK) + 0.05) ? DARK_INK : "#ffffff";
 var rgba = (hex, alpha) => `rgba(${[1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16)).join(",")},${alpha})`;
@@ -1713,8 +1749,22 @@ var darkAccent = (accent) => {
 var themeCss = (theme, accent) => `html body{${declarations(themeVars(theme.light, false, accent ?? theme.light.accent))}}
 html body[data-ds-dark-theme]{${declarations(themeVars(theme.dark, true, darkAccent(accent) ?? theme.dark.accent))}}
 ${theme.css ?? ""}`;
-var shellTokens = ({ light, dark }) => ({
+var shellTokens = ({ light, dark, tokens }) => ({
   "--dsw-alias-bg-base": { light: light.bg, dark: dark.bg },
+  "--dsw-alias-bg-layer-1": { light: light.card, dark: dark.card },
+  "--dsw-alias-bg-layer-2": { light: light.bubble, dark: dark.bubble },
+  "--dsw-alias-bg-layer-3": { light: light.sidebar, dark: dark.sidebar },
+  "--dsw-alias-border-l2": { light: rgba(light.text, 0.06), dark: rgba(dark.text, 0.08) },
+  "--dsw-alias-border-l3": { light: rgba(light.text, 0.1), dark: rgba(dark.text, 0.12) },
+  "--dsw-alias-border-l4": { light: rgba(light.text, 0.16), dark: rgba(dark.text, 0.18) },
+  "--dsw-alias-interactive-bg-hover": { light: rgba(light.text, 0.05), dark: rgba(dark.text, 0.08) },
+  "--dsw-alias-brand-primary": { light: light.accent, dark: dark.accent },
+  "--dsw-alias-state-business-primary": { light: light.accent, dark: dark.accent },
+  "--dsw-alias-button-primary-fill": { light: light.accent, dark: dark.accent },
+  "--dsw-alias-label-primary-foreground": { light: accentInk(light.accent), dark: accentInk(dark.accent) },
+  "--dsw-focus-ring-color": { light: rgba(light.accent, 0.45), dark: rgba(dark.accent, 0.45) },
+  "--dsw-alias-link": { light: light.accent, dark: dark.accent },
+  ...tokens ?? {},
   "--dsw-specific-sidebar-fill": { light: light.sidebar, dark: dark.sidebar },
   "--dsw-specific-input-major": { light: light.bg, dark: dark.sidebar },
   "--dsw-alias-label-primary": { light: light.text, dark: dark.text },
@@ -2914,6 +2964,21 @@ button:hover .bt-you{background:color-mix(in srgb,var(--bt-ink) 9%,var(--bt-side
 .bt-pick[aria-pressed=true]{border-color:var(--bt-line-2);background:var(--bt-hover)}
 .bt-pick>span:last-child:not(.bt-mark){max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt-pick:hover .bt-mark[data-state=idle] .bt-eye{animation:bt-blink .5s linear 1}
+.bt-theme-pick{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.bt-theme-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px;border:0;border-radius:12px;background:none;color:var(--bt-ink-2);font:inherit;font-size:12px;cursor:pointer}
+.bt-theme-card:hover{color:var(--bt-ink)}
+.bt-theme-preview{display:flex;width:96px;height:58px;border-radius:10px;overflow:hidden;box-shadow:0 0 0 .5px var(--bt-line-2);transition:box-shadow .15s ease,transform .15s ease}
+.bt-theme-card:hover .bt-theme-preview{transform:translateY(-1px)}
+.bt-theme-card[aria-checked=true]{color:var(--bt-ink);font-weight:500}
+.bt-theme-card[aria-checked=true] .bt-theme-preview{box-shadow:0 0 0 2px var(--bt-accent)}
+.bt-theme-card:focus-visible{outline:none}
+.bt-theme-card:focus-visible .bt-theme-preview{box-shadow:0 0 0 2px var(--bt-accent),0 0 0 4px color-mix(in srgb,var(--bt-accent) 30%,transparent)}
+.bt-theme-half{flex:1;display:flex;min-width:0}
+.bt-theme-side{width:12px;flex:none}
+.bt-theme-lines{flex:1;display:flex;flex-direction:column;gap:4px;padding:8px 5px;min-width:0}
+.bt-theme-lines span{display:block;height:6px;border-radius:4px;width:80%}
+.bt-theme-lines .bt-theme-user{align-self:flex-end;width:55%}
+.bt-theme-lines .bt-theme-dot{width:10px;height:10px;border-radius:50%;margin-top:auto;align-self:flex-end}
 .bt-select{width:100%;height:34px;box-sizing:border-box;border-radius:8px;border:1px solid var(--bt-line);background:var(--bt-card);color:var(--bt-ink);padding:0 8px;font:inherit;font-size:13px}
 .bt-note{font-size:12px;line-height:16px;color:var(--bt-ink-2);margin-top:6px}
 .bt-swatch-sep{width:1px;height:22px;background:var(--bt-line-2);margin:0 2px}
@@ -3522,7 +3587,7 @@ var STORAGE = {
 };
 var LEGACY_PREFIXES = ["dsh-bot:", "dsh-bot-team:"];
 var LEGACY_BROWSER_KEYS = ["ds-bot.browser.v1", "dsh-bot.browser.v1"];
-var LEGACY_THEMES = { grok: "mono" };
+var LEGACY_THEMES = { mono: "grok", paper: "claude", moonlight: "deepseek" };
 function legacyKeys(key) {
   if (key === STORAGE.browsers) return LEGACY_BROWSER_KEYS;
   const name = key.slice(key.indexOf(":") + 1);
@@ -16870,10 +16935,41 @@ function SetRow({ label, hint, children }) {
     children ? (0, import_react35.createElement)("div", { className: "bt-set-control" }, children) : null
   );
 }
+function ThemePicker({ themes, current, onPick }) {
+  const half = (mode, side) => (0, import_react35.createElement)(
+    "span",
+    { className: "bt-theme-half", "data-side": side, style: { background: mode.bg } },
+    (0, import_react35.createElement)("span", { className: "bt-theme-side", style: { background: mode.sidebar } }),
+    (0, import_react35.createElement)(
+      "span",
+      { className: "bt-theme-lines" },
+      (0, import_react35.createElement)("span", { style: { background: mode.bubble } }),
+      (0, import_react35.createElement)("span", { className: "bt-theme-user", style: { background: mode.user } }),
+      (0, import_react35.createElement)("span", { className: "bt-theme-dot", style: { background: mode.accent } })
+    )
+  );
+  return (0, import_react35.createElement)(
+    "div",
+    { className: "bt-theme-pick", role: "radiogroup", "aria-label": t("Theme") },
+    Object.entries(themes).map(([id, theme]) => (0, import_react35.createElement)(
+      "button",
+      {
+        key: id,
+        type: "button",
+        role: "radio",
+        "aria-checked": id === current,
+        className: "bt-theme-card",
+        onClick: () => onPick(id)
+      },
+      (0, import_react35.createElement)("span", { className: "bt-theme-preview", "aria-hidden": true }, half(theme.light, "light"), half(theme.dark, "dark")),
+      (0, import_react35.createElement)("span", { className: "bt-theme-name" }, t(theme.label))
+    ))
+  );
+}
 function GeneralPage({ roster, actions, run }) {
   const prefs = roster.prefs ?? {};
   const themes = allThemes();
-  const current = themes[prefs.theme] ? prefs.theme : "deepseek";
+  const current = resolveThemeId(themes, prefs.theme);
   const [custom, setCustom] = (0, import_react35.useState)(prefs.accent ?? "#4d6bfe");
   const timer = (0, import_react35.useRef)(0);
   (0, import_react35.useEffect)(() => () => clearTimeout(timer.current), []);
@@ -16889,11 +16985,7 @@ function GeneralPage({ roster, actions, run }) {
       (0, import_react35.createElement)(
         SetRow,
         { label: t("Theme"), hint: t("Colors for the whole team, on every device.") },
-        (0, import_react35.createElement)(
-          "select",
-          { className: "bt-select", "aria-label": t("Theme"), value: current, onChange: (event) => run(actions.setPrefs({ theme: event.target.value })) },
-          Object.entries(themes).map(([id, theme]) => (0, import_react35.createElement)("option", { key: id, value: id }, t(theme.label)))
-        )
+        (0, import_react35.createElement)(ThemePicker, { themes, current, onPick: (id) => run(actions.setPrefs({ theme: id })) })
       ),
       (0, import_react35.createElement)(
         SetRow,
@@ -19929,8 +20021,9 @@ function apply(ctx) {
       const snapshot = roster.getSnapshot();
       const prefs = snapshot.ready ? snapshot.prefs ?? {} : savedPrefs;
       const themes = allThemes();
-      const id = themes[prefs.theme] ? prefs.theme : "deepseek";
+      const id = resolveThemeId(themes, prefs.theme);
       const accent = isHex(prefs.accent) ? prefs.accent : void 0;
+      document.body.dataset.btTheme = id;
       const motion = prefs.motion === "quiet" || prefs.motion === "lively" ? prefs.motion : "normal";
       document.body.dataset.btMotion = motion;
       const next = `${id}|${accent ?? ""}|${motion}|${registry.getSnapshot()}`;
@@ -19938,7 +20031,8 @@ function apply(ctx) {
       key = next;
       style.textContent = themeCss(themes[id], accent);
       const release = releaseTokens;
-      releaseTokens = ctx.theme.overrideTokens("ds-bot", shellTokens(themes[id]));
+      const theme = themes[id];
+      releaseTokens = ctx.theme.overrideTokens("ds-bot", shellTokens(accent ? { ...theme, light: { ...theme.light, accent }, dark: { ...theme.dark, accent } } : theme));
       if (typeof release === "function") release();
       if (snapshot.ready) {
         try {

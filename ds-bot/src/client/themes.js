@@ -7,28 +7,62 @@ import { createSource } from './sources.js'
 // tokens derive from them, so a registered theme recolors the whole team UI.
 
 const THEME_KEYS = ['bg', 'sidebar', 'bubble', 'card', 'text', 'user', 'userText', 'accent']
+// DSH Bot: three themes, each light and dark. Each also sets the DeepSeek Harness
+// tokens (`tokens`, light/dark pairs) and extra CSS (`css`) for corner radii, type and
+// borders, so DSH's settings, OpenUI cards and dialogs follow the theme too.
+const SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif'
+const both = value => ({ light: value, dark: value })
 const THEMES = {
   deepseek: {
     label: 'DeepSeek',
     light: { bg: '#fcfcfc', sidebar: '#f7f7f7', bubble: '#eeeeee', card: '#ffffff', text: '#141414', user: '#070707', userText: '#fcfcfc', accent: '#4d6bfe' },
     dark: { bg: '#141414', sidebar: '#1b1b1b', bubble: '#262626', card: '#1f1f1f', text: '#f2f2f2', user: '#f2f2f2', userText: '#141414', accent: '#5b7bff' },
   },
-  mono: {
-    label: 'Mono',
-    light: { bg: '#ffffff', sidebar: '#f9f9f9', bubble: '#f0f0f0', card: '#ffffff', text: '#0d0d0d', user: '#0d0d0d', userText: '#ffffff', accent: '#0d0d0d' },
-    dark: { bg: '#0f0f0f', sidebar: '#171717', bubble: '#242424', card: '#1c1c1c', text: '#f4f4f4', user: '#f4f4f4', userText: '#0f0f0f', accent: '#f4f4f4' },
+  // Warm clay on a cream surface ladder, serif headings, softer radii (after
+  // open-claude-ui's cds-theme.css, MIT). Colors and feel only.
+  claude: {
+    label: 'Claude',
+    light: { bg: '#faf9f5', sidebar: '#f3f1ea', bubble: '#f0eee6', card: '#ffffff', text: '#141413', user: '#e8e5da', userText: '#141413', accent: '#d97757' },
+    dark: { bg: '#262624', sidebar: '#1f1e1d', bubble: '#30302e', card: '#2b2a27', text: '#f5f4ef', user: '#3a3935', userText: '#f5f4ef', accent: '#d97757' },
+    tokens: {
+      '--dsw-radius-sm': both('6px'), '--dsw-radius-md': both('10px'), '--dsw-radius-lg': both('14px'), '--dsw-radius-xl': both('20px'),
+    },
+    css: `
+body[data-bt-theme=claude] :is(.bt-bubble,.bt-ububble){border-radius:12px}
+body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]){border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.035),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 4px 24px rgba(0,0,0,.08),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 45%,var(--bt-line-2))}
+body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong,.bt-section-title,.bt-brand-name,[role=dialog] h2){font-family:${SERIF};font-weight:500;letter-spacing:-.01em}
+body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-section-title){font-size:15px}
+body[data-bt-theme=claude] .bt-process,body[data-bt-theme=claude] .bt-menu{border-radius:12px}
+body[data-bt-theme=claude] :is(.bt-work-all,.bt-retry){border-color:color-mix(in srgb,var(--bt-accent) 28%,var(--bt-line-2))}
+body[data-bt-theme=claude] [data-composer-input]{caret-color:var(--bt-accent)}
+`,
   },
-  paper: {
-    label: 'Paper',
-    light: { bg: '#faf9f5', sidebar: '#f3f0e8', bubble: '#ebe7dc', card: '#ffffff', text: '#1f1e1b', user: '#2b2a26', userText: '#faf9f5', accent: '#d97757' },
-    dark: { bg: '#1f1e1b', sidebar: '#262521', bubble: '#34322d', card: '#2a2925', text: '#f3f0e8', user: '#f3f0e8', userText: '#1f1e1b', accent: '#e08a6d' },
-  },
-  moonlight: {
-    label: 'Moonlight',
-    light: { bg: '#f7f9fc', sidebar: '#eef2f8', bubble: '#e5ebf5', card: '#ffffff', text: '#121826', user: '#1e3a8a', userText: '#ffffff', accent: '#1e86ff' },
-    dark: { bg: '#0b1020', sidebar: '#10172a', bubble: '#1a2340', card: '#141c33', text: '#e8edf7', user: '#3b6fd8', userText: '#ffffff', accent: '#4f9dff' },
+  // Near-black / near-white, monochrome: the foreground is the accent, hairline
+  // borders, pill controls, almost no shadow (after grok.com's web UI).
+  grok: {
+    label: 'Grok Bot',
+    light: { bg: '#ffffff', sidebar: '#fafafa', bubble: '#f2f2f2', card: '#ffffff', text: '#0d0d0d', user: '#f0f0f0', userText: '#0d0d0d', accent: '#0d0d0d' },
+    dark: { bg: '#030404', sidebar: '#070807', bubble: '#171717', card: '#171717', text: '#f4f4f0', user: '#202020', userText: '#f4f4f0', accent: '#f4f4f0' },
+    tokens: {
+      '--dsw-radius-sm': both('8px'), '--dsw-radius-md': both('14px'), '--dsw-radius-lg': both('20px'), '--dsw-radius-xl': both('24px'),
+      '--dsw-shadow-lv3': both('none'),
+    },
+    css: `
+html body[data-bt-theme=grok]{--bt-line:rgba(13,13,13,.07);--bt-line-2:rgba(13,13,13,.12)}
+body[data-bt-theme=grok] :is(.bt-bubble,.bt-ububble){border-radius:20px}
+body[data-bt-theme=grok] [class*="_card"]:has([data-composer-input]){border-radius:22px;box-shadow:inset 0 0 0 1px var(--bt-line-2);background:var(--bt-card)}
+body[data-bt-theme=grok][data-ds-dark-theme] [class*="_card"]:has([data-composer-input]){background:#171717}
+html body[data-bt-theme=grok][data-ds-dark-theme]{--bt-line:#252525;--bt-line-2:#2b2b2b;--bt-hover:#202020;--bt-active:#303030;--bt-ink-2:#a7a7a2;--bt-ink-3:#74746f}
+body[data-bt-theme=grok] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong){font-weight:600;letter-spacing:-.015em}
+body[data-bt-theme=grok] :is(.bt-process,.bt-menu,.bt-update-pop){box-shadow:0 0 0 .5px var(--bt-line-2),0 12px 32px -12px rgba(0,0,0,.25)}
+body[data-bt-theme=grok] .bt-work-all,body[data-bt-theme=grok] .bt-retry{border-radius:999px}
+`,
   },
 }
+// Ids earlier versions saved, and what they became.
+export const THEME_ALIASES = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
+export const resolveThemeId = (themes, id) => (themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : 'deepseek')
 // Text on the accent: near-black or white, whichever has the higher WCAG contrast.
 // (L + .05)² > 1.05 × (L(#141414) + .05) is "dark ink reads better".
 const DARK_INK = '#141414'
@@ -58,8 +92,22 @@ const darkAccent = (accent) => {
 export const themeCss = (theme, accent) => `html body{${declarations(themeVars(theme.light, false, accent ?? theme.light.accent))}}
 html body[data-ds-dark-theme]{${declarations(themeVars(theme.dark, true, darkAccent(accent) ?? theme.dark.accent))}}
 ${theme.css ?? ''}`
-export const shellTokens = ({ light, dark }) => ({
+export const shellTokens = ({ light, dark, tokens }) => ({
   '--dsw-alias-bg-base': { light: light.bg, dark: dark.bg },
+  '--dsw-alias-bg-layer-1': { light: light.card, dark: dark.card },
+  '--dsw-alias-bg-layer-2': { light: light.bubble, dark: dark.bubble },
+  '--dsw-alias-bg-layer-3': { light: light.sidebar, dark: dark.sidebar },
+  '--dsw-alias-border-l2': { light: rgba(light.text, 0.06), dark: rgba(dark.text, 0.08) },
+  '--dsw-alias-border-l3': { light: rgba(light.text, 0.1), dark: rgba(dark.text, 0.12) },
+  '--dsw-alias-border-l4': { light: rgba(light.text, 0.16), dark: rgba(dark.text, 0.18) },
+  '--dsw-alias-interactive-bg-hover': { light: rgba(light.text, 0.05), dark: rgba(dark.text, 0.08) },
+  '--dsw-alias-brand-primary': { light: light.accent, dark: dark.accent },
+  '--dsw-alias-state-business-primary': { light: light.accent, dark: dark.accent },
+  '--dsw-alias-button-primary-fill': { light: light.accent, dark: dark.accent },
+  '--dsw-alias-label-primary-foreground': { light: accentInk(light.accent), dark: accentInk(dark.accent) },
+  '--dsw-focus-ring-color': { light: rgba(light.accent, 0.45), dark: rgba(dark.accent, 0.45) },
+  '--dsw-alias-link': { light: light.accent, dark: dark.accent },
+  ...(tokens ?? {}),
   '--dsw-specific-sidebar-fill': { light: light.sidebar, dark: dark.sidebar },
   '--dsw-specific-input-major': { light: light.bg, dark: dark.sidebar },
   '--dsw-alias-label-primary': { light: light.text, dark: dark.text },

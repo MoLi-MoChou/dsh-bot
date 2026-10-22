@@ -47,18 +47,18 @@ function open(saved) {
 
 const savedTeam = prefs => ({ version: 1, mainBotIds: [], bots: {}, rooms: {}, exchanges: [], exchangeTurns: {}, questions: {}, prefs, revision: 3 })
 
-test('a team saved with the legacy grok theme opens with the mono theme', async (t) => {
-  const { call, stop, home } = open(savedTeam({ theme: 'grok', accent: '#123456' }))
+test('a team saved with the legacy mono theme opens with the grok theme', async (t) => {
+  const { call, stop, home } = open(savedTeam({ theme: 'mono', accent: '#123456' }))
   t.after(stop)
   const team = (await call('state', {})).value
-  assert.deepEqual(team.prefs, { theme: 'mono', accent: '#123456' })
-  assert.equal(JSON.parse(readFileSync(join(home, 'state.json'), 'utf8')).prefs.theme, 'mono')
+  assert.deepEqual(team.prefs, { theme: 'grok', accent: '#123456' })
+  assert.equal(JSON.parse(readFileSync(join(home, 'state.json'), 'utf8')).prefs.theme, 'grok')
 })
 
 test('a team saved with a current theme keeps it', async (t) => {
-  const { call, stop } = open(savedTeam({ theme: 'paper' }))
+  const { call, stop } = open(savedTeam({ theme: 'claude' }))
   t.after(stop)
-  assert.equal((await call('state', {})).value.prefs.theme, 'paper')
+  assert.equal((await call('state', {})).value.prefs.theme, 'claude')
 })
 
 const teamWithColors = () => ({
