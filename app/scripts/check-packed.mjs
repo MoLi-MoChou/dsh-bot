@@ -162,7 +162,13 @@ async function chat(cdp) {
   await cdp.call('Input.insertText', { text: 'packaged app check' })
   for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   // The mock model starts its reply with 收到： and the message.
-  await until(text('收到：packaged app check'), 'the reply')
+  await until(text('收到：packaged app check'), 'the reply').catch(async (error) => {
+    // What the window showed, and what the mock model was asked, so a timeout says why.
+    console.log(`check-packed: page at timeout ${JSON.stringify(await evaluate('document.body.innerText.slice(-600)').catch(() => '?'))}`)
+    console.log(`check-packed: focus ${JSON.stringify(await evaluate('document.activeElement?.outerHTML.slice(0, 200)').catch(() => '?'))}`)
+    try { console.log(`check-packed: mock log tail ${readFileSync(join(work, 'mock.log'), 'utf8').slice(-1500)}`) } catch {}
+    throw error
+  })
   await sleep(1000)
   console.log(`check-packed: chat ${JSON.stringify(await evaluate('document.body.innerText.slice(-200)'))}`)
 }
