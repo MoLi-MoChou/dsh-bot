@@ -843,6 +843,9 @@ body[data-ds-dark-theme] .bt-theme-chip i{background:var(--da)}
 :is(.bt-icon-btn,.bt-settings-close,.bt-nc-send,.bt-shape,.bt-swatch,.bt-color,.bt-x,.bt-q-x,.bt-palette-clear):active:not(:disabled){scale:.9}
 :is(.bt-soft,.bt-send,.bt-mini,.bt-tab,.bt-avedit-tab,.bt-pick,.bt-q-submit,.bt-q-btn):active:not(:disabled){scale:.96}
 @media (prefers-reduced-motion:reduce){.bt-thumb{transition:none}.bt-panel-view>[data-move],.bt-drawer-name-input,.bt-veil,.bt-pop-in,.bt-token,.bt-drop,.bt-newchat,.bt-option-hint,.bt-connector-form,.bt-settings-head>*{animation:none}}
+/* The connection notice: a lost poll leaves the page stale, and the window says so at the
+   top until a poll succeeds again. */
+.bt-reconnect{position:fixed;top:12px;left:50%;translate:-50% 0;z-index:60;max-width:min(90vw,560px);padding:7px 14px;border-radius:999px;background:var(--bt-tag-bg);color:var(--bt-tag-ink);border:1px solid var(--bt-line);box-shadow:0 6px 18px color-mix(in srgb, var(--bt-ink) 16%, transparent);font-size:12.5px;line-height:18px;text-align:center}
 `
 
 export const CONVERSATION_CSS = `
