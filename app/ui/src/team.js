@@ -114,10 +114,11 @@ export function createTeam() {
   // Reads can overlap (the feed and a finished action); an older answer never wins.
   let pulls = 0
   let applied = 0
-  const pull = async () => {
+  const pull = async (full = false) => {
     const order = ++pulls
     const known = roster.getSnapshot()
-    const value = await call('state', { since: known.revision, models: known.modelsKey ?? '', locale: language() })
+    // `full` asks for the whole team again, which is what a window does after its feed was lost.
+    const value = await call('state', { since: full ? -1 : known.revision, models: known.modelsKey ?? '', locale: language() })
     if (order < applied) return
     applied = order
     setChanged(activity, value.activity ?? {})
@@ -223,8 +224,8 @@ export function createTeam() {
 
   const start = () => {
     let stopped = false
-    const read = () => {
-      void pull().catch((error) => {
+    const read = (full = false) => {
+      void pull(full).catch((error) => {
         if (stopped) return
         console.warn('[ds-bot] state', error)
         if (!roster.getSnapshot().ready) actions.reportError(error, 'state')
@@ -234,16 +235,21 @@ export function createTeam() {
     // The window's only feed is this one: when it drops, the page is stale, so say so at
     // the top and catch the team up as soon as the feed is back.
     let feedFailures = 0
+    let hideNotice
     const closeFeed = openFeed((event, data) => {
+      const recovered = feedFailures > 0
       if (event === 'lost') {
         feedFailures += 1
         showReconnectNotice(retryNotice(feedFailures))
-      } else if (feedFailures > 0) {
+      } else if (recovered) {
         feedFailures = 0
+        // A lost feed leaves the page stale: the first read after it asks for the whole
+        // team, not just what changed since the revision this window last saw.
+        clearTimeout(hideNotice)
         showReconnectNotice(t('Back online. Catching up…'))
-        setTimeout(() => showReconnectNotice(null), 1500)
+        hideNotice = setTimeout(() => showReconnectNotice(null), 1500)
       }
-      if (READ_AGAIN.has(event)) read()
+      if (READ_AGAIN.has(event)) read(recovered)
       onFeed(event, data)
     })
     const timer = setInterval(read, CATCH_UP_MS)
@@ -253,6 +259,7 @@ export function createTeam() {
       stopped = true
       closeFeed()
       showReconnectNotice(null)
+      clearTimeout(hideNotice)
       clearInterval(timer)
       window.removeEventListener('pagehide', onPageHide)
     }

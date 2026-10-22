@@ -20349,6 +20349,7 @@ function apply(ctx) {
     let running = false;
     let failures = 0;
     let force = false;
+    let hideNotice;
     let timer;
     const loop = async () => {
       clearTimeout(timer);
@@ -20358,8 +20359,9 @@ function apply(ctx) {
         await pull(force);
         force = false;
         if (failures >= RETRY_AFTER) {
+          clearTimeout(hideNotice);
           showReconnectNotice(t("Back online. Catching up…"));
-          setTimeout(() => showReconnectNotice(null), 1500);
+          hideNotice = setTimeout(() => showReconnectNotice(null), 1500);
         }
         failures = 0;
       } catch (error) {
@@ -20382,6 +20384,7 @@ function apply(ctx) {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", wake);
       showReconnectNotice(null);
+      clearTimeout(hideNotice);
     };
   }, "ds-bot: roster poll");
   const update = createSource({ available: false, phase: "idle" });
