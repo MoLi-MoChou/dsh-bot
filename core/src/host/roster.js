@@ -111,11 +111,7 @@ export function install(rt) {
     // silently, so the create fails before a Session is made.
     if (effort !== undefined && effort !== '' && modelRef === undefined) throw new Error('Pick a model before choosing a thinking level')
     const effortId = modelRef === undefined ? undefined : await rt.resolveEffort(modelRef, effort)
-    // The user never picks the Bot's folder: it gets its own under the team folder, and an
-    // explicit one (the advanced settings) replaces it.
-    const chosen = workDir === undefined || workDir === null ? undefined : await rt.cleanWorkDir(workDir)
-    const own = chosen === undefined ? await rt.newBotFolder(cleanName) : undefined
-    const dir = chosen ?? own.path
+    const dir = workDir === undefined || workDir === null ? undefined : await rt.cleanWorkDir(workDir)
     const id = await createSession(cleanName, { dir })
     try {
       state.bots[id] = {
@@ -127,8 +123,7 @@ export function install(rt) {
         ...(cleanAvatarValue ? { avatar: cleanAvatarValue } : {}),
         ...(modelRef ? { model: modelRef } : {}),
         ...(effortId ? { effort: effortId } : {}),
-        ...(chosen ? { workDir: chosen } : {}),
-        ...(own ? { folder: own.folder } : {}),
+        ...(dir ? { workDir: dir } : {}),
         instructions: String(instructions).trim(),
         createdAt: Date.now(),
         createdBy: createdBy ?? null,
@@ -358,11 +353,9 @@ export function install(rt) {
       checkMembers(live)
       const lead = adminId === null || live.includes(adminId) ? adminId : defaultAdmin(live, createdBy)
       const name = custom || autoRoomName(live)
-      const own = await rt.newRoomFolder(name)
       const room = {
         id,
         name,
-        folder: own.folder,
         ...(custom ? { named: true } : {}),
         members: live,
         admin: lead,
@@ -589,9 +582,7 @@ export function install(rt) {
   async function bootstrap() {
     await rt.load()
     void rt.syncModels()
-    // Bots and groups from before folders were automatic get one now, so their next turn
-    // moves them there like any other folder change.
-    if (state.mainBotIds.some(id => rt.botOf(id))) return rt.nameFolders()
+    if (state.mainBotIds.some(id => rt.botOf(id))) return
     // Only the team's first Main Bot is stored as Moon Bot's lilac moon sprite; other Bots get a
     // look from their id, and a Bot made Main Bot later keeps its own.
     bootstrapping ??= createBot({ name: defaults.mainName, role: defaults.mainRole, main: true, color: 'lilac', avatar: { shape: 'moonbot' }, pickModel: true })

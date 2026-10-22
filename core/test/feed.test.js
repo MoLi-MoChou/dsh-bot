@@ -150,7 +150,7 @@ test('the chat endpoint pages a Bot\'s own chat from the newest part back', asyn
   const first = (await call('chat', { botId: 'm1' })).value
   assert.deepEqual(first, {
     sessionId: 'm1c',
-    items: [{ kind: 'user', text: 'second', time: 70 }, { kind: 'bot', text: 'reply', time: 71, turn: 1 }],
+    items: [{ kind: 'user', text: 'second', time: 70 }, { kind: 'bot', text: 'reply', time: 71 }],
     cursor: { part: 1, beforeSeq: 41 },
   })
   // The current part's first message has the line that marks where the part began.

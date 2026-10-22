@@ -148,7 +148,7 @@ function ContextGauge({ context }) {
   const r = 7
   const length = 2 * Math.PI * r
   const tone = context.ratio >= 0.9 ? 'high' : context.ratio >= 0.7 ? 'mid' : 'low'
-  return h('div', { className: 'bt-ctx', 'data-tone': tone, role: 'status', title: t('{used} of {total} tokens of context in use', { used: formatTokens(context.used), total: formatTokens(context.total) }) },
+  return h('div', { className: 'bt-ctx', 'data-tone': tone, role: 'status', title: t('{used} of {total} of the context in use', { used: formatTokens(context.used), total: formatTokens(context.total) }) },
     h('svg', { width: 18, height: 18, viewBox: '0 0 18 18', 'aria-hidden': true },
       h('circle', { cx: 9, cy: 9, r, fill: 'none', stroke: 'currentColor', strokeOpacity: 0.15, strokeWidth: 2 }),
       h('circle', { className: 'bt-ctx-arc', cx: 9, cy: 9, r, fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeDasharray: length, strokeDashoffset: length * (1 - context.ratio), transform: 'rotate(-90 9 9)' })),
