@@ -466,6 +466,7 @@ const ZH = {
   'Downloading {version} · {percent}%': '正在下载 {version} · {percent}%',
   '{version} is ready. Restart to update; nothing to reinstall.': '{version} 已下载好。重启即可更新，无需重新安装。',
   'Restart to update': '重启以更新',
+  'Based on DS Bot': '基于 DS Bot',
   'The portable exe does not update itself: download the new one from the releases page and replace this file. Your data stays.': '便携版不会自动更新：请到发布页下载新版替换这个文件，数据会保留。',
   'Updates work in the installed app.': '安装后的应用才会自动更新。',
   'This package updates through its package manager; the AppImage and Windows installer update themselves.': '这个安装包请用系统包管理器更新；AppImage 和 Windows 安装版会自动更新。',

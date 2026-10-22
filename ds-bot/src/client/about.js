@@ -150,6 +150,8 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
     h(Section, { key: 'links', title: t('Links') },
       repo ? h(Row, { label: t('Source code'), hint: repo.replace(/^https:\/\//, '') }, h('a', linkProps(repo), h(GitHubMark), t('Open'))) : null,
       update.notesUrl ? h(Row, { label: t('Release notes') }, h('a', linkProps(update.notesUrl), t('Open'))) : null,
+      // DSH Bot patch: credit the project this app is built on.
+      h(Row, { label: t('Based on DS Bot'), hint: 'github.com/Fei2411/DeepSeek-Bot · Apache-2.0' }, h('a', linkProps('https://github.com/Fei2411/DeepSeek-Bot'), h(GitHubMark), t('Open'))),
       h(Row, { label: t('Report a problem') }, h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => actions.openSettings('feedback') }, t('Open')))),
   ]
 }
