@@ -10,8 +10,8 @@ test('the figures read as DSH counts them', () => {
     tokenUsage: { uncachedInputTokens: 50, cacheReadTokens: 900, cacheWriteTokens: 50, outputTokens: 400 },
     contextPressure: { pressureTokens: 41_000, contextWindow: 100_000 },
   }
-  assert.deepEqual(texts(values), ['12 turns', '38 tok/s', 'Cache hit 90%', 'Context 41%'])
-  assert.equal(runStatsOf(values).at(-1).title, '41.0K of 100.0K tokens of context in use')
+  assert.deepEqual(texts(values), ['12 turns', 'Speed 38/s', 'Cache hit 90%', 'Context 41%'])
+  assert.equal(runStatsOf(values).at(-1).title, '41.0K of 100.0K of the context in use')
 })
 
 test('a slow speed keeps a decimal, and a projected count wins over the last measure', () => {
@@ -19,7 +19,7 @@ test('a slow speed keeps a decimal, and a projected count wins over the last mea
     sessionStats: { turns: 1, decodeMs: 2000, decodeTokens: 9 },
     contextPressure: { pressureTokens: 10, projectedTokens: 30, contextWindow: 100 },
   }
-  assert.deepEqual(texts(values), ['1 turn', '4.5 tok/s', 'Context 30%'])
+  assert.deepEqual(texts(values), ['1 turn', 'Speed 4.5/s', 'Context 30%'])
 })
 
 test('a cache hit short of whole never reads 100%', () => {
