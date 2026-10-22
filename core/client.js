@@ -1181,11 +1181,13 @@ function errorCopy(code, message) {
   const copy2 = Object.hasOwn(ERROR_COPY, code ?? "") ? ERROR_COPY[code] : void 0;
   const zh = language().startsWith("zh");
   const detail = detailOf(message);
+  const generic = zh ? copy2?.zh : copy2?.en;
+  const reason = detail === generic ? "" : detail;
   if (copy2 === void 0) {
-    if (detail !== "") return detail;
+    if (reason !== "") return reason;
     return zh ? "出了点问题，请再试一次。" : "Something went wrong. Try again.";
   }
-  return zh ? [copy2.zh, detail, copy2.hintZh].filter(Boolean).join(" ") : [copy2.en, detail, copy2.hint].filter(Boolean).join(" ");
+  return [generic, reason, zh ? copy2.hintZh : copy2.hint].filter(Boolean).join("\n");
 }
 function language() {
   const active = service?.getLocale?.().active;

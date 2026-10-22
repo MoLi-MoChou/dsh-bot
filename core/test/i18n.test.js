@@ -44,25 +44,38 @@ test('copy follows the DSH language and stays English without a locale service',
     assert.equal(hostText("Writer's memory's MEMORY.md would have 4100 of its 4000 characters. Make room first: move details into a topic."), '主记忆会超过 4000 个字符的上限，请先删掉一些')
     assert.equal(hostText('There is no entry 9.'), '没有第 9 条')
     assert.equal(hostText('This file no longer exists'), '这个文件已经不在原来的位置了')
-    // The error codes the API throws each say what happened and what to do.
-    assert.equal(errorCopy('NETWORK'), '连不上 Moon Bot：网络断了，或者服务在重启。 检查一下网络，过几秒再试。')
-    assert.equal(errorCopy('bot/read-only'), '这个窗口现在只能看，不能改。 关掉另一个打开同一团队的 dsh 窗口，然后刷新。')
-    assert.equal(errorCopy('HTTP_500'), '服务端出错了。 稍后再试；一直这样的话，到「设置 → 反馈」把诊断发给开发者。')
+    // The error codes the API throws say what happened, what the host said, and what to do.
+    assert.equal(errorCopy('NETWORK'), '连不上 Moon Bot：网络断了，或者服务在重启。\n检查一下网络，过几秒再试。')
+    assert.equal(errorCopy('bot/read-only'), '这个窗口现在只能看，不能改。\n关掉另一个打开同一团队的 dsh 窗口，然后刷新。')
+    assert.equal(errorCopy('HTTP_500'), '服务端出错了。\n稍后再试；一直这样的话，到「设置 → 反馈」把诊断发给开发者。')
     assert.equal(errorCopy(undefined), '出了点问题，请再试一次。')
     assert.equal(errorCopy('some/code', 'This file no longer exists'), '这个文件已经不在原来的位置了')
-    // A known code keeps the host's own reason, translated, instead of only the generic copy.
-    assert.equal(errorCopy('bot/refused', 'This file is not one this conversation produced'), '这个操作被拒绝了。 这个文件不是这段对话产出的，不能从这里下载 按提示换个做法；还不行就到「设置 → 反馈」发诊断。')
-    assert.equal(errorCopy('bot/invalid', 'Nothing to send'), '请求里有不能接受的内容。 没有要发送的内容 改一下再试。')
+    // The three codes the review named: the generic copy, the host's reason in Chinese,
+    // and no English sentence left on the page.
+    const named = [
+      ['bot/refused', 'This file is not one this conversation produced', '这个文件不是这段对话产出的，不能从这里下载'],
+      ['bot/invalid', 'Nothing to send', '没有要发送的内容'],
+      ['bot/not-found', 'Unknown Bot', '找不到这个 Bot'],
+    ]
+    for (const [code, message, reason] of named) {
+      const shown = errorCopy(code, message)
+      assert.match(shown, new RegExp(reason))
+      assert.match(shown, /[一-鿿]/)
+      assert.doesNotMatch(shown, /[A-Za-z]{4,}/)
+    }
+    assert.equal(errorCopy('bot/refused', 'This file is not one this conversation produced'), '这个操作被拒绝了。\n这个文件不是这段对话产出的，不能从这里下载\n按提示换个做法；还不行就到「设置 → 反馈」发诊断。')
+    assert.equal(errorCopy('bot/invalid', 'Nothing to send'), '请求里有不能接受的内容。\n没有要发送的内容\n改一下再试。')
     // A reason that cannot be translated is left out, never shown in English.
-    assert.equal(errorCopy('bot/refused', 'Something server-side broke'), '这个操作被拒绝了。 按提示换个做法；还不行就到「设置 → 反馈」发诊断。')
-    assert.equal(errorCopy('bot/not-found', 'Unknown Bot'), '找不到要操作的对象了。 找不到这个 Bot 刷新页面，确认它还在。')
+    assert.equal(errorCopy('bot/refused', 'Something server-side broke'), '这个操作被拒绝了。\n按提示换个做法；还不行就到「设置 → 反馈」发诊断。')
+    // A reason equal to the generic copy is not repeated.
+    assert.equal(errorCopy('bot/invalid', '请求里有不能接受的内容。'), '请求里有不能接受的内容。\n改一下再试。')
   } finally {
     off()
   }
   assert.equal(t('Model'), 'Model')
   assert.equal(hostText('A Bot named Writer already exists'), 'A Bot named Writer already exists')
-  assert.equal(errorCopy('NETWORK'), 'Could not reach Moon Bot: the network dropped or the service restarted. Check the network and try again in a moment.')
-  assert.equal(errorCopy('bot/refused'), 'That was refused. Follow the hint and try another way.')
+  assert.equal(errorCopy('NETWORK'), 'Could not reach Moon Bot: the network dropped or the service restarted.\nCheck the network and try again in a moment.')
+  assert.equal(errorCopy('bot/refused'), 'That was refused.\nFollow the hint and try another way.')
   // English keeps the host's reason as it came.
-  assert.equal(errorCopy('bot/refused', 'This file no longer exists'), 'That was refused. This file no longer exists Follow the hint and try another way.')
+  assert.equal(errorCopy('bot/refused', 'This file no longer exists'), 'That was refused.\nThis file no longer exists\nFollow the hint and try another way.')
 })

@@ -1152,13 +1152,14 @@ export function errorCopy(code, message) {
   const copy = Object.hasOwn(ERROR_COPY, code ?? '') ? ERROR_COPY[code] : undefined
   const zh = language().startsWith('zh')
   const detail = detailOf(message)
+  const generic = zh ? copy?.zh : copy?.en
+  // A reason the copy already says, or one that could not be translated, is not repeated.
+  const reason = detail === generic ? '' : detail
   if (copy === undefined) {
-    if (detail !== '') return detail
+    if (reason !== '') return reason
     return zh ? '出了点问题，请再试一次。' : 'Something went wrong. Try again.'
   }
-  return zh
-    ? [copy.zh, detail, copy.hintZh].filter(Boolean).join(' ')
-    : [copy.en, detail, copy.hint].filter(Boolean).join(' ')
+  return [generic, reason, zh ? copy.hintZh : copy.hint].filter(Boolean).join('\n')
 }
 
 // The active DSH language tag, for dates and times.
