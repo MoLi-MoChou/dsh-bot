@@ -40,6 +40,19 @@ jobs:
       - run: npx electron-builder --win --publish never
       - name: Check the packaged app
         run: node scripts/check-packed.mjs
+      - name: Size report (unpacked app, installer)
+        run: |
+          node scripts/size-report.mjs dist-pack/win-unpacked
+          ls -l dist-pack/*.exe
+      - name: Installed size (silent per-user install, then uninstall)
+        shell: pwsh
+        run: |
+          $installer = Get-Item dist-pack/DSH-Bot-*-win-x64-setup.exe
+          Start-Process -Wait -FilePath $installer.FullName -ArgumentList '/S'
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\DSH Bot'
+          $bytes = (Get-ChildItem -Recurse -File $dir | Measure-Object -Sum Length).Sum
+          "installed on disk: {0:N1} MB in $dir" -f ($bytes / 1MB)
+          Start-Process -Wait -FilePath (Join-Path $dir 'Uninstall DSH Bot.exe') -ArgumentList '/S'
       - uses: actions/upload-artifact@v4
         with:
           name: DSH-Bot-win-x64
@@ -69,6 +82,10 @@ jobs:
       - run: npx electron-builder --linux AppImage --publish never
       - name: Check the packaged app
         run: xvfb-run -a node scripts/check-packed.mjs dist-pack/linux-unpacked/dsh-bot
+      - name: Size report (unpacked app, AppImage)
+        run: |
+          node scripts/size-report.mjs dist-pack/linux-unpacked
+          ls -l dist-pack/*.AppImage
       - uses: actions/upload-artifact@v4
         with:
           name: DSH-Bot-linux-x64
