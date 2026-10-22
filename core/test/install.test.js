@@ -59,7 +59,7 @@ test('apply registers listeners, tools, and effects in a fixed order', (t) => {
     'tool ask_user',
     'tool show_view',
     'tools guard',
-    // Mochou patch: the LEAN guard (hidden features' tools refuse in Bot Sessions).
+    // Moon Bot patch: the LEAN guard (hidden features' tools refuse in Bot Sessions).
     'tools guard',
     'on agent/created',
     'on session/event',
@@ -140,7 +140,7 @@ test('the client channel answers from the saved state', async (t) => {
   const loaded = (await call('state')).value
   const [chief, writer] = ['m1', 'b2'].map(id => loaded.bots.find(bot => bot.id === id))
   assert.deepEqual(loaded.mainBotIds, ['m1'])
-  assert.deepEqual([chief.model, chief.color, chief.avatar?.shape], ['ollama/deepseek-v4.1-flash', 'deepseek', 'whale'])
+  assert.deepEqual([chief.model, chief.color, chief.avatar?.shape], ['ollama/deepseek-v4.1-flash', 'lilac', 'moonbot'])
   assert.deepEqual([writer.role, writer.model, writer.color, writer.avatar, writer.instructions], ['写作', undefined, undefined, undefined, 'Kimi-style long reads'])
   const saved = (await call('state')).value.bots
   assert.equal(saved.some(bot => 'lab' in bot), false)

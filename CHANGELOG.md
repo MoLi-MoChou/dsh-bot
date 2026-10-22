@@ -6,7 +6,9 @@ All notable changes to DS Bot are listed here. The format follows [Keep a Change
 
 ### Changed
 
-- The fork is now called Mochou (莫愁): new name, logo, app id `com.molimochou.mochou`, data folder `~/.mochou` (an existing `~/.dsh-bot` is still used), `MOCHOU_*` settings (the `DSH_BOT_*` names still work), plugin folder `core/` and package `mochou-core` (profiles that list `ds-bot` move over by themselves).
+- The fork is now called Moon Bot: new name in every language, app id `com.molimochou.moonbot`, data folder `~/.moon-bot` (an existing `~/.mochou` or `~/.dsh-bot` is still used), `MOON_BOT_*` settings (the `MOCHOU_*` and `DSH_BOT_*` names still work), plugin folder `core/` and package `moon-bot-core` (profiles that list `ds-bot` or `mochou-core` move over by themselves).
+- The Main Bot is a lilac moon sprite instead of DS Bot's whale (a Chief still wearing the blue whale switches once); the whale is no longer in the avatar picker. The app icon, favicon, login page and About page show the matching Moon Bot tile.
+- New default theme, Moon (soft lilac, light and dark). DeepSeek, Claude and Grok Bot stay in Settings > General.
 
 ## [0.2.0] - 2026-10-21
 

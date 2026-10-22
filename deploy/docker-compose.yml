@@ -1,10 +1,10 @@
-# Mochou web on a server: docker compose up -d --build (run from the repository root
-# copy, with .env beside this file: MOCHOU_PASSWORD and the model provider keys).
+# Moon Bot web on a server: docker compose up -d --build (run from the repository root
+# copy, with .env beside this file: MOON_BOT_PASSWORD and the model provider keys).
 services:
-  mochou:
+  moon-bot:
     build: { context: .., dockerfile: Dockerfile }
-    image: mochou:latest
-    container_name: mochou
+    image: moon-bot:latest
+    container_name: moon-bot
     restart: unless-stopped
     env_file: .env
     ports:

@@ -1,4 +1,4 @@
-// Mochou patch: a finished turn's thinking and tool steps stay out of the chat. One
+// Moon Bot patch: a finished turn's thinking and tool steps stay out of the chat. One
 // quiet line ("已工作 12s · 5 步") stands where DS Bot drew its thinking row; clicking it
 // opens a side panel with the whole process: thinking, tool calls with their
 // arguments, and their outputs, in order.

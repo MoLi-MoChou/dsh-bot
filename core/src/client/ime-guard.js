@@ -1,4 +1,4 @@
-// Mochou: Enter that ends a CJK input method's composition must not send. Browsers
+// Moon Bot: Enter that ends a CJK input method's composition must not send. Browsers
 // mark it with isComposing or keyCode 229; Safari and some IMEs instead fire one plain
 // Enter right after compositionend. A capture-phase listener ahead of the composer's
 // own (Lexical) keydown swallows both (after open-claude-ui's ChatComposer, MIT).

@@ -1,6 +1,6 @@
 // Generated from src/client by `npm run build` (scripts/build-client.mjs). Do not edit by hand.
 window.__ModuleLoader__.load({
-  id: 'mochou-core',
+  id: 'moon-bot-core',
   factory: (require) => {
 const module = { exports: {} }
 var __create = Object.create;
@@ -165,10 +165,10 @@ var ZH = {
   "Add a provider": "添加服务商",
   "Needs an API key": "需要 API key",
   "Key set": "已设置 key",
-  "Key set outside DS Bot": "key 在 莫愁 之外设置",
+  "Key set outside DS Bot": "key 在 Moon Bot 之外设置",
   "No models": "没有模型",
   "{count} models": "{count} 个模型",
-  "This key comes from outside DS Bot, such as an environment variable, and cannot be changed here.": "这个 key 来自 莫愁 之外（例如环境变量），这里改不了。",
+  "This key comes from outside DS Bot, such as an environment variable, and cannot be changed here.": "这个 key 来自 Moon Bot 之外（例如环境变量），这里改不了。",
   "and {count} more": "还有 {count} 个",
   "Remove {name}? Bots on its models need another model.": "删除 {name}？用它的模型的 Bot 要换一个模型。",
   "Remove provider": "删除服务商",
@@ -200,7 +200,7 @@ var ZH = {
   "Sign in to DeepSeek": "登录 DeepSeek 账号",
   "Enter a DeepSeek API key": "填入 DeepSeek API key",
   "Open settings to set up a custom model": "打开设置配置自定义模型",
-  "DS Bot": "Mochou",
+  "DS Bot": "Moon Bot",
   // Header
   "Message {name}": "给 {name} 发消息",
   Message: "发消息",
@@ -434,7 +434,7 @@ var ZH = {
   "No group chats yet.": "还没有群聊。",
   "A group chat lets several Bots work on one thing with you.": "在群聊里，几个 Bot 和你一起做一件事。",
   "Back to group chats": "返回群聊列表",
-  "DS Bot settings": "莫愁 设置",
+  "DS Bot settings": "Moon Bot 设置",
   "Settings pages": "设置页面",
   "Models, providers, and the rest of DeepSeek Harness": "模型、服务商和 DeepSeek Harness 的其他设置",
   "Harness settings": "Harness 设置",
@@ -464,13 +464,13 @@ var ZH = {
   "{n} h": "{n} 小时",
   "{n} d": "{n} 天",
   // Plugin updates
-  "DS Bot {version} is available": "莫愁 {version} 可以更新",
-  "Updating DS Bot…": "正在更新 莫愁…",
-  "DS Bot {version} is installed. Restart DSH to use it.": "莫愁 {version} 已安装，重启 DSH 后生效",
-  "DS Bot update": "莫愁 更新",
-  "DS Bot {version}": "Mochou {version}",
+  "DS Bot {version} is available": "Moon Bot {version} 可以更新",
+  "Updating DS Bot…": "正在更新 Moon Bot…",
+  "DS Bot {version} is installed. Restart DSH to use it.": "Moon Bot {version} 已安装，重启 DSH 后生效",
+  "DS Bot update": "Moon Bot 更新",
+  "DS Bot {version}": "Moon Bot {version}",
   "Update installed": "更新已安装",
-  "Restart DSH to start using DS Bot {version}.": "重启 DSH 后开始使用 莫愁 {version}。",
+  "Restart DSH to start using DS Bot {version}.": "重启 DSH 后开始使用 Moon Bot {version}。",
   "You have {version}.": "当前版本 {version}。",
   "The update did not finish: {reason}": "更新没有完成：{reason}",
   "What's new": "更新说明",
@@ -480,7 +480,7 @@ var ZH = {
   "DSH update": "DSH 更新",
   "DSH {version}": "DSH {version}",
   "Restart DSH to start using DSH {version}.": "重启 DSH 后开始使用 DSH {version}。",
-  "Update DS Bot {version} first.": "先更新 莫愁 {version}。",
+  "Update DS Bot {version} first.": "先更新 Moon Bot {version}。",
   "Open updates": "打开更新",
   // Command palette
   Messages: "消息",
@@ -854,11 +854,11 @@ var ZH = {
   "Compared with the {count} days before": "与再往前 {count} 天相比",
   "{share}% of all usage from {span}": "占 {span} 全部用量的 {share}%",
   // About
-  "About DS Bot": "关于 莫愁",
+  "About DS Bot": "关于 Moon Bot",
   "Version {version}": "版本 {version}",
-  "Star DS Bot on GitHub": "在 GitHub 上给 莫愁 点 Star",
+  "Star DS Bot on GitHub": "在 GitHub 上给 Moon Bot 点 Star",
   "{count} stars": "{count} 个 Star",
-  "If DS Bot helps you, a star on GitHub helps more people find it.": "如果 莫愁 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。",
+  "If DS Bot helps you, a star on GitHub helps more people find it.": "如果 Moon Bot 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。",
   Updates: "更新",
   "Check for updates": "检查更新",
   "Checking…": "正在检查…",
@@ -884,7 +884,7 @@ var ZH = {
   Show: "查看",
   Hide: "收起",
   "GitHub issue": "GitHub issue",
-  "Opens a new issue in the DS Bot repository with all of this filled in. Nothing is sent until you submit it there.": "在 莫愁 仓库新建一个 issue，并填好以上内容。你在 GitHub 上提交之前，什么都不会发出。",
+  "Opens a new issue in the DS Bot repository with all of this filled in. Nothing is sent until you submit it there.": "在 Moon Bot 仓库新建一个 issue，并填好以上内容。你在 GitHub 上提交之前，什么都不会发出。",
   "Report on GitHub": "在 GitHub 上报告",
   "Copied the diagnostics.": "已复制诊断信息。",
   "Could not copy. Select the text below and copy it.": "无法复制。请选中下面的文字手动复制。",
@@ -896,7 +896,7 @@ var ZH = {
   "Recent errors": "最近的错误",
   "Recent errors · {count}": "最近的错误 · {count}",
   "No errors recorded.": "没有错误记录。",
-  "Failed model calls and DS Bot problems show here, newest first.": "模型调用失败和 莫愁 的问题会显示在这里，最新的在前。",
+  "Failed model calls and DS Bot problems show here, newest first.": "模型调用失败和 Moon Bot 的问题会显示在这里，最新的在前。",
   "Model call": "模型调用",
   "This window": "这个窗口",
   "Error log": "错误日志",
@@ -1097,8 +1097,8 @@ function installLocale(locale) {
   };
 }
 var KEEP_NAME = /* @__PURE__ */ new Set(["Based on DS Bot"]);
-var productName = () => language().startsWith("zh") ? "莫愁" : "Mochou";
-var brand = (text) => typeof text === "string" ? text.replace(/\b(?:Mochou|DS Bot|DeepSeek Bot)\b/g, productName()) : text;
+var productName = () => "Moon Bot";
+var brand = (text) => typeof text === "string" ? text.replace(/\b(?:DS Bot|DeepSeek Bot)\b/g, productName()) : text;
 function t(key, params) {
   const text = bound ? bound(key, params) : fill(key, params);
   return KEEP_NAME.has(key) ? text : brand(text);
@@ -1117,6 +1117,12 @@ function language() {
 }
 var dateLocale = () => language().startsWith("zh") ? "zh-CN" : "en-US";
 var DICTIONARY = { zh: ZH };
+
+// src/client/brand-art.js
+var LOGO_LIGHT = "data:image/webp;base64,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";
+var LOGO_DARK = "data:image/webp;base64,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";
+var FAVICON = "data:image/png;base64,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";
+var SPRITE = "data:image/webp;base64,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";
 
 // src/client/shell-quiet.js
 var userAsked = false;
@@ -1171,6 +1177,12 @@ function relabelTitle() {
   if (typeof MutationObserver === "undefined" || typeof document === "undefined" || !document.head) return () => {
   };
   const fix = () => {
+    const icon2 = document.head.querySelector('link[rel~="icon"]');
+    if (icon2?.getAttribute("href") !== FAVICON) {
+      const link = icon2 ?? document.head.appendChild(Object.assign(document.createElement("link"), { rel: "icon" }));
+      link.setAttribute("href", FAVICON);
+      link.setAttribute("type", "image/png");
+    }
     const name = productName();
     const next = document.title.includes("DeepSeek Harness") ? document.title.replace("DeepSeek Harness", name) : document.title || name;
     if (next !== document.title) document.title = next;
@@ -1292,6 +1304,7 @@ var call = async (endpoint, payload, signal) => {
 
 // src/client/inks.js
 var INKS = {
+  lilac: ["#8A6BD1", "#B9A3F5"],
   deepseek: ["#4D6BFE", "#6A84FF"],
   charcoal: ["#141416", "#F1F2F4"],
   graphite: ["#2D2D2D", "#D6D6DA"],
@@ -1345,12 +1358,12 @@ var CHARACTERS = {
   ring: { body: "M48.1 4.3l8-.1 7.8 1.8 7.3 3.5 6.7 5.4 5.2 6.7 4.1 8.3 2.3 8.9 .7 9-1 9.5-2.5 8.9-4.1 8.3-5.3 7.3-6.6 6.1-7.3 4.5-7.8 2.7-8.4 .9-7.2-.8-7.3-2.5-6.7-4.1-5.6-5.3-4.5-6.5-3.5-7.8-2-8.4-.6-8.4 .9-8.9 2.2-8.4 3.5-7.8 4.9-7.2 5.8-6.1 6.3-4.5 7.1-3.3zM50.5 33.8l2.3-.3 1.7 .4 1.6 1.1 2 2.2 1.3 2.8 .8 2.7 .4 3.4-.1 3.3-1.4 6.2-3 5.6-2.2 2.4-2.2 1.6-2.3 1-2.2 .3-1.7-.4-1.6-1.1-2.8-3.7-1.5-5.2-.1-5.5 1.2-5.6 2.4-5 3.6-4z", shade: "M76.2 14.9l1.1-.5 3.4 3.8 2.8 3.9 2.3 4.5 1.6 3.9 1.6 5.6 1.1 8.3-.4 10.1-1.3 6.1-2.6 7.8-4.6 8.3-4.4 5.6-6.2 5.7-6.1 3.8-7.2 2.9-6.2 1.1-7.8-.1-7.2-1.7-3.9-1.6-4-2.2-5.5-4.5-2.8-3.4 1.7-.6 2.4-2.1 2-2.8 1.2-2.8 1.2-5 1.1-13.4 1.4-7.8 2.5-7.8 3.8-7.3 3.3-4.5 3.4-3.4 3.9-3.1 4.4-2.6 3.9-1.5 4.5-1.1 12.3-.9zM50.5 33.8l.6-.3 2.8 0 1.6 .9 2.7 2.8 3 1.4 3.3 .5 6.1 .2 3.9 .9 1.7 1 1.7 1.6 2.1 4.4 .7 4.5-.3 5-1.2 5-1.9 4.5-2.8 4.2-3.3 3.6-3.9 2.8-3.9 1.7-3.4 .6-3.3-.1-3.4-1.1-2.5-1.7-2.5-3-3.6-7-2.9-3.4-2.1-5-.6-5.6 .6-4.4 1-3.4 2.3-4.4 1.4-2.1 2.3-2.2 2.7-1.7z", light: "M41.1 5.9l.5 .1 .2 .5-.3 .6-12.4 13.3-13.1 18.1-2.3 2.1-1.1 0-.2-1.2 .2-2.8 1.6-5 4.6-8.3 3.9-5.1 4.4-4.4 4.5-3.4 5-2.8zM60.5 53.3l1.2-.3 1.1 .6 1.1 1.3 .8 1.8-.2 3.3-1.5 2.8-2 1.7-2.6 1-7.3 .2 2.2-1.4 2.6-2.6z", eyes: [[56.2, 84.6, 5.3, 13.3, -6.8], [71.7, 78.8, 5.1, 13.4, -6.5]] },
   gem: { body: "M57 9.3l2.9-.4 14.9 3.5 19.6 14.1 1 1.4 .6 1.6-.5 2.6-27.1 56.5-1.6 1.8-2.1 .7-15.9-3.4-42.9-30.7-1.3-1.6-.6-1.6 .5-2.6 12-25.2 1.1-1.5 1.5-1z", shade: "M75.7 14.6l.1-.4 .6 .2 16.9 12.3 1.1 .7 .5-.2 .5 .7 .6 2.6-.5 1.6-26.4 55.1-1.2 2.1-1.1 1.1-1.6 .6-2.1 0-14.3-3.3-42.8-30.7 1.5-.2 11.6 2.5 2.2-.7 2.8-2.6 11.9-24.9 .6-.8 38.2-14.2z", light: "M19.1 23.6l1.1-.4 .5 .5 11.7 2.2 1 .9-.2 .5-1.8 2.7-11.7 24.4-1.6 .6-13.3-2.8-.5-.5 12.1-25.4 1.2-1.7z", eyes: [[51.4, 42.9, 6.7, 17.7, -10], [66.1, 37.4, 6.7, 17.7, -10]] }
 };
-var PICKER_SHAPES = Object.keys(CHARACTERS);
+var PICKER_SHAPES = Object.keys(CHARACTERS).filter((id) => id !== "whale");
 var PICKER_COLUMNS = 6;
 var DEFAULT_SHAPES = ["star", "moon", "gumdrop", "peanut", "bunny", "kitty", "acorn"];
 var FALLBACK_SHAPE = "gumdrop";
-var MAIN_LOOK = Object.freeze({ shape: "whale", color: "deepseek" });
-var CHARACTER_COLORS = ["black", "brown", "red", "orange", "yellow", "green", "cyan", "blue", "violet", "magenta", "gray", "aurora"];
+var MAIN_LOOK = Object.freeze({ shape: "moonbot", color: "lilac" });
+var CHARACTER_COLORS = ["lilac", "black", "brown", "red", "orange", "yellow", "green", "cyan", "blue", "violet", "magenta", "gray", "aurora"];
 var DEFAULT_COLORS = CHARACTER_COLORS.filter((color) => !["black", "gray", "brown"].includes(color) && !GRADIENTS[color]);
 var isColor = (color) => isHex(color) || Object.hasOwn(INKS, color);
 function fnv1a(text) {
@@ -1388,6 +1401,7 @@ for (const [id, character] of Object.entries(CHARACTERS)) {
   ].join("");
   SHAPES[id] = { label: character.label ?? id[0].toUpperCase() + id.slice(1), size: 100, path: character.body, layers, eyes: character.eyes };
 }
+SHAPES.moonbot = { label: "Moon Bot", size: 100, eyes: [], body: () => `<image href="${SPRITE}" x="0" y="0" width="100" height="100"/>` };
 var hasShape = (id) => typeof id === "string" && Object.hasOwn(SHAPES, id);
 var shapeId = (id) => hasShape(id) ? id : FALLBACK_SHAPE;
 var shapeOf = (id) => SHAPES[shapeId(id)];
@@ -1680,6 +1694,32 @@ var THEME_KEYS = ["bg", "sidebar", "bubble", "card", "text", "user", "userText",
 var SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif';
 var both = (value) => ({ light: value, dark: value });
 var THEMES = {
+  // Moon Bot's own theme, from the Main Bot's lilac moon sprite: soft lavender on warm
+  // cream by day, deep plum by night, rounder corners and a gentle gloss on raised
+  // surfaces. The default.
+  moon: {
+    label: "Moon",
+    light: { bg: "#fcfafd", sidebar: "#f5f1f9", bubble: "#f1ecf7", card: "#ffffff", text: "#2a2233", user: "#ebe3f7", userText: "#2a2233", accent: "#8a6bd1" },
+    dark: { bg: "#17131d", sidebar: "#1d1824", bubble: "#2a2335", card: "#221c2b", text: "#f1ecf7", user: "#3a2f4c", userText: "#f1ecf7", accent: "#b9a3f5" },
+    tokens: {
+      "--dsw-radius-sm": both("8px"),
+      "--dsw-radius-md": both("12px"),
+      "--dsw-radius-lg": both("16px"),
+      "--dsw-radius-xl": both("22px")
+    },
+    css: `
+html body[data-bt-theme=moon]{--bt-line:rgba(70,45,110,.08);--bt-line-2:rgba(70,45,110,.14);--bt-hover:rgba(138,107,209,.08);--bt-active:rgba(138,107,209,.15);--bt-tag-bg:rgba(138,107,209,.1);--bt-tag-ink:#6b55a8}
+html body[data-bt-theme=moon][data-ds-dark-theme]{--bt-line:rgba(210,190,255,.09);--bt-line-2:rgba(210,190,255,.15);--bt-hover:rgba(185,163,245,.1);--bt-active:rgba(185,163,245,.18);--bt-tag-bg:rgba(185,163,245,.14);--bt-tag-ink:#cdbdf8}
+body[data-bt-theme=moon] :is(.bt-bubble,.bt-ububble){border-radius:18px}
+body[data-bt-theme=moon] .bt-ububble{background:linear-gradient(180deg,color-mix(in srgb,var(--bt-user) 70%,#fff),var(--bt-user))}
+body[data-bt-theme=moon][data-ds-dark-theme] .bt-ububble{background:linear-gradient(180deg,color-mix(in srgb,var(--bt-user) 84%,#fff),var(--bt-user))}
+body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]){border-radius:22px;box-shadow:0 6px 24px -8px rgba(110,80,170,.18),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 8px 28px -8px rgba(110,80,170,.28),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 50%,var(--bt-line-2))}
+body[data-bt-theme=moon] :is(.bt-process,.bt-menu,.bt-update-pop,.bt-q){border-radius:16px;box-shadow:0 0 0 .5px var(--bt-line-2),0 14px 36px -14px rgba(90,60,150,.3)}
+body[data-bt-theme=moon] :is(.bt-work-all,.bt-retry){border-radius:999px;border-color:color-mix(in srgb,var(--bt-accent) 30%,var(--bt-line-2))}
+body[data-bt-theme=moon] [data-composer-input]{caret-color:var(--bt-accent)}
+`
+  },
   deepseek: {
     label: "DeepSeek",
     light: { bg: "#fcfcfc", sidebar: "#f7f7f7", bubble: "#eeeeee", card: "#ffffff", text: "#141414", user: "#070707", userText: "#fcfcfc", accent: "#4d6bfe" },
@@ -2324,7 +2364,7 @@ function useLinger(value, ms) {
 // src/client/styles.js
 var SKIN_FOOT = ':is(div,footer):not([class*="_footArea"]):has(> div > [data-slot="sidebar.footer.action"] > .bt-connect-wrap)';
 var SHELL_CSS = `
-body{--bt-mark-a:#2b8a92;--bt-mark-b:#16485a;--bt-mark-moon:#fdf6e3;--bt-ink:#141414;--bt-danger:#e02135;--bt-warn:#d4a72c;--bt-ink-2:rgba(20,20,20,.6);--bt-ink-3:rgba(20,20,20,.36);--bt-bubble:#eeeeee;--bt-sidebar:#f7f7f7;--bt-main:#fcfcfc;--bt-line:rgba(20,20,20,.08);--bt-line-2:rgba(20,20,20,.15);--bt-line-weak:rgba(20,20,20,.1);--bt-hover:rgba(119,119,119,.09);--bt-active:rgba(119,119,119,.17);--bt-card:#ffffff;--bt-accent:#4d6bfe;--bt-green:#00c972;--bt-star:#ff9800;--bt-user:#070707;--bt-user-ink:#fcfcfc;--bt-tag-bg:rgba(20,20,20,.06);--bt-tag-ink:rgba(20,20,20,.56)}
+body{--bt-ink:#141414;--bt-danger:#e02135;--bt-warn:#d4a72c;--bt-ink-2:rgba(20,20,20,.6);--bt-ink-3:rgba(20,20,20,.36);--bt-bubble:#eeeeee;--bt-sidebar:#f7f7f7;--bt-main:#fcfcfc;--bt-line:rgba(20,20,20,.08);--bt-line-2:rgba(20,20,20,.15);--bt-line-weak:rgba(20,20,20,.1);--bt-hover:rgba(119,119,119,.09);--bt-active:rgba(119,119,119,.17);--bt-card:#ffffff;--bt-accent:#4d6bfe;--bt-green:#00c972;--bt-star:#ff9800;--bt-user:#070707;--bt-user-ink:#fcfcfc;--bt-tag-bg:rgba(20,20,20,.06);--bt-tag-ink:rgba(20,20,20,.56)}
 body[data-ds-dark-theme]{--bt-ink:#f2f2f2;--bt-ink-2:rgba(242,242,242,.6);--bt-ink-3:rgba(242,242,242,.36);--bt-bubble:#262626;--bt-sidebar:#1b1b1b;--bt-main:#141414;--bt-line:rgba(255,255,255,.08);--bt-line-2:rgba(255,255,255,.15);--bt-line-weak:rgba(255,255,255,.1);--bt-hover:rgba(160,160,160,.12);--bt-active:rgba(160,160,160,.2);--bt-card:#1f1f1f;--bt-user:#f2f2f2;--bt-user-ink:#141414;--bt-tag-bg:rgba(255,255,255,.09);--bt-tag-ink:rgba(242,242,242,.62)}
 ${Object.entries(INKS).map(([name, [light]]) => `body{--bt-ink-${name}:${light}}`).join("")}
 ${Object.entries(INKS).map(([name, [, dark]]) => `body[data-ds-dark-theme]{--bt-ink-${name}:${dark}}`).join("")}
@@ -2428,6 +2468,8 @@ body[data-bt-motion=quiet] .bt-mark[data-poke]{cursor:default}
 .bt-side-top{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:6px 5px 0 0}
 .bt-brand{display:inline-flex;align-items:center;gap:6px;margin-right:auto;padding:4px 8px 4px 4px;border:0;border-radius:8px;background:none;cursor:pointer;font-family:inherit;font-size:15px;line-height:20px;font-weight:600;letter-spacing:-.01em;color:var(--bt-ink);white-space:nowrap}
 .bt-brand-whale{display:inline-flex;color:var(--bt-accent)}
+.bt-moon-mark{display:inline-block;flex:none;background:url("${LOGO_LIGHT}") center/contain no-repeat}
+body[data-ds-dark-theme] .bt-moon-mark{background-image:url("${LOGO_DARK}")}
 .bt-round{width:36px;height:36px;border-radius:50%;border:1px solid var(--bt-line);background:var(--bt-main);color:var(--bt-ink);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background-color .12s ease,transform .12s ease}
 .bt-round:hover{background:var(--bt-hover)}
 .bt-round:active{transform:scale(.94)}
@@ -7632,23 +7674,8 @@ var SidePanelIcon = lineIcon(["M4.5 4h11A1.5 1.5 0 0 1 17 5.5v9a1.5 1.5 0 0 1-1.
 var FolderIcon = lineIcon(["M3 6A1.5 1.5 0 0 1 4.5 4.5h3.2l1.8 2h6A1.5 1.5 0 0 1 17 8v6.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z"]);
 var ChatsIcon = lineIcon(["M3.5 5.5A1.5 1.5 0 0 1 5 4h7a1.5 1.5 0 0 1 1.5 1.5V10A1.5 1.5 0 0 1 12 11.5H8L5 14v-2.5A1.5 1.5 0 0 1 3.5 10z", "M13.5 7.5H15A1.5 1.5 0 0 1 16.5 9v4.5A1.5 1.5 0 0 1 15 15v2l-2.5-2h-3A1.5 1.5 0 0 1 8 13.5V13"]);
 var SETTINGS_ICONS = { general: GearIcon, bots: PeopleIcon, groups: ChatsIcon, usage: GaugeIcon };
-var markSeq = 0;
-function MochouMark({ size = 24 }) {
-  const id = `mc${markSeq++}`;
-  return (0, import_react3.createElement)(
-    "svg",
-    { width: size, height: size, viewBox: "6 6 88 88", "aria-hidden": true, className: "bt-mochou-mark" },
-    (0, import_react3.createElement)(
-      "defs",
-      null,
-      (0, import_react3.createElement)("linearGradient", { id: `${id}g`, x1: 0, y1: 0, x2: 1, y2: 1 }, (0, import_react3.createElement)("stop", { offset: 0, style: { stopColor: "var(--bt-mark-a)" } }), (0, import_react3.createElement)("stop", { offset: 1, style: { stopColor: "var(--bt-mark-b)" } })),
-      (0, import_react3.createElement)("mask", { id: `${id}m` }, (0, import_react3.createElement)("rect", { width: 100, height: 100, fill: "white" }), (0, import_react3.createElement)("circle", { cx: 70, cy: 28, r: 12.5, fill: "black" }))
-    ),
-    (0, import_react3.createElement)("rect", { x: 6, y: 6, width: 88, height: 88, rx: 22, fill: `url(#${id}g)` }),
-    (0, import_react3.createElement)("circle", { cx: 61, cy: 35, r: 15, style: { fill: "var(--bt-mark-moon)" }, mask: `url(#${id}m)` }),
-    (0, import_react3.createElement)("path", { d: "M20 61 q7.5 -6 15 0 t15 0 t15 0 t15 0", fill: "none", style: { stroke: "var(--bt-mark-moon)" }, strokeWidth: 6, strokeLinecap: "round" }),
-    (0, import_react3.createElement)("path", { d: "M30 75 q7.5 -6 15 0 t15 0 t15 0", fill: "none", style: { stroke: "var(--bt-mark-moon)" }, strokeOpacity: 0.6, strokeWidth: 6, strokeLinecap: "round" })
-  );
+function MoonBotMark({ size = 24 }) {
+  return (0, import_react3.createElement)("span", { className: "bt-moon-mark", "aria-hidden": true, style: { width: size, height: size } });
 }
 
 // src/client/card-hold.js
@@ -10957,7 +10984,7 @@ function YouAvatar() {
   return (0, import_react13.createElement)(
     "span",
     { className: "bt-you-wrap" },
-    (0, import_react13.createElement)("span", { className: "bt-you", "aria-hidden": true }, (0, import_react13.createElement)(MochouMark, { size: 24 })),
+    (0, import_react13.createElement)("span", { className: "bt-you", "aria-hidden": true }, (0, import_react13.createElement)(MoonBotMark, { size: 24 })),
     (0, import_react13.createElement)("span", { style: { position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" } }, t("Settings"))
   );
 }
@@ -11096,7 +11123,7 @@ function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboardi
     (0, import_react13.createElement)(
       "button",
       { ref: button, type: "button", className: "bt-account", "aria-label": t("Account"), "aria-haspopup": "menu", "aria-expanded": open, onClick: toggle },
-      (0, import_react13.createElement)("span", { className: "bt-you", "aria-hidden": true }, (0, import_react13.createElement)(MochouMark, { size: 24 }))
+      (0, import_react13.createElement)("span", { className: "bt-you", "aria-hidden": true }, (0, import_react13.createElement)(MoonBotMark, { size: 24 }))
     ),
     open && box ? (0, import_react_dom4.createPortal)((0, import_react13.createElement)(
       "div",
@@ -11153,7 +11180,7 @@ function BotReturn({ wide, useSurface, actions }) {
   return (0, import_react13.createElement)(
     "button",
     { type: "button", className: "bt-return", "aria-label": t("DS Bot"), title: t("DS Bot"), onClick: () => actions.setSurface("bot") },
-    (0, import_react13.createElement)(MochouMark, { size: 20 }),
+    (0, import_react13.createElement)(MoonBotMark, { size: 20 }),
     wide ? (0, import_react13.createElement)("span", { className: "bt-return-name" }, t("DS Bot")) : null
   );
 }
@@ -11168,7 +11195,7 @@ var RETURN_CSS = `
 .bt-return-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 `;
 function BrandMark({ size = 24 }) {
-  return (0, import_react13.createElement)("span", { className: "bt-brand-whale" }, (0, import_react13.createElement)(MochouMark, { size }));
+  return (0, import_react13.createElement)("span", { className: "bt-brand-whale" }, (0, import_react13.createElement)(MoonBotMark, { size }));
 }
 function BrandName() {
   return (0, import_react13.createElement)("span", { style: { fontWeight: 600, fontSize: 14 } }, productName());
@@ -16477,7 +16504,7 @@ function dshHint(dsh, shown) {
   if (shown) return t("DSH {version} is available", { version: dsh.verified });
   return t("Version {version}", { version: dsh.current });
 }
-var RELEASES_PAGE = "https://github.com/MoLi-MoChou/mochou/releases";
+var RELEASES_PAGE = "https://github.com/MoLi-MoChou/moon-bot/releases";
 var appBridge = () => typeof window === "undefined" ? null : window.dsBotApp?.updates ?? null;
 function useAppUpdate() {
   const bridge = appBridge();
@@ -16609,7 +16636,7 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
     (0, import_react33.createElement)(
       "div",
       { key: "hero", className: "bt-about-hero" },
-      (0, import_react33.createElement)("span", { className: "bt-about-mark" }, (0, import_react33.createElement)(MochouMark, { size: 52 })),
+      (0, import_react33.createElement)("span", { className: "bt-about-mark" }, (0, import_react33.createElement)(MoonBotMark, { size: 52 })),
       (0, import_react33.createElement)(
         "div",
         { className: "bt-about-copy" },
@@ -16649,7 +16676,7 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
       { key: "links", title: t("Links") },
       repo ? (0, import_react33.createElement)(Row3, { label: t("Source code"), hint: repo.replace(/^https:\/\//, "") }, (0, import_react33.createElement)("a", linkProps(repo), (0, import_react33.createElement)(GitHubMark), t("Open"))) : null,
       update.notesUrl ? (0, import_react33.createElement)(Row3, { label: t("Release notes") }, (0, import_react33.createElement)("a", linkProps(update.notesUrl), t("Open"))) : null,
-      // Mochou patch: credit the project this app is built on.
+      // Moon Bot patch: credit the project this app is built on.
       (0, import_react33.createElement)(Row3, { label: t("Based on DS Bot"), hint: "github.com/Fei2411/DeepSeek-Bot · Apache-2.0" }, (0, import_react33.createElement)("a", linkProps("https://github.com/Fei2411/DeepSeek-Bot"), (0, import_react33.createElement)(GitHubMark), t("Open"))),
       (0, import_react33.createElement)(Row3, { label: t("Report a problem") }, (0, import_react33.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.openSettings("feedback") }, t("Open")))
     )

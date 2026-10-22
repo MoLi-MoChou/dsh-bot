@@ -7,12 +7,35 @@ import { createSource } from './sources.js'
 // tokens derive from them, so a registered theme recolors the whole team UI.
 
 const THEME_KEYS = ['bg', 'sidebar', 'bubble', 'card', 'text', 'user', 'userText', 'accent']
-// Mochou: three themes, each light and dark. Each also sets the DeepSeek Harness
+// Moon Bot: four themes, each light and dark (Moon is the default). Each also sets the DeepSeek Harness
 // tokens (`tokens`, light/dark pairs) and extra CSS (`css`) for corner radii, type and
 // borders, so DSH's settings, OpenUI cards and dialogs follow the theme too.
 const SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif'
 const both = value => ({ light: value, dark: value })
 const THEMES = {
+  // Moon Bot's own theme, from the Main Bot's lilac moon sprite: soft lavender on warm
+  // cream by day, deep plum by night, rounder corners and a gentle gloss on raised
+  // surfaces. The default.
+  moon: {
+    label: 'Moon',
+    light: { bg: '#fcfafd', sidebar: '#f5f1f9', bubble: '#f1ecf7', card: '#ffffff', text: '#2a2233', user: '#ebe3f7', userText: '#2a2233', accent: '#8a6bd1' },
+    dark: { bg: '#17131d', sidebar: '#1d1824', bubble: '#2a2335', card: '#221c2b', text: '#f1ecf7', user: '#3a2f4c', userText: '#f1ecf7', accent: '#b9a3f5' },
+    tokens: {
+      '--dsw-radius-sm': both('8px'), '--dsw-radius-md': both('12px'), '--dsw-radius-lg': both('16px'), '--dsw-radius-xl': both('22px'),
+    },
+    css: `
+html body[data-bt-theme=moon]{--bt-line:rgba(70,45,110,.08);--bt-line-2:rgba(70,45,110,.14);--bt-hover:rgba(138,107,209,.08);--bt-active:rgba(138,107,209,.15);--bt-tag-bg:rgba(138,107,209,.1);--bt-tag-ink:#6b55a8}
+html body[data-bt-theme=moon][data-ds-dark-theme]{--bt-line:rgba(210,190,255,.09);--bt-line-2:rgba(210,190,255,.15);--bt-hover:rgba(185,163,245,.1);--bt-active:rgba(185,163,245,.18);--bt-tag-bg:rgba(185,163,245,.14);--bt-tag-ink:#cdbdf8}
+body[data-bt-theme=moon] :is(.bt-bubble,.bt-ububble){border-radius:18px}
+body[data-bt-theme=moon] .bt-ububble{background:linear-gradient(180deg,color-mix(in srgb,var(--bt-user) 70%,#fff),var(--bt-user))}
+body[data-bt-theme=moon][data-ds-dark-theme] .bt-ububble{background:linear-gradient(180deg,color-mix(in srgb,var(--bt-user) 84%,#fff),var(--bt-user))}
+body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]){border-radius:22px;box-shadow:0 6px 24px -8px rgba(110,80,170,.18),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 8px 28px -8px rgba(110,80,170,.28),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 50%,var(--bt-line-2))}
+body[data-bt-theme=moon] :is(.bt-process,.bt-menu,.bt-update-pop,.bt-q){border-radius:16px;box-shadow:0 0 0 .5px var(--bt-line-2),0 14px 36px -14px rgba(90,60,150,.3)}
+body[data-bt-theme=moon] :is(.bt-work-all,.bt-retry){border-radius:999px;border-color:color-mix(in srgb,var(--bt-accent) 30%,var(--bt-line-2))}
+body[data-bt-theme=moon] [data-composer-input]{caret-color:var(--bt-accent)}
+`,
+  },
   deepseek: {
     label: 'DeepSeek',
     light: { bg: '#fcfcfc', sidebar: '#f7f7f7', bubble: '#eeeeee', card: '#ffffff', text: '#141414', user: '#070707', userText: '#fcfcfc', accent: '#4d6bfe' },

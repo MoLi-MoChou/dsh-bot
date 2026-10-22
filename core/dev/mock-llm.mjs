@@ -483,7 +483,7 @@ function decide(body) {
   }
   // View cards: 视图选项 and 视图表单 wait for an answer; 视图展示 and 大视图 are
   // display-only — the latter sits just under the view byte limit.
-  // Mochou patch: the starter chips' asks come back as cards.
+  // Moon Bot patch: the starter chips' asks come back as cards.
   if (/表格对比/.test(userText) && tools.has('show_view')) {
     return [text('我把要点整理成了表格。'), tool('show_view', { title: 'iPhone vs 安卓旗舰', await_reply: false, view: { type: 'table', columns: [{ key: 'a', label: '方面' }, { key: 'b', label: 'iPhone' }, { key: 'c', label: '安卓旗舰' }], rows: [['系统', '封闭、统一', '开放、可定制'], ['更新', '长期、及时', '因品牌而异'], ['价格', '偏高', '跨度大'], ['生态', '与 Mac/iPad 联动', '与 Windows/谷歌服务联动']] } })]
   }

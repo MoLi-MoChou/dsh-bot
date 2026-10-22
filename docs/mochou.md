@@ -1,4 +1,4 @@
-# Mochou notes
+# Moon Bot notes
 
 ## Cards (表格 / 待办 / 选项)
 
@@ -21,7 +21,7 @@ and the replies, in order. Esc or × closes it.
 - Windows (setup.exe) and Linux (AppImage) check at launch and every 4 hours, download in
   the background (only the changed blocks, using the .blockmap), and ask to restart.
   Restarting installs silently in place; nothing to reinstall, data stays.
-- Settings → 关于 莫愁 → 检查更新 checks by hand and shows download progress, then
+- Settings → 关于 Moon Bot → 检查更新 checks by hand and shows download progress, then
   「重启以更新」.
 - portable.exe cannot replace itself; About links to the releases page. Download the new
   exe and replace the old file; data stays (it lives in your user profile).

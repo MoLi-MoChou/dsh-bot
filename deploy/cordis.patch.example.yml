@@ -1,4 +1,4 @@
-# Mochou web, preconfigured: SenseNova (OpenAI-compatible). The key comes from the
+# Moon Bot web, preconfigured: SenseNova (OpenAI-compatible). The key comes from the
 # SENSENOVA_API_KEY environment variable (the container's .env), never from this file.
 - id: llm-pi-ai
   name: "@deepseek-ai/dsh-llm-pi-ai"

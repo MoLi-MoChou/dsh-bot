@@ -1,4 +1,5 @@
 import { INKS, GRADIENTS, isHex, inkFill } from './inks.js'
+import { SPRITE } from './brand-art.js'
 
 // -------------------------------------------------------------------------
 // Characters: DS Bot's own avatars, small 3D models seen from a
@@ -30,16 +31,17 @@ export const CHARACTERS = {
   gem: {body:'M57 9.3l2.9-.4 14.9 3.5 19.6 14.1 1 1.4 .6 1.6-.5 2.6-27.1 56.5-1.6 1.8-2.1 .7-15.9-3.4-42.9-30.7-1.3-1.6-.6-1.6 .5-2.6 12-25.2 1.1-1.5 1.5-1z',shade:'M75.7 14.6l.1-.4 .6 .2 16.9 12.3 1.1 .7 .5-.2 .5 .7 .6 2.6-.5 1.6-26.4 55.1-1.2 2.1-1.1 1.1-1.6 .6-2.1 0-14.3-3.3-42.8-30.7 1.5-.2 11.6 2.5 2.2-.7 2.8-2.6 11.9-24.9 .6-.8 38.2-14.2z',light:'M19.1 23.6l1.1-.4 .5 .5 11.7 2.2 1 .9-.2 .5-1.8 2.7-11.7 24.4-1.6 .6-13.3-2.8-.5-.5 12.1-25.4 1.2-1.7z',eyes:[[51.4,42.9,6.7,17.7,-10],[66.1,37.4,6.7,17.7,-10]]},
 }
 // The picker shows every character at once, six to a row. A Bot with no choice gets
-// one of the friendliest seven; the whale is left out so it stays the Main Bot's.
-export const PICKER_SHAPES = Object.keys(CHARACTERS)
+// one of the friendliest seven; Moon Bot's own sprite (registered below) stays the Main
+// Bot's. DS Bot's whale is not offered any more; a Bot that already has it keeps it.
+export const PICKER_SHAPES = Object.keys(CHARACTERS).filter(id => id !== 'whale')
 export const PICKER_COLUMNS = 6
 export const DEFAULT_SHAPES = ['star', 'moon', 'gumdrop', 'peanut', 'bunny', 'kitty', 'acorn']
 export const FALLBACK_SHAPE = 'gumdrop'
 // The team's first Main Bot, and the plugin's own mark in the sidebar.
-export const MAIN_LOOK = Object.freeze({ shape: 'whale', color: 'deepseek' })
-// Character colors in picker order. Black, the gradients, and the dull gray and brown
+export const MAIN_LOOK = Object.freeze({ shape: 'moonbot', color: 'lilac' })
+// Character colors in picker order. Moon Bot's lilac, black, the gradients, and the dull gray and brown
 // are never defaults; the user must pick them.
-export const CHARACTER_COLORS = ['black', 'brown', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta', 'gray', 'aurora']
+export const CHARACTER_COLORS = ['lilac', 'black', 'brown', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta', 'gray', 'aurora']
 export const DEFAULT_COLORS = CHARACTER_COLORS.filter(color => !['black', 'gray', 'brown'].includes(color) && !GRADIENTS[color])
 export const isColor = color => isHex(color) || Object.hasOwn(INKS, color)
 
@@ -85,6 +87,9 @@ for (const [id, character] of Object.entries(CHARACTERS)) {
   ].join('')
   SHAPES[id] = { label: character.label ?? id[0].toUpperCase() + id.slice(1), size: 100, path: character.body, layers, eyes: character.eyes }
 }
+// Moon Bot's Main Bot: the lilac moon sprite, a rendered picture (app/assets/art), so
+// it has no eyes to cut and is not offered in the picker.
+SHAPES.moonbot = { label: 'Moon Bot', size: 100, eyes: [], body: () => `<image href="${SPRITE}" x="0" y="0" width="100" height="100"/>` }
 export const hasShape = id => typeof id === 'string' && Object.hasOwn(SHAPES, id)
 export const shapeId = id => (hasShape(id) ? id : FALLBACK_SHAPE)
 export const shapeOf = id => SHAPES[shapeId(id)]

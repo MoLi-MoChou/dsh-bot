@@ -27,5 +27,5 @@ export async function beforePack(context) {
   if (problem !== undefined) throw new Error(problem)
   patchDeps(context.packager?.info?.appDir ?? process.cwd())
   const removed = pruneDshManifest(context.packager?.info?.appDir ?? process.cwd())
-  if (removed.length) console.log(`  • Mochou: dropped optional bundles ${removed.join(', ')}`)
+  if (removed.length) console.log(`  • Moon Bot: dropped optional bundles ${removed.join(', ')}`)
 }

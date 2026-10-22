@@ -33,7 +33,7 @@ const server = createServer((request, response) => {
       html_url: `https://github.com/Fei2411/DeepSeek-Bot/releases/tag/v${version}`,
       draft: false,
       prerelease: false,
-      assets: [{ name: `Mochou-${version}-mac-${process.arch}.zip` }],
+      assets: [{ name: `Moon-Bot-${version}-mac-${process.arch}.zip` }],
     }]))
     return
   }
@@ -103,10 +103,10 @@ try {
     stream.setEncoding('utf8')
     stream.on('data', (chunk) => { output += chunk; process.stdout.write(chunk) })
   }
-  const updateLine = `Mochou: update ${String(version)} ${mac ? 'available' : 'downloaded'}`
+  const updateLine = `Moon Bot: update ${String(version)} ${mac ? 'available' : 'downloaded'}`
   const end = Date.now() + (mac ? 3 : 5) * 60_000
   while (!output.includes(updateLine)) {
-    if (mac ? /Mochou: update check failed/u.test(output) : /Mochou: update failed/u.test(output)) {
+    if (mac ? /Moon Bot: update check failed/u.test(output) : /Moon Bot: update failed/u.test(output)) {
       throw new Error('the app reported a failed update')
     }
     if (app.exitCode !== null) {

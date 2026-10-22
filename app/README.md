@@ -123,7 +123,7 @@ The script serves a releases list with one release of that version that has this
 | `engine/` | On hold, not installed: the bundle `deepseek-bot-engine` for the app's own window in `ui/` |
 | `test/` | `npm test`: the composition of the profile, and the dependencies that the package needs |
 | `ui/` | On hold, not built or packaged: the app's own window. React, built with Vite (`vite.config.js`) into `ui/dist`. It draws the plugin's own Bot views from `../core/src/client/` (sidebar, chat rows, docks, dialogs and their stylesheets) and puts its own Markdown in place of DSH's. It uses ds-bot's `api/bot` channel and its live feed `api/bot/feed` |
-| `assets/` | The app icon: `icon.svg`, `icon.png` (1024 px) and `icon.ico` (Windows, 16 to 256 px). `npm run icon` (`scripts/icon.mjs`) draws them again from the Main Bot's whale in `../ds-bot` |
+| `assets/` | The app icon from one picture, `art/moon-sprite.png`: `icons/` (the tile, light and dark, 16 to 1024 px, and the sprite), `icon.png` (1024 px), `icon.ico` (Windows, 16 to 256 px) and `icon.icns`. `npm run icon` (`scripts/icon.py`, Pillow + NumPy) writes them and the UI's `core/src/client/brand-art.js`; small sizes are sharpened. |
 | `electron-builder.yml`, `build/` | The package and the installer: app identity, files, icons, the Windows installer and the macOS disk image |
 | `scripts/check-packed.mjs` | `npm run check-packed`: the check of a packaged app |
 | `scripts/check-update.mjs` | The check of a packaged app's update from a Windows feed folder or a macOS release |

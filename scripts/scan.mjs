@@ -56,7 +56,7 @@ const TEXT_RULES = [
   { id: 'third-party-logo', level: MUST, re: /WhaleLogo|favicon\.svg/g, notFiles: /(^|\/)test\// },
   { id: 'vendor-name', level: KEEP, re: new RegExp(VENDORS.source, 'gi'), notFiles: LOOK_FILES, summary: true },
   // Former names of the project and the package.
-  // Mochou patch: DS Bot's former name is this fork's name, so the two rules that kept
+  // Moon Bot patch: DS Bot's former name is this fork's name, so the two rules that kept
   // it out are dropped.
   { id: 'legacy-name-in-migration', level: KEEP, re: /\bdsh-bot\b|DeepSeek Bot\b/gi, onlyLegacy: true, summary: true },
   // Drafts and local-only material.
@@ -118,7 +118,7 @@ if (!files.includes('LICENSE')) add(MUST, 'license', 'LICENSE', 0, 'no LICENSE a
 if (!files.includes('core/package.json')) add(MUST, 'plugin-folder', '.', 0, 'no core/package.json')
 else {
   const pkg = JSON.parse(readFileSync(join(root, 'core/package.json'), 'utf8'))
-  if (pkg.name !== 'mochou-core') add(MUST, 'package', 'core/package.json', 0, `name is "${pkg.name}", expected "mochou-core"`)
+  if (pkg.name !== 'moon-bot-core') add(MUST, 'package', 'core/package.json', 0, `name is "${pkg.name}", expected "moon-bot-core"`)
   if (!files.includes('core/LICENSE')) add(MUST, 'package', 'core/LICENSE', 0, 'the package has no LICENSE file')
   if (!(pkg.files ?? []).includes('LICENSE')) add(MUST, 'package', 'core/package.json', 0, '"files" does not list LICENSE')
   for (const field of ['repository', 'homepage', 'bugs']) {

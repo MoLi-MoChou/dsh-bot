@@ -62,7 +62,7 @@ Error: configured web provider "auto" is not registered
 
    ```yaml
    - id: web-search-auto
-     name: mochou-core/web-search
+     name: moon-bot-core/web-search
      disabled: true
    - id: web
      name: '@deepseek-ai/dsh-web'

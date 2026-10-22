@@ -51,7 +51,7 @@ export function apply(ctx) {
   quietShellOnboarding()
   installImeGuard()
   relabelTitle()
-  relabelShellVersion(typeof __MOCHOU_VERSION__ === 'string' ? __MOCHOU_VERSION__ : '')
+  relabelShellVersion(typeof __MOON_BOT_VERSION__ === 'string' ? __MOON_BOT_VERSION__ : '')
   ctx.effect(() => installLocale(ctx.get('locale')), 'ds-bot: interface copy')
   const roster = createSource(EMPTY_ROSTER)
   migrateStorage()

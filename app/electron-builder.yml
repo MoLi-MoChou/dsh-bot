@@ -1,14 +1,14 @@
-appId: com.molimochou.mochou
-productName: Mochou
-copyright: Copyright 2026 Fei2411, the DS Bot contributors and Mochou
-artifactName: Mochou-${version}-${os}-${arch}.${ext}
+appId: com.molimochou.moonbot
+productName: Moon Bot
+copyright: Copyright 2026 Fei2411, the DS Bot contributors and Moon Bot
+artifactName: Moon-Bot-${version}-${os}-${arch}.${ext}
 directories:
   output: dist-pack
 files:
   - package.json
   - src/**
   - assets/**
-  # Mochou: size. The Office engine is downloaded after install (src/engines.mjs);
+  # Moon Bot: size. The Office engine is downloaded after install (src/engines.mjs);
   # source maps, type declarations, TypeScript sources and test folders do not run.
   - '!node_modules/@deepseek-ai/libreoffice-kit-{win32-x64,win32-arm64,darwin-x64,darwin-arm64,wasm}/**'
   - '!node_modules/@img/*linuxmusl*/**'
@@ -33,16 +33,16 @@ win:
   target:
     - target: nsis
       arch: [x64]
-    # Mochou: a portable exe as in v0.1.0. It cannot update itself (no installer to run);
+    # Moon Bot: a portable exe as in v0.1.0. It cannot update itself (no installer to run);
     # Settings > About points it at the release page instead.
     - target: portable
       arch: [x64]
   icon: assets/icon.ico
 portable:
-  artifactName: Mochou-${version}-win-${arch}-portable.${ext}
+  artifactName: Moon-Bot-${version}-win-${arch}-portable.${ext}
 nsis:
   # The installer the updater runs again, silently (/S), to update in place.
-  artifactName: Mochou-${version}-win-${arch}-setup.${ext}
+  artifactName: Moon-Bot-${version}-win-${arch}-setup.${ext}
   oneClick: false
   perMachine: false
   allowElevation: false
@@ -57,7 +57,7 @@ linux:
       arch: [x64]
   icon: assets/icon.png
   category: Utility
-  executableName: mochou
+  executableName: moon-bot
 mac:
   # A zip, not a dmg: macOS 26 calls a downloaded unsigned dmg damaged and will not open it (#351).
   target: zip
@@ -72,5 +72,5 @@ mac:
 publish:
   provider: github
   owner: MoLi-MoChou
-  repo: mochou
+  repo: moon-bot
   releaseType: prerelease

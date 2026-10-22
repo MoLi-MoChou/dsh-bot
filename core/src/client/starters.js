@@ -1,4 +1,4 @@
-// Mochou patch: starter chips over the composer of a fresh chat, so the cards
+// Moon Bot patch: starter chips over the composer of a fresh chat, so the cards
 // (show_view: table, checklist, options) are one tap away. They go once the chat
 // has a conversation going, or once the user taps one.
 import { createElement as h, useState } from 'react'

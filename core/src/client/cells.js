@@ -219,7 +219,7 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
   // DSH 0.2; the step that answers it shows the event line where it was read,
   // once, in the step's first cell.
   const relays = relayPart(data, groupPart) ? relaysBefore(contexts, steps, data) : []
-  // Mochou: one work line on the turn's last step, once the turn has settled.
+  // Moon Bot: one work line on the turn's last step, once the turn has settled.
   const turnInfo = node.location?.turn
   const lastStep = members[members.length - 1]
   const settled = !running && members.every(step => step.status !== 'running') && (turnInfo?.status === undefined || turnInfo.status === 'closed')

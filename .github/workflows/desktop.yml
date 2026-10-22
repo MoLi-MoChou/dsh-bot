@@ -1,6 +1,6 @@
 name: Desktop
 
-# Mochou: builds the desktop app for Windows (NSIS installer + portable exe) and Linux
+# Moon Bot: builds the desktop app for Windows (NSIS installer + portable exe) and Linux
 # (AppImage), runs the packaged-app check (mock model, one message end to end) on each,
 # and on a v* tag publishes a GitHub pre-release with the update metadata the installed
 # apps read: latest.yml + the installer's .blockmap (Windows) and latest-linux.yml
@@ -47,19 +47,19 @@ jobs:
       - name: Installed size (silent per-user install, then uninstall)
         shell: pwsh
         run: |
-          $installer = Get-Item dist-pack/Mochou-*-win-x64-setup.exe
+          $installer = Get-Item dist-pack/Moon-Bot-*-win-x64-setup.exe
           Start-Process -Wait -FilePath $installer.FullName -ArgumentList '/S'
-          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Mochou'
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Moon Bot'
           $bytes = (Get-ChildItem -Recurse -File $dir | Measure-Object -Sum Length).Sum
           "installed on disk: {0:N1} MB in $dir" -f ($bytes / 1MB)
-          Start-Process -Wait -FilePath (Join-Path $dir 'Uninstall Mochou.exe') -ArgumentList '/S'
+          Start-Process -Wait -FilePath (Join-Path $dir 'Uninstall Moon Bot.exe') -ArgumentList '/S'
       - uses: actions/upload-artifact@v4
         with:
-          name: Mochou-win-x64
+          name: Moon-Bot-win-x64
           path: |
-            app/dist-pack/Mochou-*-win-x64-setup.exe
-            app/dist-pack/Mochou-*-win-x64-setup.exe.blockmap
-            app/dist-pack/Mochou-*-win-x64-portable.exe
+            app/dist-pack/Moon-Bot-*-win-x64-setup.exe
+            app/dist-pack/Moon-Bot-*-win-x64-setup.exe.blockmap
+            app/dist-pack/Moon-Bot-*-win-x64-portable.exe
             app/dist-pack/latest.yml
           if-no-files-found: error
           compression-level: 0
@@ -81,16 +81,16 @@ jobs:
       - run: npm test
       - run: npx electron-builder --linux AppImage --publish never
       - name: Check the packaged app
-        run: xvfb-run -a node scripts/check-packed.mjs dist-pack/linux-unpacked/mochou
+        run: xvfb-run -a node scripts/check-packed.mjs dist-pack/linux-unpacked/moon-bot
       - name: Size report (unpacked app, AppImage)
         run: |
           node scripts/size-report.mjs dist-pack/linux-unpacked
           ls -l dist-pack/*.AppImage
       - uses: actions/upload-artifact@v4
         with:
-          name: Mochou-linux-x64
+          name: Moon-Bot-linux-x64
           path: |
-            app/dist-pack/Mochou-*-linux-x86_64.AppImage
+            app/dist-pack/Moon-Bot-*-linux-x86_64.AppImage
             app/dist-pack/latest-linux.yml
           if-no-files-found: error
           compression-level: 0
@@ -112,5 +112,5 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           ls -la out
-          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --prerelease --title "Mochou $TAG" \
-            --notes "莫愁 桌面版预发布（未签名）。Windows：setup.exe 安装版（之后自动更新，不用重装）、portable.exe 便携版；Linux：AppImage（自动更新）。latest.yml / latest-linux.yml / .blockmap 是更新元数据。"
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --prerelease --title "Moon Bot $TAG" \
+            --notes "Moon Bot 桌面版预发布（未签名）。Windows：setup.exe 安装版（之后自动更新，不用重装）、portable.exe 便携版；Linux：AppImage（自动更新）。latest.yml / latest-linux.yml / .blockmap 是更新元数据。"

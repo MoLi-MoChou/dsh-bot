@@ -2,7 +2,7 @@
 // the limits on messages, group chats, and chat reads.
 
 // Classic avatar inks, offered as Bot colors.
-export const COLORS = ['deepseek', 'blue', 'violet', 'orange', 'green', 'magenta', 'cyan', 'red', 'yellow', 'brown', 'gray', 'black', 'aurora']
+export const COLORS = ['lilac', 'deepseek', 'blue', 'violet', 'orange', 'green', 'magenta', 'cyan', 'red', 'yellow', 'brown', 'gray', 'black', 'aurora']
 // Deeper inks, also offered as accent swatches; each is a valid Bot color too.
 export const EXTRA_COLORS = ['charcoal', 'graphite', 'rose', 'sky', 'tangerine', 'cobalt']
 // Renamed color ids, so a Bot saved with an old one keeps its color (LEGACY: old id → new id).

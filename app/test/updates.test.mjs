@@ -39,7 +39,7 @@ const release = (version, options = {}) => {
     html_url: options.page ?? `https://github.com/Fei2411/DeepSeek-Bot/releases/tag/v${version}`,
     draft: options.draft ?? false,
     prerelease: options.prerelease ?? false,
-    assets: options.assets ?? [{ name: `Mochou-${version}-mac-${arch}.zip` }],
+    assets: options.assets ?? [{ name: `Moon-Bot-${version}-mac-${arch}.zip` }],
   }
 }
 
@@ -162,10 +162,10 @@ describe('watchReleases', () => {
 
   test('logs failed requests, invalid JSON, and non-HTTPS release pages without throwing', async (t) => {
     const cases = [
-      [async () => releaseResponse({}, 403), 'Mochou: update check failed: HTTP 403'],
-      [async () => { throw new Error('offline') }, 'Mochou: update check failed: offline'],
-      [async () => ({ ok: true, status: 200, json: async () => { throw new Error('bad JSON') } }), 'Mochou: update check failed: bad JSON'],
-      [async () => releaseResponse([release('0.1.9', { page: 'http://github.com/Fei2411/DeepSeek-Bot' })]), 'Mochou: update check failed: release page URL is not HTTPS'],
+      [async () => releaseResponse({}, 403), 'Moon Bot: update check failed: HTTP 403'],
+      [async () => { throw new Error('offline') }, 'Moon Bot: update check failed: offline'],
+      [async () => ({ ok: true, status: 200, json: async () => { throw new Error('bad JSON') } }), 'Moon Bot: update check failed: bad JSON'],
+      [async () => releaseResponse([release('0.1.9', { page: 'http://github.com/Fei2411/DeepSeek-Bot' })]), 'Moon Bot: update check failed: release page URL is not HTTPS'],
     ]
     for (const [fetch, message] of cases) {
       const log = quietLog()
@@ -183,7 +183,7 @@ describe('watchReleases', () => {
     })
     t.after(updates.stop)
     assert.equal(await updates.latest(), null)
-    assert.deepEqual(log.lines, ['Mochou: update check failed: releases response is not an array'])
+    assert.deepEqual(log.lines, ['Moon Bot: update check failed: releases response is not an array'])
   })
 
   test('waits for the matching-architecture zip before asking', async (t) => {
@@ -269,7 +269,7 @@ describe('watchReleases', () => {
     t.after(updates.stop)
     await updates.latest()
     await sleep(20)
-    assert.deepEqual(log.lines, ['Mochou: update 0.1.9 available', 'Mochou: update 0.1.9 not opened: dialog failed'])
+    assert.deepEqual(log.lines, ['Moon Bot: update 0.1.9 available', 'Moon Bot: update 0.1.9 not opened: dialog failed'])
     assert.deepEqual(unhandled, [])
   })
 
@@ -330,7 +330,7 @@ describe('watchUpdates', () => {
       await sleep(20)
       assert.deepEqual(updater.installs, [])
       assert.equal(stopped, false)
-      assert.deepEqual(log.lines, ['Mochou: update 0.1.9 downloaded'])
+      assert.deepEqual(log.lines, ['Moon Bot: update 0.1.9 downloaded'])
     }
   })
 
@@ -341,7 +341,7 @@ describe('watchUpdates', () => {
     const updates = watchUpdates({ updater, beforeInstall: async () => {}, log })
     t.after(updates.stop)
     assert.equal(await updates.latest(), null)
-    assert.deepEqual(log.lines, ['Mochou: update failed: offline'])
+    assert.deepEqual(log.lines, ['Moon Bot: update failed: offline'])
   })
 
   test('tells what the newest check found and whether its download finished', async (t) => {

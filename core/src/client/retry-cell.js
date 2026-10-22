@@ -1,4 +1,4 @@
-// Mochou: a model retry shows in the chat only while it waits, as one countdown line
+// Moon Bot: a model retry shows in the chat only while it waits, as one countdown line
 // ("请求受限，3s 后重试 · 2/5"). Once the retry has run, the row leaves the chat and is
 // listed in the turn's work process behind the "已工作" line.
 import { createElement as h, useEffect, useMemo, useState } from 'react'

@@ -1,8 +1,8 @@
-// Mochou web mode: the same Host and UI, served to a normal browser without Electron.
+// Moon Bot web mode: the same Host and UI, served to a normal browser without Electron.
 //
-//   MOCHOU_PASSWORD=… node src/web.mjs     (npm run web)
+//   MOON_BOT_PASSWORD=… node src/web.mjs     (npm run web)
 //
-// The Host listens on loopback only. This process listens on MOCHOU_WEB_HOST:MOCHOU_WEB_PORT
+// The Host listens on loopback only. This process listens on MOON_BOT_WEB_HOST:MOON_BOT_WEB_PORT
 // (default 127.0.0.1:8290) and puts a password page in front of it: the right password is
 // exchanged for the Host's launch token, which makes DSH mint its own signed session cookie;
 // from then on DSH authenticates every request itself. Without a password set, the page
@@ -20,13 +20,14 @@ import { loginPage } from './web-login.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const env = process.env
-// MOCHOU_* settings; the DSH_BOT_* names from before the Mochou rename still work.
-const setting = name => env[`MOCHOU_${name}`] ?? env[`DSH_BOT_${name}`]
-// New installs keep their data in ~/.mochou; one made before the rename keeps ~/.dsh-bot.
+// MOON_BOT_* settings; the MOCHOU_* and DSH_BOT_* names from before the renames still work.
+const setting = name => env[`MOON_BOT_${name}`] ?? env[`MOCHOU_${name}`] ?? env[`DSH_BOT_${name}`]
+// New installs keep their data in ~/.moon-bot; one made before a rename keeps its
+// ~/.mochou or ~/.dsh-bot.
 const defaultData = () => {
-  const fresh = join(homedir(), '.mochou')
-  const legacy = join(homedir(), '.dsh-bot')
-  return !existsSync(fresh) && existsSync(legacy) ? legacy : fresh
+  const fresh = join(homedir(), '.moon-bot')
+  if (existsSync(fresh)) return fresh
+  return [join(homedir(), '.mochou'), join(homedir(), '.dsh-bot')].find(dir => existsSync(dir)) ?? fresh
 }
 const dataDir = setting('DATA') ?? defaultData()
 const bind = setting('WEB_HOST') ?? '127.0.0.1'
@@ -34,7 +35,7 @@ const port = Number(setting('WEB_PORT') ?? 8290)
 const password = setting('PASSWORD') ?? ''
 const loopback = ['127.0.0.1', '::1', 'localhost'].includes(bind)
 if (!password && !loopback) {
-  console.error('mochou web: set MOCHOU_PASSWORD to listen on a non-loopback address.')
+  console.error('moon-bot web: set MOON_BOT_PASSWORD to listen on a non-loopback address.')
   process.exit(1)
 }
 
@@ -57,8 +58,8 @@ async function main() {
   const host = new HostProcess({
     entry: join(here, 'host.mjs'), cwd: profileDir, pnpm,
     // The access password stays in this process; the Host never sees it.
-    env: { ...Object.fromEntries(Object.entries(env).filter(([name]) => name !== 'MOCHOU_PASSWORD' && name !== 'DSH_BOT_PASSWORD')), DSH_HOME: dataDir, DS_BOT_PORT: setting('HOST_PORT') ?? '0', DS_BOT_WEB: '1', ...(setting('WORKSPACE') ? { DS_BOT_WORKSPACE: setting('WORKSPACE') } : {}) },
-    onFailure: (error) => { console.error(`mochou web: the Host stopped: ${error.message}`); process.exit(1) },
+    env: { ...Object.fromEntries(Object.entries(env).filter(([name]) => !['MOON_BOT_PASSWORD', 'MOCHOU_PASSWORD', 'DSH_BOT_PASSWORD'].includes(name))), DSH_HOME: dataDir, DS_BOT_PORT: setting('HOST_PORT') ?? '0', DS_BOT_WEB: '1', ...(setting('WORKSPACE') ? { DS_BOT_WORKSPACE: setting('WORKSPACE') } : {}) },
+    onFailure: (error) => { console.error(`moon-bot web: the Host stopped: ${error.message}`); process.exit(1) },
   })
   const ready = await host.start()
   const launch = new URL(ready.url)
@@ -135,7 +136,7 @@ async function main() {
     socket.on('error', () => upstream.destroy())
   })
   server.listen(port, bind, () => {
-    console.log(`mochou web: http://${bind.includes(':') ? `[${bind}]` : bind}:${port}/${password ? 'login' : `login (no password: loopback only)`}`)
+    console.log(`moon-bot web: http://${bind.includes(':') ? `[${bind}]` : bind}:${port}/${password ? 'login' : `login (no password: loopback only)`}`)
   })
   const stop = async () => { server.close(); await host.stop().catch(() => {}); process.exit(0) }
   process.once('SIGINT', stop)

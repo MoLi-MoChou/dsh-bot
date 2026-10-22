@@ -1,4 +1,4 @@
-// Mochou patch: optional DSH bundles the slim product does not offer. They are
+// Moon Bot patch: optional DSH bundles the slim product does not offer. They are
 // switched off in DSH by default and only show up as toggles on the Plugins page; DSH
 // lists every bundle named in @deepseek-ai/dsh's dependencies, so they are dropped from
 // that list (packaged copy) and their files are left out (electron-builder.yml).

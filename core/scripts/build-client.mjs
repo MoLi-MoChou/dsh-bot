@@ -26,8 +26,8 @@ export async function bundleClient() {
     platform: 'browser',
     target: 'es2022',
     external: PLATFORM_MODULES,
-    // Mochou patch: the app's version, for the settings line that names it.
-    define: { __MOCHOU_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(PLUGIN, 'package.json'), 'utf8')).version) },
+    // Moon Bot patch: the app's version, for the settings line that names it.
+    define: { __MOON_BOT_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(PLUGIN, 'package.json'), 'utf8')).version) },
     // Every source declaration ships, used or not, as in the hand-written bundle.
     treeShaking: false,
     // Readable for debugging in the browser: no minification, and Chinese text stays text.
@@ -39,7 +39,7 @@ export async function bundleClient() {
   return [
     '// Generated from src/client by `npm run build` (scripts/build-client.mjs). Do not edit by hand.',
     'window.__ModuleLoader__.load({',
-    '  id: \'mochou-core\',',
+    '  id: \'moon-bot-core\',',
     '  factory: (require) => {',
     'const module = { exports: {} }',
     result.outputFiles[0].text.trimEnd(),

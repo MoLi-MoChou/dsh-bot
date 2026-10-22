@@ -135,7 +135,7 @@ export function useAnchoredMenu() {
   return { isOpen: place !== null, shownPlace, leaving, button, menu, open, close }
 }
 
-// Mochou: how much of the model's context the Bot's chat uses, as a ring and a line at
+// Moon Bot: how much of the model's context the Bot's chat uses, as a ring and a line at
 // the top of its model menu (after open-claude-ui's token gauge, MIT).
 export function contextOf(values) {
   const pressure = values?.contextPressure

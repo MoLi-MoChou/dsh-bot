@@ -1,7 +1,7 @@
 {
-  "name": "mochou-core",
+  "name": "moon-bot-core",
   "version": "0.1.4",
-  "description": "Mochou: the Bot team inside the Mochou app (a slim fork of DS Bot by Fei2411, Apache-2.0)",
+  "description": "Moon Bot: the Bot team inside the Moon Bot app (a slim fork of DS Bot by Fei2411, Apache-2.0)",
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
@@ -11,13 +11,13 @@
     "multi-agent",
     "agents"
   ],
-  "homepage": "https://github.com/MoLi-MoChou/mochou#readme",
+  "homepage": "https://github.com/MoLi-MoChou/moon-bot#readme",
   "bugs": {
-    "url": "https://github.com/MoLi-MoChou/mochou/issues"
+    "url": "https://github.com/MoLi-MoChou/moon-bot/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MoLi-MoChou/mochou.git",
+    "url": "git+https://github.com/MoLi-MoChou/moon-bot.git",
     "directory": "core"
   },
   "license": "Apache-2.0",

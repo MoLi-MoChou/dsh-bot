@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom'
 import { FishLogo } from './dsh-primitives.js'
 import { isMainOf } from './sources.js'
 import { currentPart, previewOf, relativeShort } from './text.js'
-import { PlusIcon, SearchIcon, SidebarIcon, GaugeIcon, PlugIcon, ClockIcon, GearIcon, PinMarkIcon, ConnectorIcon, SwitchIcon, CloudDownloadIcon, MochouMark } from './icons.js'
+import { PlusIcon, SearchIcon, SidebarIcon, GaugeIcon, PlugIcon, ClockIcon, GearIcon, PinMarkIcon, ConnectorIcon, SwitchIcon, CloudDownloadIcon, MoonBotMark } from './icons.js'
 import { MAIN_LOOK } from './characters.js'
 import { botState, BotMark, BotAvatar, RoomAvatar } from './mark.js'
 import { reducedMotion } from './activity-row.js'
@@ -247,7 +247,7 @@ function useListGlide(listRef, layout, key) {
   }, [layout, key])
 }
 
-// Mochou: the list sorts by recent activity until the user drags a row; then the
+// Moon Bot: the list sorts by recent activity until the user drags a row; then the
 // dragged order holds (pinned rows still first, new rows on top). Saved per browser.
 const readOrder = () => {
   try { const value = JSON.parse(localStorage.getItem(STORAGE.sidebarOrder) ?? 'null'); return Array.isArray(value) ? value : null } catch { return null }
@@ -450,7 +450,7 @@ export function ConnectPlugins({ wide, actions }) {
 // Account seat of the Settings trigger: the visible label stays for assistive tech only.
 export function YouAvatar() {
   return h('span', { className: 'bt-you-wrap' },
-    h('span', { className: 'bt-you', 'aria-hidden': true }, h(MochouMark, { size: 24 })),
+    h('span', { className: 'bt-you', 'aria-hidden': true }, h(MoonBotMark, { size: 24 })),
     h('span', { style: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' } }, t('Settings')))
 }
 
@@ -478,7 +478,7 @@ export function openHarnessSettings(section) {
   })
 }
 
-// Mochou patch: the shell's opener takes no section, so its nav row is clicked once the
+// Moon Bot patch: the shell's opener takes no section, so its nav row is clicked once the
 // dialog is up (DSH names the models page "Models" / "模型").
 const SECTION_NAMES = { models: /^(Models|模型)$/u }
 function showShellSection(section, tries = 40) {
@@ -577,7 +577,7 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
   ]
   return h(Fragment, null,
     h('button', { ref: button, type: 'button', className: 'bt-account', 'aria-label': t('Account'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: toggle },
-      h('span', { className: 'bt-you', 'aria-hidden': true }, h(MochouMark, { size: 24 }))),
+      h('span', { className: 'bt-you', 'aria-hidden': true }, h(MoonBotMark, { size: 24 }))),
     open && box ? createPortal(h('div', { className: 'bt-menu bt-menu-up bt-account-menu', role: 'menu', 'aria-label': t('Account'), style: box },
       groups.map((group, index) => h(Fragment, { key: index },
         index > 0 ? h('div', { className: 'bt-menu-sep', role: 'separator' }) : null,
@@ -629,7 +629,7 @@ export function BotReturn({ wide, useSurface, actions }) {
   const mode = useSurface(value => value.mode)
   if (mode !== 'agent') return null
   return h('button', { type: 'button', className: 'bt-return', 'aria-label': t('DS Bot'), title: t('DS Bot'), onClick: () => actions.setSurface('bot') },
-    h(MochouMark, { size: 20 }),
+    h(MoonBotMark, { size: 20 }),
     wide ? h('span', { className: 'bt-return-name' }, t('DS Bot')) : null)
 }
 
@@ -646,7 +646,7 @@ export const RETURN_CSS = `
 `
 
 export function BrandMark({ size = 24 }) {
-  return h('span', { className: 'bt-brand-whale' }, h(MochouMark, { size }))
+  return h('span', { className: 'bt-brand-whale' }, h(MoonBotMark, { size }))
 }
 export function BrandName() {
   return h('span', { style: { fontWeight: 600, fontSize: 14 } }, productName())

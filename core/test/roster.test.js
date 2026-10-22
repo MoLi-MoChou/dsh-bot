@@ -247,15 +247,15 @@ test('the state reports a changed model list without a new revision', async (t) 
   assert.equal((await call('state', { since: first.revision, models: 'stale' })).value.unchanged, undefined)
 })
 
-test('a new team starts with a DeepSeek-blue whale as its Main Bot', async (t) => {
+test('a new team starts with Moon Bot\'s lilac moon sprite as its Main Bot', async (t) => {
   const { call, stop } = start()
   t.after(stop)
   const team = (await call('state', {})).value
   assert.equal(team.mainBotIds.length, 1)
   const main = team.bots.find(bot => bot.id === team.mainBotId)
   assert.equal(main.name, 'Chief')
-  assert.equal(main.color, 'deepseek')
-  assert.deepEqual(main.avatar, { shape: 'whale' })
+  assert.equal(main.color, 'lilac')
+  assert.deepEqual(main.avatar, { shape: 'moonbot' })
 
   // Other Bots keep no stored look, so the client picks one from the id.
   const writer = (await call('create-bot', { name: 'Writer', role: '写作' })).value
@@ -287,9 +287,9 @@ test('a team from before the whale was stored gets it once, on its first Main Bo
   t.after(stop)
   const bots = async () => Object.fromEntries((await call('state', {})).value.bots.map(bot => [bot.id, bot]))
   let team = await bots()
-  // A color the user picked stays; the missing shape becomes the whale.
+  // A color the user picked stays; the missing shape becomes Moon Bot's sprite.
   assert.equal(team.m1.color, 'red')
-  assert.deepEqual(team.m1.avatar, { shape: 'whale' })
+  assert.deepEqual(team.m1.avatar, { shape: 'moonbot' })
   assert.equal(team.w2.avatar, undefined)
   assert.equal(JSON.parse(readFileSync(join(home, 'state.json'), 'utf8')).whaleStored, true)
 
@@ -309,8 +309,8 @@ test('another Bot takes the Main Bot place in one step', async (t) => {
   const team = (await call('set-main', { id: writer.id, main: true, replace: chief })).value
   assert.deepEqual(team.mainBotIds, [writer.id])
   assert.equal(team.mainBotId, writer.id)
-  // The whale stays with the Bot it was given to.
-  assert.deepEqual(team.bots.find(bot => bot.id === chief).avatar, { shape: 'whale' })
+  // The Main Bot's character stays with the Bot it was given to.
+  assert.deepEqual(team.bots.find(bot => bot.id === chief).avatar, { shape: 'moonbot' })
   // The old Main Bot can now be deleted, and no new Chief is made in its place.
   assert.equal((await call('delete-bot', { id: chief })).ok, true)
   const after = (await call('state', {})).value
@@ -870,4 +870,16 @@ test('a photo that cannot be read changes nothing, and a non-Main Bot cannot set
   assert.equal((await call('state', {})).value.bots.find(bot => bot.id === writer.id).avatar.image, PNG_DATA_URL)
   assert.match(await ctx.registeredTools.get('update_bot').execute({ avatar: notes }, mine), /^Could not update the Bot: The avatar must be a PNG/)
   assert.equal((await call('state', {})).value.bots.find(bot => bot.id === writer.id).avatar.image, PNG_DATA_URL)
+})
+
+test('a Main Bot still wearing the blue whale from setup moves to Moon Bot\'s sprite once', async (t) => {
+  const { call, stop } = start({ ...OLD_TEAM, mainBotIds: ['m1', 'w2'], whaleStored: true, bots: {
+    m1: { ...OLD_TEAM.bots.m1, color: 'deepseek', avatar: { shape: 'whale' } },
+    w2: { ...OLD_TEAM.bots.w2, color: 'red', avatar: { shape: 'whale' } },
+  } })
+  t.after(stop)
+  const team = Object.fromEntries((await call('state', {})).value.bots.map(bot => [bot.id, bot]))
+  assert.deepEqual([team.m1.color, team.m1.avatar], ['lilac', { shape: 'moonbot' }])
+  // A whale in a color the user picked was their choice and stays.
+  assert.deepEqual([team.w2.color, team.w2.avatar], ['red', { shape: 'whale' }])
 })

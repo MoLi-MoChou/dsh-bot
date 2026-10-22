@@ -6,7 +6,7 @@ import { whenText } from './feedback.js'
 import { dateLocale, hostText, t, productName } from './i18n.js'
 import { StarLineIcon } from './icons.js'
 import { SPRING_POP } from './motion.js'
-import { MochouMark } from './icons.js'
+import { MoonBotMark } from './icons.js'
 import { showsDshRow } from './dsh-offer.js'
 
 // The length of the mark's `done` hop (bt-done in styles.js).
@@ -38,10 +38,10 @@ function dshHint(dsh, shown) {
   return t('Version {version}', { version: dsh.current })
 }
 
-// Mochou patch: the desktop app's own updater (electron-updater in the app's main
+// Moon Bot patch: the desktop app's own updater (electron-updater in the app's main
 // process): checks at launch and every few hours, downloads only the changed blocks,
 // then installs silently on restart. This row lets the user check, watch, and restart.
-const RELEASES_PAGE = 'https://github.com/MoLi-MoChou/mochou/releases'
+const RELEASES_PAGE = 'https://github.com/MoLi-MoChou/moon-bot/releases'
 const appBridge = () => (typeof window === 'undefined' ? null : window.dsBotApp?.updates ?? null)
 
 function useAppUpdate() {
@@ -84,7 +84,7 @@ function AppUpdateRow({ Row, run }) {
   return h(Row, { label: productName(), hint: appHint(state) }, control)
 }
 
-// Mochou patch: the Office preview engine is downloaded after install (app/src/engines.mjs).
+// Moon Bot patch: the Office preview engine is downloaded after install (app/src/engines.mjs).
 function EngineRow({ Row, run }) {
   const bridge = typeof window === 'undefined' ? null : window.dsBotApp?.engine ?? null
   const [state, setState] = useState(null)
@@ -111,7 +111,7 @@ const linkProps = href => ({ className: 'bt-soft bt-soft-sm bt-about-link', href
 
 export function AboutPage({ useUpdate, actions, run, Section, Row }) {
   const update = useUpdate(value => value) ?? {}
-  // Mochou patch: in the app, the version shown is the app's.
+  // Moon Bot patch: in the app, the version shown is the app's.
   const [appVersion, setAppVersion] = useState('')
   useEffect(() => { appBridge()?.state().then(value => setAppVersion(value?.current ?? ''), () => {}) }, [])
   const [checking, setChecking] = useState(false)
@@ -155,7 +155,7 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
   const repo = update.repoUrl
   return [
     h('div', { key: 'hero', className: 'bt-about-hero' },
-      h('span', { className: 'bt-about-mark' }, h(MochouMark, { size: 52 })),
+      h('span', { className: 'bt-about-mark' }, h(MoonBotMark, { size: 52 })),
       h('div', { className: 'bt-about-copy' },
         h('span', { className: 'bt-about-name' }, productName()),
         appVersion || update.current ? h('span', { className: 'bt-about-version' }, t('Version {version}', { version: appVersion || update.current })) : null),
@@ -177,7 +177,7 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
     h(Section, { key: 'links', title: t('Links') },
       repo ? h(Row, { label: t('Source code'), hint: repo.replace(/^https:\/\//, '') }, h('a', linkProps(repo), h(GitHubMark), t('Open'))) : null,
       update.notesUrl ? h(Row, { label: t('Release notes') }, h('a', linkProps(update.notesUrl), t('Open'))) : null,
-      // Mochou patch: credit the project this app is built on.
+      // Moon Bot patch: credit the project this app is built on.
       h(Row, { label: t('Based on DS Bot'), hint: 'github.com/Fei2411/DeepSeek-Bot · Apache-2.0' }, h('a', linkProps('https://github.com/Fei2411/DeepSeek-Bot'), h(GitHubMark), t('Open'))),
       h(Row, { label: t('Report a problem') }, h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => actions.openSettings('feedback') }, t('Open')))),
   ]

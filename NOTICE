@@ -8,13 +8,15 @@ and the DS Bot contributors), imported unchanged and then modified. Every
 change is listed here (Apache-2.0 section 4(b)); code changes carry a
 "DSH Bot patch" comment.
 
-  1. Name: the app is "Mochou" (莫愁 in Chinese; appId com.molimochou.mochou,
-     artifact names Mochou-*, data folder ~/.mochou, releases and links point at
-     MoLi-MoChou/mochou), with its own logo (a crescent moon over a lake) in
-     place of DS Bot's. It was called "DSH Bot" before; older data folders
-     (~/.dsh-bot) are still read. The plugin folder ds-bot/ is now core/ and
-     its package is mochou-core. The sidebar, About page, login page and
-     Chinese copy say 莫愁 / Mochou.
+  1. Name and look: the app is "Moon Bot" in every language (appId
+     com.molimochou.moonbot, artifact names Moon-Bot-*, Linux executable
+     moon-bot, data folder ~/.moon-bot, releases and links point at
+     MoLi-MoChou/moon-bot). It was called "DSH Bot" and then "Mochou" (莫愁);
+     their data folders (~/.dsh-bot, ~/.mochou) and settings (DSH_BOT_*,
+     MOCHOU_*) still work. The plugin folder ds-bot/ is now core/ and its
+     package is moon-bot-core. DS Bot's whale is replaced by Moon Bot's own
+     lilac moon sprite, as the Main Bot's avatar and in the app icon, and a
+     "Moon" theme (the default) joins DeepSeek, Claude and Grok Bot.
   2. Slim product (core/src/client/lean.js): group chats, scheduled /
      automation tasks, the "Add DSH Agent" entry and the classic Agent mode
      switch are not offered (menus, settings pages, details drawer). The code

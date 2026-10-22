@@ -129,10 +129,10 @@ const ZH = {
   'Add a provider': '添加服务商',
   'Needs an API key': '需要 API key',
   'Key set': '已设置 key',
-  'Key set outside DS Bot': 'key 在 莫愁 之外设置',
+  'Key set outside DS Bot': 'key 在 Moon Bot 之外设置',
   'No models': '没有模型',
   '{count} models': '{count} 个模型',
-  'This key comes from outside DS Bot, such as an environment variable, and cannot be changed here.': '这个 key 来自 莫愁 之外（例如环境变量），这里改不了。',
+  'This key comes from outside DS Bot, such as an environment variable, and cannot be changed here.': '这个 key 来自 Moon Bot 之外（例如环境变量），这里改不了。',
   'and {count} more': '还有 {count} 个',
   'Remove {name}? Bots on its models need another model.': '删除 {name}？用它的模型的 Bot 要换一个模型。',
   'Remove provider': '删除服务商',
@@ -164,7 +164,7 @@ const ZH = {
   'Sign in to DeepSeek': '登录 DeepSeek 账号',
   'Enter a DeepSeek API key': '填入 DeepSeek API key',
   'Open settings to set up a custom model': '打开设置配置自定义模型',
-  'DS Bot': 'Mochou',
+  'DS Bot': 'Moon Bot',
 
   // Header
   'Message {name}': '给 {name} 发消息',
@@ -372,7 +372,7 @@ const ZH = {
   'No group chats yet.': '还没有群聊。',
   'A group chat lets several Bots work on one thing with you.': '在群聊里，几个 Bot 和你一起做一件事。',
   'Back to group chats': '返回群聊列表',
-  'DS Bot settings': '莫愁 设置',
+  'DS Bot settings': 'Moon Bot 设置',
   'Settings pages': '设置页面',
   'Models, providers, and the rest of DeepSeek Harness': '模型、服务商和 DeepSeek Harness 的其他设置',
   'Harness settings': 'Harness 设置',
@@ -404,13 +404,13 @@ const ZH = {
   '{n} d': '{n} 天',
 
   // Plugin updates
-  'DS Bot {version} is available': '莫愁 {version} 可以更新',
-  'Updating DS Bot…': '正在更新 莫愁…',
-  'DS Bot {version} is installed. Restart DSH to use it.': '莫愁 {version} 已安装，重启 DSH 后生效',
-  'DS Bot update': '莫愁 更新',
-  'DS Bot {version}': 'Mochou {version}',
+  'DS Bot {version} is available': 'Moon Bot {version} 可以更新',
+  'Updating DS Bot…': '正在更新 Moon Bot…',
+  'DS Bot {version} is installed. Restart DSH to use it.': 'Moon Bot {version} 已安装，重启 DSH 后生效',
+  'DS Bot update': 'Moon Bot 更新',
+  'DS Bot {version}': 'Moon Bot {version}',
   'Update installed': '更新已安装',
-  'Restart DSH to start using DS Bot {version}.': '重启 DSH 后开始使用 莫愁 {version}。',
+  'Restart DSH to start using DS Bot {version}.': '重启 DSH 后开始使用 Moon Bot {version}。',
   'You have {version}.': '当前版本 {version}。',
   'The update did not finish: {reason}': '更新没有完成：{reason}',
   "What's new": '更新说明',
@@ -420,7 +420,7 @@ const ZH = {
   'DSH update': 'DSH 更新',
   'DSH {version}': 'DSH {version}',
   'Restart DSH to start using DSH {version}.': '重启 DSH 后开始使用 DSH {version}。',
-  'Update DS Bot {version} first.': '先更新 莫愁 {version}。',
+  'Update DS Bot {version} first.': '先更新 Moon Bot {version}。',
   'Open updates': '打开更新',
 
   // Command palette
@@ -805,11 +805,11 @@ const ZH = {
   'Compared with the {count} days before': '与再往前 {count} 天相比',
   '{share}% of all usage from {span}': '占 {span} 全部用量的 {share}%',
   // About
-  'About DS Bot': '关于 莫愁',
+  'About DS Bot': '关于 Moon Bot',
   'Version {version}': '版本 {version}',
-  'Star DS Bot on GitHub': '在 GitHub 上给 莫愁 点 Star',
+  'Star DS Bot on GitHub': '在 GitHub 上给 Moon Bot 点 Star',
   '{count} stars': '{count} 个 Star',
-  'If DS Bot helps you, a star on GitHub helps more people find it.': '如果 莫愁 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。',
+  'If DS Bot helps you, a star on GitHub helps more people find it.': '如果 Moon Bot 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。',
   Updates: '更新',
   'Check for updates': '检查更新',
   'Checking…': '正在检查…',
@@ -835,7 +835,7 @@ const ZH = {
   Show: '查看',
   Hide: '收起',
   'GitHub issue': 'GitHub issue',
-  'Opens a new issue in the DS Bot repository with all of this filled in. Nothing is sent until you submit it there.': '在 莫愁 仓库新建一个 issue，并填好以上内容。你在 GitHub 上提交之前，什么都不会发出。',
+  'Opens a new issue in the DS Bot repository with all of this filled in. Nothing is sent until you submit it there.': '在 Moon Bot 仓库新建一个 issue，并填好以上内容。你在 GitHub 上提交之前，什么都不会发出。',
   'Report on GitHub': '在 GitHub 上报告',
   'Copied the diagnostics.': '已复制诊断信息。',
   'Could not copy. Select the text below and copy it.': '无法复制。请选中下面的文字手动复制。',
@@ -847,7 +847,7 @@ const ZH = {
   'Recent errors': '最近的错误',
   'Recent errors · {count}': '最近的错误 · {count}',
   'No errors recorded.': '没有错误记录。',
-  'Failed model calls and DS Bot problems show here, newest first.': '模型调用失败和 莫愁 的问题会显示在这里，最新的在前。',
+  'Failed model calls and DS Bot problems show here, newest first.': '模型调用失败和 Moon Bot 的问题会显示在这里，最新的在前。',
   'Model call': '模型调用',
   'This window': '这个窗口',
   'Error log': '错误日志',
@@ -1053,11 +1053,11 @@ export function installLocale(locale) {
   }
 }
 
-// Mochou: the product is named 莫愁 / Mochou wherever the copy names it. The upstream
-// strings say DS Bot or Mochou; the attribution lines keep the upstream name.
+// Moon Bot: the product is named Moon Bot (in Chinese too) wherever the copy names it. The
+// upstream strings say DS Bot; the attribution lines keep the upstream name.
 const KEEP_NAME = new Set(['Based on DS Bot'])
-export const productName = () => (language().startsWith('zh') ? '莫愁' : 'Mochou')
-export const brand = text => (typeof text === 'string' ? text.replace(/\b(?:Mochou|DS Bot|DeepSeek Bot)\b/g, productName()) : text)
+export const productName = () => 'Moon Bot'
+export const brand = text => (typeof text === 'string' ? text.replace(/\b(?:DS Bot|DeepSeek Bot)\b/g, productName()) : text)
 
 export function t(key, params) {
   const text = bound ? bound(key, params) : fill(key, params)

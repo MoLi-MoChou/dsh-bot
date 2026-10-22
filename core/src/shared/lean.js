@@ -1,4 +1,4 @@
-// Mochou patch: the slim product. DS Bot's group chats, scheduled/automation tasks,
+// Moon Bot patch: the slim product. DS Bot's group chats, scheduled/automation tasks,
 // DSH Agent entry and the classic Agent mode switch stay in the code but are not
 // offered: not in the UI, and not in the Bots' tool lists or instructions. Flip a flag
 // to bring one back (see NOTICE).

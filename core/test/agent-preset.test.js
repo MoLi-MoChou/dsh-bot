@@ -6,7 +6,7 @@ import { test } from 'node:test'
 import { createRuntime } from '../index.js'
 import { fakeContext } from './fake-ctx.js'
 
-// MoLi-MoChou/mochou#37: under DSH Desktop's default PTC preset a model may call only
+// MoLi-MoChou/moon-bot#37: under DSH Desktop's default PTC preset a model may call only
 // run_code, so the group_relay call made for a group chat's Session was turned down
 // and no group message reached its Bots.
 

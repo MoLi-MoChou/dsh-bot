@@ -100,12 +100,12 @@ jobs:
           $ErrorActionPreference = 'Stop'
           function Find-Entry($root) {
             Get-ChildItem "$root\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
-              Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like 'Mochou*' }
+              Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like 'Moon Bot*' }
           }
-          $installer = Get-Item dist-pack/Mochou-*-win-x64-setup.exe
+          $installer = Get-Item dist-pack/Moon-Bot-*-win-x64-setup.exe
           Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait
-          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Mochou'
-          $exe = Join-Path $dir 'Mochou.exe'
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Moon Bot'
+          $exe = Join-Path $dir 'Moon Bot.exe'
           if (-not (Test-Path $exe)) { throw "The installer did not put the app in $dir" }
           $entry = Find-Entry 'HKCU:'
           if (-not $entry) { throw 'No uninstall entry for the current user' }
@@ -133,14 +133,14 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Mochou\Mochou.exe'
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Moon Bot\Moon Bot.exe'
           node scripts/check-update.mjs $exe dist-next
           if ($LASTEXITCODE -ne 0) { throw 'The installed app did not take the update' }
           # The installer goes on after the app has quit.
           function Installed-Version {
             Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall' |
               ForEach-Object { Get-ItemProperty $_.PSPath } |
-              Where-Object { $_.DisplayName -like 'Mochou*' } |
+              Where-Object { $_.DisplayName -like 'Moon Bot*' } |
               Select-Object -ExpandProperty DisplayVersion
           }
           $deadline = (Get-Date).AddSeconds(240)
@@ -156,18 +156,18 @@ jobs:
           $ErrorActionPreference = 'Stop'
           function Find-Entry($root) {
             Get-ChildItem "$root\Software\Microsoft\Windows\CurrentVersion\Uninstall" |
-              Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like 'Mochou*' }
+              Where-Object { (Get-ItemProperty $_.PSPath).DisplayName -like 'Moon Bot*' }
           }
-          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Mochou'
-          $exe = Join-Path $dir 'Mochou.exe'
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Moon Bot'
+          $exe = Join-Path $dir 'Moon Bot.exe'
           # The uninstaller removes the program only: the data location and the app's own data stay.
-          $kept = foreach ($folder in (Join-Path $HOME '.mochou'), (Join-Path $env:APPDATA 'Mochou')) {
+          $kept = foreach ($folder in (Join-Path $HOME '.moon-bot'), (Join-Path $env:APPDATA 'Moon Bot')) {
             New-Item -ItemType Directory -Force $folder | Out-Null
             $file = Join-Path $folder 'kept.txt'
             Set-Content $file 'kept'
             $file
           }
-          $uninstaller = Join-Path $dir 'Uninstall Mochou.exe'
+          $uninstaller = Join-Path $dir 'Uninstall Moon Bot.exe'
           Start-Process -FilePath $uninstaller -ArgumentList '/currentuser', '/S' -Wait
           # The uninstaller goes on from a copy in the temp folder, so wait for its result.
           $deadline = (Get-Date).AddSeconds(120)

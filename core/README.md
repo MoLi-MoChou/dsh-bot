@@ -114,7 +114,7 @@ A read-only dsh (see [Data and backups](#data-and-backups)) shows memory but can
 
 ## Web search
 
-The package includes a second plugin, `mochou-core/web-search`. It registers the search provider `auto`, and `cordis.patch.yml` makes it the default. Each search goes in this order:
+The package includes a second plugin, `moon-bot-core/web-search`. It registers the search provider `auto`, and `cordis.patch.yml` makes it the default. Each search goes in this order:
 
 1. If the profile names another `searchProvider`, that one is used.
 2. The current model route's own search, with that route's key and host. The plugin knows the Anthropic Messages, OpenAI Responses and Gemini protocols, and a few search APIs (Ollama, Kimi, Zhipu, MiMo). Add more with `searchApis`.
@@ -127,7 +127,7 @@ Each result starts with a `Search backend: …` line that names the path it took
 
 ```yaml
 - id: web-search-auto
-  name: mochou-core/web-search
+  name: moon-bot-core/web-search
   disabled: true
 - id: web
   name: '@deepseek-ai/dsh-web'

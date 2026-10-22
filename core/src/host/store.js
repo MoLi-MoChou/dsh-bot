@@ -149,11 +149,24 @@ export function install(rt) {
     if (state.whaleStored !== true) {
       const first = Object.values(state.bots).reduce((best, bot) => (best === undefined || (bot.createdAt ?? 0) < (best.createdAt ?? 0) ? bot : best), undefined)
       if (first !== undefined && state.mainBotIds.includes(first.id)) {
-        if (!first.avatar?.shape && !first.avatar?.image) first.avatar = { ...first.avatar, shape: 'whale' }
-        if (!first.color) first.color = 'deepseek'
+        if (!first.avatar?.shape && !first.avatar?.image) first.avatar = { ...first.avatar, shape: 'moonbot' }
+        if (!first.color) first.color = 'lilac'
       }
       state.whaleStored = true
       if (first !== undefined) migrated = true
+    }
+    // Moon Bot: a Main Bot still wearing DS Bot's blue whale, as set up, gets Moon Bot's
+    // sprite once. A whale in any other color was the user's pick and stays.
+    if (state.moonLook !== true) {
+      for (const id of state.mainBotIds) {
+        const bot = state.bots[id]
+        if (bot?.avatar?.shape === 'whale' && !bot.avatar.image && (bot.color ?? 'deepseek') === 'deepseek') {
+          bot.avatar = { ...bot.avatar, shape: 'moonbot' }
+          bot.color = 'lilac'
+          state.moonLook = true
+          migrated = true
+        }
+      }
     }
     if (Object.hasOwn(LEGACY_THEMES, state.prefs.theme ?? '')) {
       state.prefs.theme = LEGACY_THEMES[state.prefs.theme]

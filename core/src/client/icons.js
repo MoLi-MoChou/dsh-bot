@@ -95,17 +95,7 @@ export const FolderIcon = lineIcon(['M3 6A1.5 1.5 0 0 1 4.5 4.5h3.2l1.8 2h6A1.5 
 export const ChatsIcon = lineIcon(['M3.5 5.5A1.5 1.5 0 0 1 5 4h7a1.5 1.5 0 0 1 1.5 1.5V10A1.5 1.5 0 0 1 12 11.5H8L5 14v-2.5A1.5 1.5 0 0 1 3.5 10z', 'M13.5 7.5H15A1.5 1.5 0 0 1 16.5 9v4.5A1.5 1.5 0 0 1 15 15v2l-2.5-2h-3A1.5 1.5 0 0 1 8 13.5V13'])
 export const SETTINGS_ICONS = { general: GearIcon, bots: PeopleIcon, groups: ChatsIcon, usage: GaugeIcon }
 
-// Mochou (莫愁): the product mark, a crescent moon over lake ripples on a teal tile.
-// The same drawing as app/assets/icon.svg.
-let markSeq = 0
-export function MochouMark({ size = 24 }) {
-  const id = `mc${markSeq++}`
-  return h('svg', { width: size, height: size, viewBox: '6 6 88 88', 'aria-hidden': true, className: 'bt-mochou-mark' },
-    h('defs', null,
-      h('linearGradient', { id: `${id}g`, x1: 0, y1: 0, x2: 1, y2: 1 }, h('stop', { offset: 0, style: { stopColor: 'var(--bt-mark-a)' } }), h('stop', { offset: 1, style: { stopColor: 'var(--bt-mark-b)' } })),
-      h('mask', { id: `${id}m` }, h('rect', { width: 100, height: 100, fill: 'white' }), h('circle', { cx: 70, cy: 28, r: 12.5, fill: 'black' }))),
-    h('rect', { x: 6, y: 6, width: 88, height: 88, rx: 22, fill: `url(#${id}g)` }),
-    h('circle', { cx: 61, cy: 35, r: 15, style: { fill: 'var(--bt-mark-moon)' }, mask: `url(#${id}m)` }),
-    h('path', { d: 'M20 61 q7.5 -6 15 0 t15 0 t15 0 t15 0', fill: 'none', style: { stroke: 'var(--bt-mark-moon)' }, strokeWidth: 6, strokeLinecap: 'round' }),
-    h('path', { d: 'M30 75 q7.5 -6 15 0 t15 0 t15 0', fill: 'none', style: { stroke: 'var(--bt-mark-moon)' }, strokeOpacity: 0.6, strokeWidth: 6, strokeLinecap: 'round' }))
+// The Moon Bot app tile (app/scripts/icon.py), light or dark with the theme (styles.js).
+export function MoonBotMark({ size = 24 }) {
+  return h('span', { className: 'bt-moon-mark', 'aria-hidden': true, style: { width: size, height: size } })
 }

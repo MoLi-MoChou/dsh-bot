@@ -2,11 +2,11 @@
 # package's dsh.client manifest and ./client export.
 - insert:
     - id: bot
-      name: mochou-core
+      name: moon-bot-core
     # Web search with the current conversation route's own key, else a keyless
     # results-page fallback (see README "Web search").
     - id: web-search-auto
-      name: mochou-core/web-search
+      name: moon-bot-core/web-search
 
 # A config override replaces the whole entry config, so fetchProvider is
 # restated. A profile patch that names another searchProvider (exa, perplexity,
@@ -18,7 +18,7 @@
     searchProvider: auto
     fetchProvider: http
 
-# Mochou patch (lean): no Automation tasks entry in the sidebar. The scheduler itself
+# Moon Bot patch (lean): no Automation tasks entry in the sidebar. The scheduler itself
 # stays, and the Bots' schedule tools are already hidden (src/shared/lean.js).
 - id: ui-schedule
   disabled: true
