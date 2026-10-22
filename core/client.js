@@ -1177,17 +1177,18 @@ var detailOf = (message) => {
   if (translated2 !== text) return translated2;
   return /[一-鿿]/.test(text) ? text : "";
 };
+var sameText = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 function errorCopy(code, message) {
   const copy2 = Object.hasOwn(ERROR_COPY, code ?? "") ? ERROR_COPY[code] : void 0;
   const zh = language().startsWith("zh");
-  const detail = detailOf(message);
   const generic = zh ? copy2?.zh : copy2?.en;
-  const reason = detail === generic ? "" : detail;
+  const detail = detailOf(message);
+  const reason = generic !== void 0 && sameText(detail, generic) ? "" : detail;
   if (copy2 === void 0) {
     if (reason !== "") return reason;
     return zh ? "出了点问题，请再试一次。" : "Something went wrong. Try again.";
   }
-  return [generic, reason, zh ? copy2.hintZh : copy2.hint].filter(Boolean).join("\n");
+  return [generic, reason, zh ? copy2.hintZh : copy2.hint].filter(Boolean).join(" ");
 }
 function language() {
   const active = service?.getLocale?.().active;

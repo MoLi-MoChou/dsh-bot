@@ -1148,18 +1148,20 @@ const detailOf = (message) => {
 
 // What happened and what to do, plus the host's own reason when it can be said in the
 // user's language: the generic copy alone would throw away what the server already knows.
+// A reason equal to the copy, ignoring surrounding space and case, is not repeated.
+const sameText = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase()
+
 export function errorCopy(code, message) {
   const copy = Object.hasOwn(ERROR_COPY, code ?? '') ? ERROR_COPY[code] : undefined
   const zh = language().startsWith('zh')
-  const detail = detailOf(message)
   const generic = zh ? copy?.zh : copy?.en
-  // A reason the copy already says, or one that could not be translated, is not repeated.
-  const reason = detail === generic ? '' : detail
+  const detail = detailOf(message)
+  const reason = generic !== undefined && sameText(detail, generic) ? '' : detail
   if (copy === undefined) {
     if (reason !== '') return reason
     return zh ? '出了点问题，请再试一次。' : 'Something went wrong. Try again.'
   }
-  return [generic, reason, zh ? copy.hintZh : copy.hint].filter(Boolean).join('\n')
+  return [generic, reason, zh ? copy.hintZh : copy.hint].filter(Boolean).join(' ')
 }
 
 // The active DSH language tag, for dates and times.
