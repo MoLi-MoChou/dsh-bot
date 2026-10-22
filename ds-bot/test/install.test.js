@@ -59,6 +59,8 @@ test('apply registers listeners, tools, and effects in a fixed order', (t) => {
     'tool ask_user',
     'tool show_view',
     'tools guard',
+    // DSH Bot patch: the LEAN guard (hidden features' tools refuse in Bot Sessions).
+    'tools guard',
     'on agent/created',
     'on session/event',
     'tool list_capabilities',

@@ -1,6 +1,7 @@
 // Team tools: the roster, bot-to-bot messages, group chat settings and posts, and the
 // question and view cards. Group rounds and reading chats are in groups.js.
 import { randomUUID } from 'node:crypto'
+import { LEAN_HIDDEN_TOOLS } from '../shared/lean.js'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { readAvatar } from './avatar.js'
 import { COLORS, EXTRA_COLORS, MESSAGE_INLINE_MAX, ROOM_MODES, SOURCE_KIND } from './constants.js'
@@ -15,7 +16,8 @@ export const GROUP_REF = { type: 'string', required: true, description: 'Exact g
 const BLOCKING_QUESTION_TOOL = 'ask_user_question'
 // DS Bot carries no goal across conversation parts, so Bot Sessions do not run DSH goals.
 const GOAL_TOOLS = ['create_goal', 'update_goal', 'get_goal']
-const HIDDEN_TOOLS = [BLOCKING_QUESTION_TOOL, ...GOAL_TOOLS]
+// DSH Bot patch: plus the tools of the features LEAN hides (group chats, schedules).
+const HIDDEN_TOOLS = [BLOCKING_QUESTION_TOOL, ...GOAL_TOOLS, ...LEAN_HIDDEN_TOOLS]
 const GOAL_REFUSAL = 'DS Bot does not run goals. Ask the Bot in a message instead.'
 const MODE_PARAM = {
   type: 'string',
@@ -685,6 +687,10 @@ export function install(rt) {
   // refuses the question tool in any Bot Session, and a goal made there is blocked.
   ctx.tools.guard(exec => (exec.name === BLOCKING_QUESTION_TOOL && rt.isBotSession(exec.agent?.id)
     ? `Bots cannot use ${BLOCKING_QUESTION_TOOL}. Ask with ask_user in your own chat, or ask in your reply.`
+    : undefined))
+  // DSH Bot patch: until the list is trimmed, the hidden features' tools refuse too.
+  ctx.tools.guard(exec => (LEAN_HIDDEN_TOOLS.includes(exec.name) && rt.isBotSession(exec.agent?.id)
+    ? 'This app does not offer group chats or scheduled tasks. Do the work in this chat instead.'
     : undefined))
   // Creation waits for this listener, so the Agent's first step already lacks the tool.
   ctx.on('agent/created', async ({ agent }) => {

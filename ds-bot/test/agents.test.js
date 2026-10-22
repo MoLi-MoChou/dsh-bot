@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { LEAN_HIDDEN_TOOLS } from '../src/shared/lean.js'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -240,8 +241,11 @@ test('agent-adopt takes an unowned Session and refuses team-owned ones', async (
 })
 
 test('team tools are restricted on DSH Agent Sessions but not on Bot Sessions', async (t) => {
-  const { call, stop, restricted, createdAgents } = start(TEAM)
+  const { call, stop, restricted: all, createdAgents } = start(TEAM)
   t.after(stop)
+  // DSH Bot patch: a Bot Session's own LEAN mask (group and schedule tools) is not the
+  // team tools mask this test is about.
+  const restricted = new Proxy(all, { get: (target, key) => Reflect.get(target.filter(entry => !(entry.sessionId === 'm1' && entry.filter.deny.every(name => LEAN_HIDDEN_TOOLS.includes(name)))), key) })
   await call('state', {})
   // A Bot resolving its agent triggers agent/created but owns no team tools mask.
   createdAgents({

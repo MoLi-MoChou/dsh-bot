@@ -3427,8 +3427,11 @@ function RoomAvatar({ room: room2, roster, size = 36 }) {
   );
 }
 
-// src/client/lean.js
+// src/shared/lean.js
 var LEAN = { groups: false, schedules: false, dshAgent: false, classicMode: false };
+var GROUP_TOOLS = ["create_group", "update_group", "delete_group", "post_to_group", "read_group_chat"];
+var SCHEDULE_TOOLS = ["schedule_create", "schedule_update", "schedule_delete", "schedule_list"];
+var LEAN_HIDDEN_TOOLS = [...LEAN.groups ? [] : GROUP_TOOLS, ...LEAN.schedules ? [] : SCHEDULE_TOOLS];
 
 // src/client/dsh-primitives.js
 var import_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
