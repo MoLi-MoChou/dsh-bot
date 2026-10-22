@@ -85,7 +85,7 @@ body[data-bt-theme=grok] .bt-work-all,body[data-bt-theme=grok] .bt-retry{border-
 }
 // Ids earlier versions saved, and what they became.
 export const THEME_ALIASES = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
-export const resolveThemeId = (themes, id) => (themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : 'deepseek')
+export const resolveThemeId = (themes, id) => (themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : 'moon')
 // Text on the accent: near-black or white, whichever has the higher WCAG contrast.
 // (L + .05)² > 1.05 × (L(#141414) + .05) is "dark ink reads better".
 const DARK_INK = '#141414'

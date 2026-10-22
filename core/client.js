@@ -1774,7 +1774,7 @@ body[data-bt-theme=grok] .bt-work-all,body[data-bt-theme=grok] .bt-retry{border-
   }
 };
 var THEME_ALIASES = { mono: "grok", paper: "claude", moonlight: "deepseek" };
-var resolveThemeId = (themes, id) => themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : "deepseek";
+var resolveThemeId = (themes, id) => themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : "moon";
 var DARK_INK = "#141414";
 var accentInk = (accent) => (luminance(accent) + 0.05) ** 2 > 1.05 * (luminance(DARK_INK) + 0.05) ? DARK_INK : "#ffffff";
 var rgba = (hex, alpha) => `rgba(${[1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16)).join(",")},${alpha})`;
