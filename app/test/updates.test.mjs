@@ -300,7 +300,7 @@ describe('watchUpdates', () => {
   test('reads a given feed in place of the GitHub releases', (t) => {
     const updater = new FakeUpdater()
     t.after(watchUpdates({ updater, beforeInstall: async () => {}, feed: 'http://127.0.0.1:8080/', log: quietLog() }).stop)
-    assert.deepEqual(updater.feeds, [{ provider: 'generic', url: 'http://127.0.0.1:8080/' }])
+    assert.deepEqual(updater.feeds, [{ provider: 'generic', url: 'http://127.0.0.1:8080/', useMultipleRangeRequest: false }])
   })
 
   test('asks once per downloaded version, and on restart stops the Host before the installer runs', async (t) => {

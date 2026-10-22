@@ -149,7 +149,8 @@ export function watchUpdates({ updater, beforeInstall, ask, feed, log = console,
   // Differential download: electron-updater fetches only the blocks of the new installer
   // (its .blockmap) that differ from the installed one.
   updater.disableDifferentialDownload = false
-  if (feed) updater.setFeedURL({ provider: 'generic', url: feed })
+  // One range per request, as the GitHub provider does: GitHub's CDN answers 501 to multi-range.
+  if (feed) updater.setFeedURL({ provider: 'generic', url: feed, useMultipleRangeRequest: false })
   // DSH Bot patch: the About page follows this state live (check, progress, ready).
   let state = { phase: 'idle', current: updater.currentVersion?.version }
   const set = (patch) => { state = { ...state, ...patch, at: Date.now() }; onState?.(state) }

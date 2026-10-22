@@ -163,7 +163,8 @@ export async function chooseLocations(signal) {
     return { dataDir: saved.dataDir, workspace: saved.workspace }
   }
   const t = text()
-  let dataDir = join(homedir(), '.ds-bot')
+  // DSH Bot patch: its own data folder, apart from a DS Bot install.
+  let dataDir = join(homedir(), '.dsh-bot')
   let workspace = join(homedir(), 'DSH Bot')
   try {
     for (;;) {
