@@ -362,6 +362,8 @@ var ZH = {
   "Read only": "仅可查看",
   "Workspace": "工作区内修改",
   "Full access": "完全权限",
+  "Always allow for this Bot": "始终允许此 Bot",
+  "Saves this permission for the Bot, so it stops asking": "把该权限保存到这个 Bot，之后不再询问",
   "Same for every member": "全员统一",
   "Replaces each member's own permissions in this group.": "在这个群里代替各成员自己的权限。",
   "The only Main Bot. To hand the role to another Bot, use Main Bot on the Bots page.": "这是唯一的主 Bot。要把主 Bot 交给别的 Bot，请到「Bot」页的主 Bot 里换。",
@@ -15419,6 +15421,45 @@ function noticeApprovals({ work, roster, shownSession, openSession, since = Date
   return work.subscribe(notify);
 }
 
+// src/client/approval-always.js
+var ONCE = /* @__PURE__ */ new Set(["允许一次", "Allow once"]);
+var PRESET = /\b(read-only|workspace-write|danger-full-access)\b/;
+function addAlwaysAllow({ work, shownSession, raise }) {
+  const augment = () => {
+    for (const once of document.querySelectorAll("button")) {
+      if (!ONCE.has(once.textContent.trim()) || once.dataset.dsBotAlways) continue;
+      once.dataset.dsBotAlways = "1";
+      let card = once.parentElement;
+      for (let i = 0; card && i < 6 && !PRESET.test(card.textContent); i++) card = card.parentElement;
+      const preset = card && PRESET.exec(card.textContent)?.[1];
+      if (!preset) continue;
+      const always = document.createElement("button");
+      always.type = "button";
+      always.className = once.previousElementSibling?.className ?? once.className;
+      always.textContent = t("Always allow for this Bot");
+      always.title = t("Saves this permission for the Bot, so it stops asking");
+      always.addEventListener("click", async () => {
+        const place = shownSession();
+        const waiting = (work.getSnapshot().approvals ?? []).filter((a) => !a.roomId);
+        const entry = waiting.find((a) => a.sessionId === place) ?? (waiting.length === 1 ? waiting[0] : void 0);
+        always.disabled = true;
+        try {
+          if (entry?.botId) await raise(entry.botId, preset);
+          else console.warn("ds-bot: always-allow found no waiting approval", place, waiting);
+        } catch (error) {
+          console.warn("ds-bot: always-allow could not save the permission", error);
+        }
+        once.click();
+      });
+      once.before(always);
+    }
+  };
+  const observer = new MutationObserver(augment);
+  observer.observe(document.body, { childList: true, subtree: true });
+  augment();
+  return () => observer.disconnect();
+}
+
 // src/client/open-listed.js
 function listedOpener({ list, open, refresh, current }) {
   let drop = () => {
@@ -16038,6 +16079,11 @@ function apply(ctx) {
     shownSession: () => Object.values(ctx.sessions.list.getSnapshot().byId ?? {}).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id,
     openSession: (id) => actions.openSession(id)
   }), "ds-bot: approval notifications");
+  ctx.effect(() => addAlwaysAllow({
+    work,
+    shownSession: () => Object.values(ctx.sessions.list.getSnapshot().byId ?? {}).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id,
+    raise: (botId, permission) => actions.updateBot(botId, { permission })
+  }), "ds-bot: always-allow approvals");
   const assistantFace = (sessionId) => {
     const binding = ctx.sessions.binding(sessionId);
     if (binding === void 0) throw new Error(`ds-bot: unknown session "${sessionId}"`);
