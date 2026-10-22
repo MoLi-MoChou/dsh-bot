@@ -148,6 +148,13 @@ body[data-ds-dark-theme] .bt-moon-mark{background-image:url("${LOGO_DARK}")}
 .bt-row-busy{display:inline-flex!important;align-items:center;gap:6px;color:var(--bt-accent)!important}
 .bt-busy>.bt-mark,.bt-busy>.bt-cluster{position:relative}
 .bt-busy>.bt-mark::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;border-top-color:var(--bt-accent);border-right-color:color-mix(in srgb,var(--bt-accent) 40%,transparent);animation:bt-busy-spin 1.1s linear infinite;pointer-events:none}
+/* Moon Bot's sprite carries its face low and its horn high, so a ring on the square box
+   sits above the face and its lower half hangs in the air. This ring rides the face, and
+   the sprite's own silhouette in front of it lets the horn cross without a seam. */
+.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot]){isolation:isolate}
+.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot])::after{inset:auto;z-index:-1;left:calc(var(--bt-size,36px) * .065);top:calc(var(--bt-size,36px) * .19);width:calc(var(--bt-size,36px) * .87);height:calc(var(--bt-size,36px) * .87)}
+/* The working dot rides the face's lower-right edge, not the empty corner of the box. */
+.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot])>.bt-badge-working{right:calc(var(--bt-size,36px) * .15);bottom:calc(var(--bt-size,36px) * .05)}
 @keyframes bt-busy-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.bt-busy>.bt-mark::after{animation:none}}
 .bt-tile-name{font-size:13px;line-height:18px;font-weight:400;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
