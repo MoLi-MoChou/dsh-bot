@@ -11,6 +11,22 @@ import { t } from './i18n.js'
 // reply streams, and holds each phrase long enough to read.
 
 const PHRASE_HOLD_MS = 800
+// A phrase that stays this long gives way to another one of the same kind, so a long
+// wait still reads as alive.
+const PHRASE_ROTATE_MS = 3200
+
+// DSH puts the shell's running status in the transcript column, either directly or
+// inside a slot wrapper (DSH 0.2.1 wraps it in a [data-slot] div). The row must find it
+// either way; a direct-child-only selector left the row unmounted, so nothing showed
+// between sending and the first streamed text.
+export function runningSlot(root) {
+  return root.querySelector('[data-chat-flow] [data-chat-running]')
+}
+
+// The rows of a transcript column: its own [data-chat-flow-key] items, wrapped or not.
+export function flowRows(column) {
+  return [...column.querySelectorAll('[data-chat-flow-key]')].filter(item => item.parentElement?.closest('[data-chat-flow-key], [data-chat-flow]') === column)
+}
 const drawPhrase = pool => t(pool[Math.min(pool.length - 1, Math.floor(Math.random() * pool.length))])
 export { reducedMotion }
 
@@ -21,7 +37,7 @@ function useRunningHost(active) {
     let frame = 0
     const find = () => {
       frame = 0
-      const node = document.querySelector('[data-chat-flow] > [data-chat-running]')
+      const node = runningSlot(document)
       setHost(prev => (prev === node ? prev : node))
     }
     const observer = new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(find) })
@@ -56,7 +72,7 @@ function useRowEntrances(replacing) {
         if (column) observer.observe(column, { childList: true, subtree: true })
       }
       if (!column) return
-      const items = [...column.querySelectorAll(':scope > [data-chat-flow-key]')]
+      const items = flowRows(column)
       let last = -1
       items.forEach((item, index) => { if (seen.has(item)) last = index })
       const fresh = items.filter(item => !seen.has(item) && item.offsetHeight > 0)
@@ -93,7 +109,7 @@ export function ActivityIndicator({ sessionId, useRoster, useSessionStatus, useL
   const room = roster.roomsById[sessionId]
   const entries = useMemo(() => Object.values(JSON.parse(liveKey)), [liveKey])
   const streaming = entries.some(entry => entry.text)
-  const tools = entries.filter(entry => !entry.text).sort((a, b) => a.at - b.at)
+  const tools = entries.filter(entry => !entry.text && !entry.thinking).sort((a, b) => a.at - b.at)
   // Group chats show who is typing on their own while members speak.
   const relaying = tools.some(entry => entry.relay)
   const visible = running && !streaming && !relaying && (bot !== undefined || room !== undefined)
@@ -120,6 +136,15 @@ export function ActivityIndicator({ sessionId, useRoster, useSessionStatus, useL
     const timer = setTimeout(make, wait)
     return () => clearTimeout(timer)
   }, [wantKey, shown])
+  useEffect(() => {
+    if (!shown || wantKey === null || shown.key !== wantKey || want.label || reducedMotion()) return undefined
+    const timer = setTimeout(() => {
+      let text = drawPhrase(want.pool)
+      for (let tries = 0; text === shown.text && tries < 4; tries++) text = drawPhrase(want.pool)
+      setShown({ key: wantKey, text, at: Date.now() })
+    }, PHRASE_ROTATE_MS)
+    return () => clearTimeout(timer)
+  }, [shown, wantKey])
   const [phase, setPhase] = useState(null)
   const endedAt = useRef(0)
   const shift = useRef(null)

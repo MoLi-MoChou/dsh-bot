@@ -74,15 +74,17 @@ function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessio
   const label = [bot.name, main ? t('Main Bot') : '', pinned ? t('Pinned') : '', running || away ? t('Working') : '', waitsFor, approval ? t('Waiting for your approval') : alert ? t('Waiting for your answer') : '', unread ? t('Unread activity') : ''].filter(Boolean).join(', ')
   if (tile && wide) {
     return h('div', { className: 'bt-tile-wrap' }, h('button', {
-      type: 'button', className: 'bt-tile', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
+      type: 'button', className: running || away ? 'bt-tile bt-busy' : 'bt-tile', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
       'data-bot-id': id, title: preview || bot.name, onClick: () => actions.openSession(id), onContextMenu,
     },
     h(BotAvatar, { bot, size: 60, state, main: true }),
     h('span', { className: 'bt-tile-name' }, bot.name),
-    bot.role ? h('span', { className: 'bt-chip' }, bot.role) : null))
+    running || away
+      ? h('span', { className: 'bt-tile-busy', 'aria-hidden': true }, h('span', { className: 'bt-dots' }, h('i'), h('i'), h('i')), t('Working'))
+      : bot.role ? h('span', { className: 'bt-chip bt-tile-role' }, bot.role) : null))
   }
   return h('button', {
-    type: 'button', className: 'bt-row', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
+    type: 'button', className: running || away ? 'bt-row bt-busy' : 'bt-row', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
     'data-bot-id': id, title: wide ? undefined : bot.name, onClick: () => actions.openSession(id), onContextMenu,
   },
   h(BotAvatar, { bot, size: 36, state, main }),
@@ -90,6 +92,7 @@ function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessio
   wide ? h('span', { className: 'bt-row-body' },
     h('span', { className: 'bt-row-name' }, h('span', { className: 'bt-row-title' }, bot.name), pinned ? h(PinMark) : null),
     awayLine ? h('span', { className: 'bt-row-preview' }, awayLine)
+      : running ? h('span', { className: 'bt-row-preview bt-row-busy' }, h('span', { className: 'bt-dots', 'aria-hidden': true }, h('i'), h('i'), h('i')), t('Working'))
       : waitsFor ? h('span', { className: 'bt-row-preview' }, waitsFor)
         : preview ? h('span', { className: 'bt-row-preview' }, preview) : null) : null,
   wide && unread && !active ? h('span', { className: 'bt-unread', 'aria-hidden': true }) : null)
@@ -110,7 +113,7 @@ function RoomRow({ room, roster, actions, useSessions, useSessionStatus, useSess
   const pinned = room.pinned === true
   const label = [room.name, pinned ? t('Pinned') : '', members.length > 0 ? t('Working') : '', approval ? t('Waiting for your approval') : ''].filter(Boolean).join(', ')
   return h('button', {
-    type: 'button', className: 'bt-row', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
+    type: 'button', className: members.length > 0 ? 'bt-row bt-busy' : 'bt-row', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
     'data-room-id': id, onClick: () => actions.openSession(id),
     onContextMenu: (event) => { event.preventDefault(); actions.openMenu({ kind: 'room', id, x: event.clientX, y: event.clientY }) },
   },
@@ -204,7 +207,7 @@ function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, 
   const open = active && wide
   return h('div', { className: 'bt-agent' },
     h('button', {
-      type: 'button', className: 'bt-row', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
+      type: 'button', className: running ? 'bt-row bt-busy' : 'bt-row', 'aria-label': label, 'aria-current': active ? 'page' : undefined,
       'data-agent-id': agent.id, title: wide ? undefined : 'DSH Agent', onClick: () => actions.openAgent(agent.id),
       onContextMenu: (event) => { event.preventDefault(); actions.openMenu({ kind: 'agent', id: agent.id, x: event.clientX, y: event.clientY }) },
     },

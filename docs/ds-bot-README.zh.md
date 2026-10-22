@@ -1,19 +1,19 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
-    <img src="docs/images/logo.svg" alt="DeepSeek Bot" width="260">
+    <source media="(prefers-color-scheme: dark)" srcset="images/logo-dark.svg">
+    <img src="images/logo.svg" alt="DeepSeek Bot" width="260">
   </picture>
 </p>
 
 # DeepSeek Bot
 
-[English](README.md) | 中文
+[English](ds-bot-README.md) | 中文
 
 ![版本](https://img.shields.io/badge/版本-v0.2_预览-blue) ![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.2-4D6BFE) ![许可](https://img.shields.io/badge/许可-Apache_2.0-green)
 
 DeepSeek Bot（简称 DS Bot）是一个基于 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（简称 dsh）的 bot 插件，插件将 dsh 改造为 bot 形式。你可以与自己创建的 bot 交流、工作。
 
-![和 Chief 说一句话，它就把 bot 和群聊建好](docs/images/team.zh.png)
+![和 Chief 说一句话，它就把 bot 和群聊建好](images/team.zh.png)
 
 ## 安装
 
@@ -63,7 +63,7 @@ npx @deepseek-ai/dsh@0.2.1-rc.2 web
 
 另外，bot 拥有记忆，它会记住你的喜好并在下次的工作中应用。你可以在 bot 的详情页管理记忆，也可以直接和 bot 对话来进行管理。
 
-![bot 详情页：模型、记忆、用量](docs/images/details.zh.png)
+![bot 详情页：模型、记忆、用量](images/details.zh.png)
 
 ### Main bot
 
@@ -79,7 +79,7 @@ ds bot 拥有群聊功能。群聊是非常好的多 bot 协作方式，但它�
 
 群聊有自己的记忆。你在群里交代的事留在群里：群成员在这个群里会用到，你的其他对话和群外的 bot 都看不到。你可以在群聊详情里管理它。
 
-![群聊：管理员 Chief 把活派给写手和程序员](docs/images/group.zh.png)
+![群聊：管理员 Chief 把活派给写手和程序员](images/group.zh.png)
 
 ### 能力
 
@@ -89,7 +89,7 @@ ds bot 拥有群聊功能。群聊是非常好的多 bot 协作方式，但它�
 
 在 设置 → 用量 里，可以按时间、按 bot、按模型查看 Token 用量。
 
-![用量页](docs/images/usage.zh.png)
+![用量页](images/usage.zh.png)
 
 ## 数据
 

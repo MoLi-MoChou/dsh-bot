@@ -141,6 +141,15 @@ body[data-ds-dark-theme] .bt-moon-mark{background-image:url("${LOGO_DARK}")}
 .bt-tile{display:flex;flex-direction:column;align-items:center;gap:4px;width:95px;padding:6px 8px 4px;border-radius:12px;border:0;background:transparent;color:var(--bt-ink);cursor:pointer;font-family:inherit;transition:background-color .12s ease}
 .bt-tile:hover{background:var(--bt-hover)}
 .bt-tile[aria-current=page]{background:var(--bt-active)}
+.bt-tile-role{margin-top:2px;font-size:11.5px;line-height:18px;padding:1px 9px;border-radius:999px;border:0;background:var(--bt-tag-bg);color:var(--bt-tag-ink);font-weight:500;letter-spacing:.01em;max-width:none}
+.bt-tile{width:auto!important;min-width:104px;padding:8px 12px 8px!important}
+.bt-tile-busy{display:inline-flex;align-items:center;gap:6px;margin-top:2px;font-size:11.5px;line-height:18px;padding:1px 9px;border-radius:999px;background:color-mix(in srgb,var(--bt-accent) 14%,transparent);color:var(--bt-accent);font-weight:500}
+.bt-tile-busy .bt-dots i,.bt-row-busy .bt-dots i{background:currentColor}
+.bt-row-busy{display:inline-flex!important;align-items:center;gap:6px;color:var(--bt-accent)!important}
+.bt-busy>.bt-mark,.bt-busy>.bt-cluster{position:relative}
+.bt-busy>.bt-mark::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;border-top-color:var(--bt-accent);border-right-color:color-mix(in srgb,var(--bt-accent) 40%,transparent);animation:bt-busy-spin 1.1s linear infinite;pointer-events:none}
+@keyframes bt-busy-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.bt-busy>.bt-mark::after{animation:none}}
 .bt-tile-name{font-size:13px;line-height:18px;font-weight:400;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt-chip{font-size:11px;line-height:16px;padding:1px 4px;border-radius:4px;background:var(--bt-hover);border:1px solid var(--bt-line);color:var(--bt-ink-2);white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
 .bt-row{display:flex;align-items:center;gap:8px;min-height:54px;padding:8px;border:0;border-radius:10px;background:transparent;color:var(--bt-ink);text-align:left;cursor:pointer;width:100%;box-sizing:border-box;font-family:inherit;transition:background-color .12s ease}
@@ -872,7 +881,8 @@ export const CONVERSATION_CSS = `
 [class*="_header"]:has(.bt-head){border-bottom-color:transparent!important;box-shadow:none!important}
 /* The transcript runs under a floating header pill. */
 header[class*="_header"]:has(.bt-head){position:absolute!important;top:0;left:0;right:0;z-index:8;display:flex!important;padding:10px 0 0!important;background:transparent!important;pointer-events:none;justify-content:center}
-header[class*="_header"]:has(.bt-head)::before{content:"";position:absolute;inset:0 0 auto;height:60px;background:linear-gradient(to bottom,var(--bt-main),color-mix(in srgb,var(--bt-main) 0%,transparent));pointer-events:none;z-index:-1}
+header[class*="_header"]:has(.bt-head)::before{content:"";position:absolute;inset:0 0 auto;height:52px;background:color-mix(in srgb,var(--bt-main) 82%,transparent);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);box-shadow:0 .5px 0 var(--bt-line);pointer-events:none;z-index:-1}
+header[class*="_header"]:has(.bt-head)::after{content:"";position:absolute;inset:52px 0 auto;height:18px;background:linear-gradient(to bottom,color-mix(in srgb,var(--bt-main) 70%,transparent),transparent);pointer-events:none;z-index:-1}
 header[class*="_header"]:has(.bt-head)>[class*="_headerLeading"]{position:absolute;left:12px;top:10px;pointer-events:auto}
 header[class*="_header"] .bt-head{flex:1 1 auto;width:100%}
 [class*="_body"]:has(> [class*="_scrollBody"]){--dsh-chat-content-width:min(960px,100%)}

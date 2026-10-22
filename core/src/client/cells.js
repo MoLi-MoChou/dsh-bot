@@ -211,9 +211,10 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
   // earlier step's cell.
   const thinking = groupPart === 'response' ? undefined : thinkingStep(members)
   const ms = useThinkingMs({ sessionId, turn: data.turn, settledSteps: members.filter(step => step.status !== 'running').length, skip: hidden || reasoning === '' })
-  // A streaming reply — or a live reasoning row — stands in for the activity row.
+  // A streaming reply stands in for the activity row. Moon Bot folds the reasoning away,
+  // so live reasoning only tells the row to say the Bot is thinking.
   useLiveNote(actions, sessionId, `text:${node.key ?? data.seq}`, !hidden && running && texts.length > 0 ? { text: true } : null)
-  useLiveNote(actions, sessionId, `think:${node.key ?? data.seq}`, !hidden && thinking !== undefined && reasoning !== '' ? { text: true } : null)
+  useLiveNote(actions, sessionId, `think:${node.key ?? data.seq}`, !hidden && thinking !== undefined && reasoning !== '' ? { thinking: true } : null)
   if (hidden) return null
   // A relay spliced mid-turn is a 'context' node, hidden from the chat flow on
   // DSH 0.2; the step that answers it shows the event line where it was read,
@@ -649,8 +650,8 @@ export function Elapsed({ at, className }) {
 // Status phrases. A running tool names what it does; otherwise one
 // phrase is drawn from the pool each time the activity changes.
 export const PHRASES = {
-  thinking: ['Thinking about it', 'Weighing the options', 'Working out a plan', 'Sorting out the details'],
-  working: ['On it', 'Busy with it', 'Moving ahead', 'Taking care of it', 'Making headway'],
+  thinking: ['Mulling it over', 'Thinking about it', 'Weighing the options', 'Working out a plan', 'Sorting out the details'],
+  working: ['Getting it done', 'On it', 'Busy with it', 'Moving ahead', 'Taking care of it', 'Making headway'],
 }
 const TOOL_PHRASES = [
   [/web_?search|search_?web/i, 'Searching online'],

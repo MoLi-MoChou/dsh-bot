@@ -12,74 +12,108 @@ const THEME_KEYS = ['bg', 'sidebar', 'bubble', 'card', 'text', 'user', 'userText
 // borders, so DSH's settings, OpenUI cards and dialogs follow the theme too.
 const SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif'
 const both = value => ({ light: value, dark: value })
+const SANS_GROK = '"Inter","SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif'
+// Each theme differs at a glance, not only in its accent: surface ladder, how replies
+// sit (glossy bubble, flat bubble, plain serif prose, plain text), the user's bubble,
+// corner radii, type and the composer.
 const THEMES = {
-  // Moon Bot's own theme, from the Main Bot's lilac moon sprite: soft lavender on warm
-  // cream by day, deep plum by night, rounder corners and a gentle gloss on raised
-  // surfaces. The default.
+  // Moon Bot's own theme, from the Main Bot's lilac moon sprite: a luminous lilac wash,
+  // a clearly lilac sidebar, white glossy reply bubbles, a lilac-gradient user bubble
+  // with white text, round corners and a soft glow. Deep violet night by dark. The default.
   moon: {
     label: 'Moon',
-    light: { bg: '#fcfafd', sidebar: '#f5f1f9', bubble: '#f1ecf7', card: '#ffffff', text: '#2a2233', user: '#ebe3f7', userText: '#2a2233', accent: '#8a6bd1' },
-    dark: { bg: '#17131d', sidebar: '#1d1824', bubble: '#2a2335', card: '#221c2b', text: '#f1ecf7', user: '#3a2f4c', userText: '#f1ecf7', accent: '#b9a3f5' },
+    light: { bg: '#f8f5ff', sidebar: '#efe7ff', bubble: '#ffffff', card: '#ffffff', text: '#2b2140', user: '#8f6cf0', userText: '#ffffff', accent: '#8a63ee' },
+    dark: { bg: '#130f1f', sidebar: '#1b1530', bubble: '#251d3d', card: '#211a36', text: '#f3eeff', user: '#7a56e6', userText: '#ffffff', accent: '#b69dff' },
     tokens: {
-      '--dsw-radius-sm': both('8px'), '--dsw-radius-md': both('12px'), '--dsw-radius-lg': both('16px'), '--dsw-radius-xl': both('22px'),
+      '--dsw-radius-sm': both('10px'), '--dsw-radius-md': both('14px'), '--dsw-radius-lg': both('18px'), '--dsw-radius-xl': both('24px'),
     },
     css: `
-html body[data-bt-theme=moon]{--bt-line:rgba(70,45,110,.08);--bt-line-2:rgba(70,45,110,.14);--bt-hover:rgba(138,107,209,.08);--bt-active:rgba(138,107,209,.15);--bt-tag-bg:rgba(138,107,209,.1);--bt-tag-ink:#6b55a8}
-html body[data-bt-theme=moon][data-ds-dark-theme]{--bt-line:rgba(210,190,255,.09);--bt-line-2:rgba(210,190,255,.15);--bt-hover:rgba(185,163,245,.1);--bt-active:rgba(185,163,245,.18);--bt-tag-bg:rgba(185,163,245,.14);--bt-tag-ink:#cdbdf8}
-body[data-bt-theme=moon] :is(.bt-bubble,.bt-ububble){border-radius:18px}
-body[data-bt-theme=moon] .bt-ububble{background:linear-gradient(180deg,color-mix(in srgb,var(--bt-user) 70%,#fff),var(--bt-user))}
-body[data-bt-theme=moon][data-ds-dark-theme] .bt-ububble{background:linear-gradient(180deg,color-mix(in srgb,var(--bt-user) 84%,#fff),var(--bt-user))}
-body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]){border-radius:22px;box-shadow:0 6px 24px -8px rgba(110,80,170,.18),inset 0 0 0 1px var(--bt-line-2)}
-body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 8px 28px -8px rgba(110,80,170,.28),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 50%,var(--bt-line-2))}
-body[data-bt-theme=moon] :is(.bt-process,.bt-menu,.bt-update-pop,.bt-q){border-radius:16px;box-shadow:0 0 0 .5px var(--bt-line-2),0 14px 36px -14px rgba(90,60,150,.3)}
-body[data-bt-theme=moon] :is(.bt-work-all,.bt-retry){border-radius:999px;border-color:color-mix(in srgb,var(--bt-accent) 30%,var(--bt-line-2))}
+html body[data-bt-theme=moon]{--bt-line:rgba(110,70,200,.10);--bt-line-2:rgba(110,70,200,.18);--bt-hover:rgba(138,99,238,.09);--bt-active:rgba(138,99,238,.17);--bt-tag-bg:rgba(138,99,238,.13);--bt-tag-ink:#6a45d6;--bt-ink-2:rgba(43,33,64,.66);--bt-ink-3:rgba(43,33,64,.42)}
+html body[data-bt-theme=moon][data-ds-dark-theme]{--bt-line:rgba(190,160,255,.12);--bt-line-2:rgba(190,160,255,.2);--bt-hover:rgba(182,157,255,.1);--bt-active:rgba(182,157,255,.2);--bt-tag-bg:rgba(182,157,255,.16);--bt-tag-ink:#cdbbff;--bt-ink-2:rgba(243,238,255,.68);--bt-ink-3:rgba(243,238,255,.42)}
+body[data-bt-theme=moon] [data-conversation-scroll]{background:radial-gradient(1200px 500px at 70% -10%,rgba(160,120,255,.16),transparent 60%),radial-gradient(900px 420px at 0% 110%,rgba(255,170,220,.10),transparent 60%)}
+body[data-bt-theme=moon][data-ds-dark-theme] [data-conversation-scroll]{background:radial-gradient(1100px 520px at 70% -10%,rgba(140,95,255,.20),transparent 60%),radial-gradient(900px 420px at 0% 110%,rgba(220,120,255,.08),transparent 60%)}
+body[data-bt-theme=moon] .bt-bubble{border-radius:20px;box-shadow:0 1px 2px rgba(80,50,150,.06),0 6px 18px -10px rgba(110,70,200,.28),inset 0 0 0 1px var(--bt-line)}
+body[data-bt-theme=moon][data-ds-dark-theme] .bt-bubble{box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 0 0 1px var(--bt-line)}
+body[data-bt-theme=moon] .bt-ububble{border-radius:20px;background:linear-gradient(160deg,#b195ff 0%,#8a63ee 55%,#7a4fe0 100%);box-shadow:0 8px 20px -10px rgba(122,79,224,.65),inset 0 1px 0 rgba(255,255,255,.35)}
+body[data-bt-theme=moon][data-ds-dark-theme] .bt-ububble{background:linear-gradient(160deg,#9575ff 0%,#7a56e6 60%,#6640d0 100%);box-shadow:0 8px 22px -10px rgba(120,80,240,.7),inset 0 1px 0 rgba(255,255,255,.22)}
+body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]){border-radius:22px;background:var(--bt-card);box-shadow:0 10px 30px -12px rgba(110,70,200,.35),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=moon] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 12px 34px -12px rgba(110,70,200,.45),inset 0 0 0 1.5px color-mix(in srgb,var(--bt-accent) 60%,transparent)}
+body[data-bt-theme=moon] :is(.bt-process,.bt-menu,.bt-update-pop,.bt-q){border-radius:18px;box-shadow:0 0 0 .5px var(--bt-line-2),0 16px 40px -14px rgba(90,50,170,.38)}
+body[data-bt-theme=moon] :is(.bt-work-all,.bt-retry){border-radius:999px;border-color:color-mix(in srgb,var(--bt-accent) 35%,var(--bt-line-2))}
+body[data-bt-theme=moon] .bt-pill{box-shadow:0 4px 14px -6px rgba(110,70,200,.35),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=moon] .bt-tile[aria-current=page]{background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,.35));box-shadow:0 6px 18px -10px rgba(110,70,200,.45),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=moon][data-ds-dark-theme] .bt-tile[aria-current=page]{background:rgba(182,157,255,.14)}
 body[data-bt-theme=moon] [data-composer-input]{caret-color:var(--bt-accent)}
 `,
   },
+  // DeepSeek: crisp white and cool grey, DeepSeek blue for the accent and the user's
+  // bubble tint, flat grey reply bubbles, medium radii.
   deepseek: {
     label: 'DeepSeek',
-    light: { bg: '#fcfcfc', sidebar: '#f7f7f7', bubble: '#eeeeee', card: '#ffffff', text: '#141414', user: '#070707', userText: '#fcfcfc', accent: '#4d6bfe' },
-    dark: { bg: '#141414', sidebar: '#1b1b1b', bubble: '#262626', card: '#1f1f1f', text: '#f2f2f2', user: '#f2f2f2', userText: '#141414', accent: '#5b7bff' },
-  },
-  // Warm clay on a cream surface ladder, serif headings, softer radii (after
-  // open-claude-ui's cds-theme.css, MIT). Colors and feel only.
-  claude: {
-    label: 'Claude',
-    light: { bg: '#faf9f5', sidebar: '#f3f1ea', bubble: '#f0eee6', card: '#ffffff', text: '#141413', user: '#e8e5da', userText: '#141413', accent: '#d97757' },
-    dark: { bg: '#262624', sidebar: '#1f1e1d', bubble: '#30302e', card: '#2b2a27', text: '#f5f4ef', user: '#3a3935', userText: '#f5f4ef', accent: '#d97757' },
+    light: { bg: '#ffffff', sidebar: '#f9fbff', bubble: '#f3f4f6', card: '#ffffff', text: '#1a1d24', user: '#e3ebff', userText: '#1b2f7a', accent: '#4d6bfe' },
+    dark: { bg: '#1b1c20', sidebar: '#212327', bubble: '#2a2c31', card: '#24262b', text: '#eef0f4', user: '#2b3a6b', userText: '#e6ecff', accent: '#6b84ff' },
     tokens: {
-      '--dsw-radius-sm': both('6px'), '--dsw-radius-md': both('10px'), '--dsw-radius-lg': both('14px'), '--dsw-radius-xl': both('20px'),
+      '--dsw-radius-sm': both('6px'), '--dsw-radius-md': both('10px'), '--dsw-radius-lg': both('14px'), '--dsw-radius-xl': both('18px'),
     },
     css: `
-body[data-bt-theme=claude] :is(.bt-bubble,.bt-ububble){border-radius:12px}
-body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]){border-radius:20px;box-shadow:0 4px 20px rgba(0,0,0,.035),inset 0 0 0 1px var(--bt-line-2)}
-body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 4px 24px rgba(0,0,0,.08),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 45%,var(--bt-line-2))}
-body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong,.bt-section-title,.bt-brand-name,[role=dialog] h2){font-family:${SERIF};font-weight:500;letter-spacing:-.01em}
+html body[data-bt-theme=deepseek]{--bt-hover:rgba(77,107,254,.06);--bt-active:rgba(77,107,254,.11);--bt-tag-bg:rgba(77,107,254,.09);--bt-tag-ink:#3550d8}
+html body[data-bt-theme=deepseek][data-ds-dark-theme]{--bt-hover:rgba(107,132,255,.09);--bt-active:rgba(107,132,255,.16);--bt-tag-bg:rgba(107,132,255,.15);--bt-tag-ink:#aebcff}
+body[data-bt-theme=deepseek] :is(.bt-bubble,.bt-ububble){border-radius:12px}
+body[data-bt-theme=deepseek] [class*="_card"]:has([data-composer-input]){border-radius:18px;box-shadow:0 0 0 1px rgba(77,107,254,.18),0 4px 14px -6px rgba(30,50,140,.12)}
+body[data-bt-theme=deepseek] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 0 0 1.5px var(--bt-accent),0 6px 18px -6px rgba(30,50,140,.18)}
+body[data-bt-theme=deepseek] .bt-tile[aria-current=page]{background:var(--bt-active)}
+body[data-bt-theme=deepseek] [data-composer-input]{caret-color:var(--bt-accent)}
+`,
+  },
+  // Claude: warm cream paper, replies as plain serif prose with no bubble, a sand user
+  // bubble, clay accent, serif headings (after open-claude-ui's cds-theme.css, MIT).
+  // Colors and feel only.
+  claude: {
+    label: 'Claude',
+    light: { bg: '#faf9f5', sidebar: '#f0ede3', bubble: '#f0eee6', card: '#ffffff', text: '#1f1e1b', user: '#e9e4d6', userText: '#1f1e1b', accent: '#c96442' },
+    dark: { bg: '#262624', sidebar: '#1d1c1a', bubble: '#30302e', card: '#2f2e2b', text: '#f3f0e8', user: '#3b3a35', userText: '#f3f0e8', accent: '#d97757' },
+    tokens: {
+      '--dsw-radius-sm': both('6px'), '--dsw-radius-md': both('9px'), '--dsw-radius-lg': both('12px'), '--dsw-radius-xl': both('18px'),
+    },
+    css: `
+html body[data-bt-theme=claude]{--bt-hover:rgba(120,90,50,.07);--bt-active:rgba(120,90,50,.13);--bt-tag-bg:rgba(201,100,66,.1);--bt-tag-ink:#a8502f}
+html body[data-bt-theme=claude][data-ds-dark-theme]{--bt-hover:rgba(240,220,190,.07);--bt-active:rgba(240,220,190,.13);--bt-tag-bg:rgba(217,119,87,.16);--bt-tag-ink:#eba48a}
+body[data-bt-theme=claude] .bt-bubble{background:transparent!important;padding-inline:2px;font-family:${SERIF};font-size:calc(var(--dsh-content-font-size,14px) + 1.5px);line-height:1.7;max-width:min(92%,680px)}
+body[data-bt-theme=claude] .bt-ububble{border-radius:12px;padding-inline:14px}
+body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]){border-radius:18px;box-shadow:0 2px 10px rgba(60,40,20,.06),inset 0 0 0 1px var(--bt-line-2)}
+body[data-bt-theme=claude] [class*="_card"]:has([data-composer-input]):focus-within{box-shadow:0 4px 18px rgba(60,40,20,.1),inset 0 0 0 1px color-mix(in srgb,var(--bt-accent) 45%,var(--bt-line-2))}
+body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong,.bt-section-title,.bt-brand-name,.bt-tile-name,.bt-pill-name,[role=dialog] h2){font-family:${SERIF};font-weight:500;letter-spacing:-.01em}
 body[data-bt-theme=claude] :is(.bt-set-section h3,.bt-section-title){font-size:15px}
 body[data-bt-theme=claude] .bt-process,body[data-bt-theme=claude] .bt-menu{border-radius:12px}
 body[data-bt-theme=claude] :is(.bt-work-all,.bt-retry){border-color:color-mix(in srgb,var(--bt-accent) 28%,var(--bt-line-2))}
+body[data-bt-theme=claude] .bt-tile[aria-current=page]{background:var(--bt-active)}
 body[data-bt-theme=claude] [data-composer-input]{caret-color:var(--bt-accent)}
 `,
   },
-  // Near-black / near-white, monochrome: the foreground is the accent, hairline
-  // borders, pill controls, almost no shadow (after grok.com's web UI).
+  // Grok Bot: monochrome, pure white / true black. Replies are plain text with no
+  // bubble, the user's message a soft grey pill, the foreground is the accent, hairline
+  // borders, big round composer, tight geometric type (after grok.com's web UI).
   grok: {
     label: 'Grok Bot',
-    light: { bg: '#ffffff', sidebar: '#fafafa', bubble: '#f2f2f2', card: '#ffffff', text: '#0d0d0d', user: '#f0f0f0', userText: '#0d0d0d', accent: '#0d0d0d' },
-    dark: { bg: '#030404', sidebar: '#070807', bubble: '#171717', card: '#171717', text: '#f4f4f0', user: '#202020', userText: '#f4f4f0', accent: '#f4f4f0' },
+    light: { bg: '#ffffff', sidebar: '#ffffff', bubble: '#f4f4f4', card: '#ffffff', text: '#0d0d0d', user: '#f1f1f1', userText: '#0d0d0d', accent: '#0d0d0d' },
+    dark: { bg: '#000000', sidebar: '#0a0a0a', bubble: '#161616', card: '#141414', text: '#f5f5f2', user: '#1f1f1f', userText: '#f5f5f2', accent: '#f5f5f2' },
     tokens: {
-      '--dsw-radius-sm': both('8px'), '--dsw-radius-md': both('14px'), '--dsw-radius-lg': both('20px'), '--dsw-radius-xl': both('24px'),
+      '--dsw-radius-sm': both('10px'), '--dsw-radius-md': both('16px'), '--dsw-radius-lg': both('22px'), '--dsw-radius-xl': both('28px'),
       '--dsw-shadow-lv3': both('none'),
     },
     css: `
-html body[data-bt-theme=grok]{--bt-line:rgba(13,13,13,.07);--bt-line-2:rgba(13,13,13,.12)}
-body[data-bt-theme=grok] :is(.bt-bubble,.bt-ububble){border-radius:20px}
+html body[data-bt-theme=grok]{--bt-line:rgba(13,13,13,.07);--bt-line-2:rgba(13,13,13,.12);--bt-hover:rgba(0,0,0,.045);--bt-active:rgba(0,0,0,.08);--bt-tag-bg:rgba(0,0,0,.06);--bt-tag-ink:#3a3a3a}
+html body[data-bt-theme=grok][data-ds-dark-theme]{--bt-line:#222;--bt-line-2:#2c2c2c;--bt-hover:#1a1a1a;--bt-active:#262626;--bt-ink-2:#a7a7a2;--bt-ink-3:#74746f;--bt-tag-bg:#1e1e1e;--bt-tag-ink:#bdbdb8}
+body[data-bt-theme=grok]{font-family:${SANS_GROK}}
+body[data-bt-theme=grok] .bt-bubble{background:transparent!important;padding-inline:2px;max-width:min(92%,700px);font-size:calc(var(--dsh-content-font-size,14px) + 1px);line-height:1.65}
+body[data-bt-theme=grok] .bt-ububble{border-radius:22px;padding-inline:16px}
 body[data-bt-theme=grok] [class*="_card"]:has([data-composer-input]){border-radius:22px;box-shadow:inset 0 0 0 1px var(--bt-line-2);background:var(--bt-card)}
-body[data-bt-theme=grok][data-ds-dark-theme] [class*="_card"]:has([data-composer-input]){background:#171717}
-html body[data-bt-theme=grok][data-ds-dark-theme]{--bt-line:#252525;--bt-line-2:#2b2b2b;--bt-hover:#202020;--bt-active:#303030;--bt-ink-2:#a7a7a2;--bt-ink-3:#74746f}
-body[data-bt-theme=grok] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong){font-weight:600;letter-spacing:-.015em}
+body[data-bt-theme=grok][data-ds-dark-theme] [class*="_card"]:has([data-composer-input]){background:#141414}
+body[data-bt-theme=grok] :is(.bt-set-section h3,.bt-drawer-name,.bt-process header strong,.bt-tile-name,.bt-pill-name,.bt-brand-name){font-weight:600;letter-spacing:-.015em}
 body[data-bt-theme=grok] :is(.bt-process,.bt-menu,.bt-update-pop){box-shadow:0 0 0 .5px var(--bt-line-2),0 12px 32px -12px rgba(0,0,0,.25)}
-body[data-bt-theme=grok] .bt-work-all,body[data-bt-theme=grok] .bt-retry{border-radius:999px}
+body[data-bt-theme=grok] :is(.bt-work-all,.bt-retry,.bt-pill,.bt-tile-role){border-radius:999px}
+body[data-bt-theme=grok] .bt-tile[aria-current=page]{background:var(--bt-active)}
+body[data-bt-theme=grok] :is(.bt-sidebar,[class*="_sidebar"]){box-shadow:inset -1px 0 0 var(--bt-line)}
 `,
   },
 }

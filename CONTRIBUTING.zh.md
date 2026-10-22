@@ -2,7 +2,7 @@
 
 [English](CONTRIBUTING.md) | 中文
 
-感谢参与。本文说明团队怎么协作、怎么搭环境、怎么测试改动，以及改动必须遵守的规则。插件做什么、用户怎么安装，见 [README.zh.md](README.zh.md)。
+感谢参与。本文说明团队怎么协作、怎么搭环境、怎么测试改动，以及改动必须遵守的规则。插件做什么、用户怎么安装，见 [README.md](README.md)。
 
 ## 谁可以提 Pull Request
 

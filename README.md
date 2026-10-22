@@ -1,123 +1,139 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo-dark.svg">
-    <img src="docs/images/logo.svg" alt="DeepSeek Bot" width="260">
-  </picture>
+  <img src="docs/images/moon/logo.png" alt="Moon Bot" width="120">
 </p>
 
-# DeepSeek Bot
+<h1 align="center">Moon Bot</h1>
 
-English | [中文](README.zh.md)
+<p align="center">一支长期在线的 Bot 小队：你建 Bot，不是建对话。<br>基于 <a href="https://github.com/Fei2411/DeepSeek-Bot">DS Bot</a> 修改，运行在 <a href="https://github.com/deepseek-ai/deepseek-harness">DeepSeek Harness</a>（DSH）之上。</p>
 
-![version](https://img.shields.io/badge/version-v0.2_preview-blue) ![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.2-4D6BFE) ![license](https://img.shields.io/badge/license-Apache_2.0-green)
+<p align="center">中文 | <a href="#english">English</a></p>
 
-DeepSeek Bot (DS Bot) is a bot plugin for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH). It turns DSH into bots. You create your own bots, then talk and work with them.
+![Moon 主题（浅色）](docs/images/moon/moon-light.png)
 
-![Say one sentence to Chief, and it sets up the bots and the group chat](docs/images/team.png)
+## 这是什么
 
-## Install
+- **以 Bot 为中心**：左侧是你的 Bot，不是聊天记录。Chief（月亮小精灵）是主 Bot，负责建新 Bot、分派任务、收结果；每个 Bot 有自己的名字、角色、指令、模型和长期记忆。
+- **Bot 之间能派活**：对 Chief 说「新建一个叫诗人的 Bot，把这件事交给它」，它会建好 Bot、把任务派过去，等结果回来再告诉你。派出去的 Bot 在侧栏里显示「工作中」。
+- **过程默认收起**：思考和工具调用不铺满屏幕，回复上方一行「已工作 12s · 5 步 ›」，点开是完整过程面板。
+- **卡片消息**：表格、待办、选项、确认、表单用 OpenUI 卡片渲染（说「用表格对比 A 和 B」「帮我做个待办清单」即可）。
+- **模型自己配**：设置里填 API Key 或接任何 OpenAI 兼容服务，「获取可用模型」一键拉列表；每个 Bot 可选不同模型。
 
-**Desktop app (Windows, macOS)**
+## 功能一览
 
-The desktop app brings its own DSH, so you don't need to install DSH first. Download it from [Releases](https://github.com/Fei2411/DeepSeek-Bot/releases):
+### 四套主题 × 浅色 / 深色
 
-- Windows (x64): `DeepSeek-Bot-<version>-win-x64.exe`. Run it; it installs for your user only, without administrator rights. If Windows shows "Windows protected your PC", select **More info** → **Run anyway**.
-- macOS: `DeepSeek-Bot-<version>-mac-arm64.zip` for an Apple chip, `DeepSeek-Bot-<version>-mac-x64.zip` for Intel. Safari unzips it by itself; drag **DeepSeek Bot** into **Applications** and open it. When macOS says it cannot check the app, open **System Settings** → **Privacy & Security** and select **Open Anyway**.
+默认 **Moon**：来自月亮小精灵的通透淡紫色，淡紫侧栏、带光泽的白色回复气泡、紫色渐变的用户气泡。另有 **DeepSeek**（白底蓝调、扁平灰气泡）、**Claude**（米色纸张、回复为无气泡衬线正文）、**Grok**（纯黑白、无气泡、大圆角输入框）。在 设置 → 通用 → 主题 中切换，跟随系统浅色/深色。
 
-At the first start the app asks where to keep its data and the Bots' files, and offers to copy a Bot team from your DSH (it only reads your DSH). Set up a model in its settings. The Windows app updates itself; the macOS app tells you when a new version is ready to download.
+![四套主题，上排浅色，下排深色](docs/images/moon/themes.png)
 
-**As a plugin in DSH**
+### 发送后立刻有反馈
 
-First install DSH and set up at least one model in it. DS Bot uses the models from DSH.
+消息一发出，最后一条消息下方就出现 Bot 头像和一行轮换的状态文字（「正在琢磨」「正在权衡」「正在完成」……，调用工具时显示它正在做什么），带计时，直到回复开始出现；侧栏里这个 Bot 的头像外有转动的圈，名字下显示「工作中」。
 
-**DSH Desktop (Windows, macOS)**
+![状态行](docs/images/moon/status-row.png)
 
-1. In the sidebar, select **Plugins** → **Add plugin**.
-2. In **Package name or address**, enter `ds-bot`. In mainland China, set **Registry** to **Mainland China mirror**.
-3. Select **Install**, then **Enable now**. If DSH says the change takes effect at the next start, quit DSH completely and open it again.
+### 工作区文件：预览 + 下载
 
-If npm is not reachable, in step 2 you can also enter the full path of `ds-bot-0.2.0.tgz` downloaded from [Releases](https://github.com/Fei2411/DeepSeek-Bot/releases), or `github:Fei2411/DeepSeek-Bot#v0.2.0&path:/ds-bot` (needs Git).
+右侧栏「工作区文件」里每个文件、每个文件夹悬停都有下载按钮（文件夹打包成 .zip），预览页工具栏也有下载。网页版通过同一个登录后的通道下载，不需要额外端口。单个文件或文件夹最大 64 MB。
 
-**DSH Web (Windows, macOS, Linux)**
+| 类型 | 扩展名 | 效果 |
+|---|---|---|
+| 图片 | png, jpg, gif, webp, svg, bmp | 直接预览 |
+| PDF | pdf | 直接预览 |
+| Word / PPT | docx, doc, pptx, ppt, odt, rtf | 内置 Office 引擎渲染 |
+| 表格 | xlsx, xls, csv, tsv | 表格视图 |
+| Markdown | md | 渲染后的文档 |
+| 代码和文本 | txt, json, js, ts, py, html, css, yaml, xml, sh … | 语法高亮 |
+| 音频 | mp3, wav, ogg, m4a, flac, aac | 卡片内直接播放 |
+| 视频 | mp4, webm, mov, m4v, ogv | 卡片内直接播放 |
+| 其他（zip、bin 等） | — | 文件卡片：图标、名称、大小、类型和「下载」按钮 |
 
-Needs Node.js `22.19` or later, and pnpm.
+<p>
+  <img src="docs/images/moon/files-video.png" alt="视频在卡片里播放" width="49%">
+  <img src="docs/images/moon/files-fallback.png" alt="不能预览的文件显示文件卡片" width="49%">
+</p>
+
+## 部署网页版（推荐）
+
+需要 Docker。端口 8290，数据放在挂载的 `/data`。
 
 ```sh
-npx @deepseek-ai/dsh@0.2.1-rc.2 plugin --profile web add ds-bot
-npx @deepseek-ai/dsh@0.2.1-rc.2 web
+git clone https://github.com/MoLi-MoChou/moon-bot.git && cd moon-bot
+docker build -t moon-bot .
+docker run -d --name moon-bot -p 8290:8290 \
+  -e MOON_BOT_PASSWORD=换成你的访问密码 \
+  -v moon-bot-data:/data moon-bot
 ```
 
-**Docker (NAS, Linux server)**
+打开 `http://服务器IP:8290`，输入访问密码，然后在设置里配置模型。
 
-The [`docker/`](docker/) directory builds an image with DSH Web and DS Bot, for a NAS or any always-on machine. CI is configured to publish a prebuilt linux/amd64 image to GHCR. The container is the Bots' sandbox: they get full access to what you mount into it, and nothing else. See [`docker/README.md`](docker/README.md).
+用 compose：在 `deploy/docker-compose.yml` 旁边放一个 `.env`（写 `MOON_BOT_PASSWORD=…`，以及模型服务的 Key，例如 `SENSENOVA_API_KEY=…`），然后：
 
-## Setup
+```sh
+docker compose -f deploy/docker-compose.yml up -d --build
+```
 
-I strongly recommend that you set up your other bots and group chats by just talking to a bot.
+数据（Bot、聊天、记忆、设置）在 `deploy/data`。更新：`git pull` 后重新执行上面这条命令。详见 [deploy/README.md](deploy/README.md)。
 
-## Features
+本机试用（Node 22）：
 
-### Bot
+```sh
+cd app && npm ci && npm run web     # http://127.0.0.1:8290，只监听本机时可以不设密码
+```
 
-You can do all your talking and work with one bot, in one window. You don't need to worry about the context behind it. The bot's details page shows its info, and there you can pick the model you want it to use. You can switch models at any time, but I still recommend that you keep one model for a bot for a long time, and switch only when you really need to.
+### 环境变量
 
-Bots also have memory. A bot remembers what you like and uses it in later work. You can manage its memory on the bot's details page, or just tell the bot.
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `MOON_BOT_PASSWORD` | — | 访问密码；监听非本机地址时必填 |
+| `MOON_BOT_WEB_HOST` | `127.0.0.1`（镜像里是 `0.0.0.0`） | 监听地址 |
+| `MOON_BOT_WEB_PORT` | `8290` | 端口 |
+| `MOON_BOT_DATA` | `~/.moon-bot`（镜像里是 `/data`） | 数据目录 |
+| `MOON_BOT_WORKSPACE` | 数据目录下 | Bot 的默认工作区 |
 
-![Bot details: model, memory, usage](docs/images/details.png)
+旧名字 `MOCHOU_*`、`DSH_BOT_*` 仍然有效。
 
-### Main bot
+## 桌面版
 
-The main bot is your chief. It has very high rights: it manages the other bots and the group chats. The first time you open DS Bot, there is already a main bot called Chief. Talk to it, and it walks you through the setup.
+桌面版（Windows、Linux AppImage）自带 DSH，不用另外安装。从 [Releases](https://github.com/MoLi-MoChou/moon-bot/releases) 下载。安装版启动时和每 4 小时检查一次更新，后台只下载变化的部分，提示「重启以更新」，不用重新安装，数据保留。便携版 exe 不能自我替换，需要手动下载新版。
 
-In short: have a question? Ask the main bot.
+自己打包：
 
-### Group chats
+```sh
+cd core && npm ci && npm run build
+cd ../app && npm ci && npm run dist
+```
 
-DS Bot has group chats. A group chat is a great way to get several bots to work together, but it clearly costs more. So DS Bot does this: every group chat has an admin. The admin answers your messages by default and calls in the other bots for you. You can also @ a bot directly, and it answers you directly: type @ and pick the bot from the list. To give the bots another chat as context, use + → Reference a chat in the message box.
+## 开发
 
-Any bot can hand work to another bot with @. That bot does the work on its own, and the group goes on. While it works, it keeps the group posted, and the group, the sidebar and its own chat show what it is doing. When it is done, it posts the result in the group, and the bot that asked for the work answers. To stop the work, open the group's details.
+```sh
+cd core
+npm ci && npm run harness   # 测试用的 DSH 包
+npm run build               # src/client → client.js（提交时两个都要提交）
+npm test                    # 单元测试
+cd ../app && npm test
+```
 
-A group chat has its own memory. What you tell the group stays in the group: its members use it there, and your other chats and the bots outside the group do not see it. You can manage it in the group's details.
+## 许可和致谢
 
-![Group chat: the admin, Chief, hands the work to Writer and Coder](docs/images/group.png)
+Apache-2.0，见 [LICENSE](LICENSE)。Moon Bot 基于 Fei2411 的 [DS Bot（DeepSeek-Bot）](https://github.com/Fei2411/DeepSeek-Bot)（Apache-2.0）修改，DS Bot 的代码直接放在本仓库里并做了改动，改动清单和第三方声明（framer-motion、open-claude-ui 等）见 [NOTICE](NOTICE)。原 DS Bot 的说明保留在 [docs/ds-bot-README.zh.md](docs/ds-bot-README.zh.md)。运行时是 DeepSeek 的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（MIT）。
 
-### Capabilities
+---
 
-Settings → **Capabilities** is a shared library of MCP servers, skills and packs. Add a capability to a Bot in its settings; it is available from that Bot's next message in its own chat and group chats. A local MCP command that a Bot adds needs your approval before it can run. While other Bots use a capability, only you or a Main Bot can change or delete it.
+## English
 
-### Usage
+Moon Bot is a team of long-lived Bots: you create Bots, not chats. Chief, the lilac moon sprite, is the Main Bot: it creates Bots, hands them tasks and brings their results back to you. It is a modified copy of [DS Bot](https://github.com/Fei2411/DeepSeek-Bot) running on [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-In **Settings** → **Usage**, you can see token usage by time, by bot and by model.
+- **Themes:** Moon (default, luminous lilac), DeepSeek, Claude (serif prose, no reply bubbles) and Grok (monochrome), each light and dark. Settings → General → Theme.
+- **Live status:** right after you send, the Bot's avatar and a rotating status line ("Mulling it over", "Getting it done", or the tool it is running) show until the reply streams; the Bot's sidebar tile shows a spinning ring and "Working".
+- **Workspace files:** preview images, PDF, Word/PowerPoint, Excel/CSV, Markdown, code/text, audio and video; download any file, or a folder as .zip (up to 64 MB), also in the web build behind its password. Other types get a file card with a Download button.
+- **Work steps hidden by default**, one line opens the full process panel; OpenUI cards for tables, to-dos, options and forms.
 
-![Usage page](docs/images/usage.png)
+Web / Docker:
 
-## Data
+```sh
+docker build -t moon-bot .
+docker run -d -p 8290:8290 -e MOON_BOT_PASSWORD=choose-one -v moon-bot-data:/data moon-bot
+```
 
-All data stays on your own computer, in `bot/` and `sessions/` in the DSH home folder (`~/.dsh` by default). Uninstalling the plugin does not delete this data.
-
-## Development
-
-The plugin source is in [`core/`](ds-bot/). For options and internals, see [`core/README.md`](core/README.md). For development, tests and how the team works, see [CONTRIBUTING.md](CONTRIBUTING.md). For changes between versions, see [CHANGELOG.md](CHANGELOG.md).
-
-## Acknowledgments
-
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness): DS Bot is built on the DSH plugin system. Every bot works in DSH sessions and uses the DSH tools and models.
-- [esbuild](https://esbuild.github.io/): bundles the plugin's interface code.
-- Thanks to these projects for the ideas they published. DS Bot learned from their designs and does not contain their code:
-  - [AgentMemoryRepo](https://github.com/AgentMemoryRepo/agentmemoryrepo): the Markdown format of Bot memory.
-  - [OpenAI Codex](https://github.com/openai/codex): checkpoints that keep the user's messages next to the summary, and message anchors for chat search.
-  - [OpenMausBot](https://github.com/milind-soni/OpenMausBot): group chat rounds and @mention relays.
-  - [Hermes Agent](https://github.com/NousResearch/hermes-agent) and [Hermes Bot Mode](https://github.com/NousResearch/Hermes-Bot-Mode): one session per member per group chat, and handoffs that carry the earlier user messages.
-  - [OpenCode](https://github.com/sst/opencode), [goose](https://github.com/block/goose), [pi](https://github.com/badlogic/pi-mono) and [Gemini CLI](https://github.com/google-gemini/gemini-cli): when to condense a long chat, and what a handoff note holds.
-  - [obelisk](https://github.com/tommy0103/obelisk): chat search with a SQLite full-text index.
-- Everyone who tries DS Bot, asks questions and reports bugs.
-
-## License
-
-[Apache License 2.0](LICENSE). Provided "as is", without any warranty. Third-party code and its license are listed in [NOTICE](NOTICE).
-
-## Disclaimer
-
-DS Bot is an independent community project. **It is not an official DeepSeek product**, and it is not affiliated with, endorsed by or sponsored by DeepSeek. "DeepSeek", "DeepSeek Harness" and the other names are trademarks of their owners. They are used here only to say what this plugin works with.
-
-Bots use your own model quota, and they read and write files and run commands when you ask them to. Check important actions yourself.
+Desktop builds (Windows, Linux AppImage) update themselves in place from GitHub releases. License: Apache-2.0; see [NOTICE](NOTICE) for the DS Bot attribution and third-party notices.
