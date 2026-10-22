@@ -36,11 +36,16 @@ function plan(body) {
 }
 
 http.createServer(async (req, res) => {
-  if (req.url.endsWith('/models')) { res.end(JSON.stringify({ object: 'list', data: [{ id: 'mock-chat', object: 'model' }] })); return }
+  if (req.url.endsWith('/models')) {
+    if (req.headers.authorization !== 'Bearer ' + (process.env.MOCK_KEY ?? 'sk-mock')) { res.writeHead(401); res.end(JSON.stringify({ error: { message: 'Invalid API key' } })); return }
+    res.end(JSON.stringify({ object: 'list', data: [{ id: 'mock-chat', object: 'model' }, { id: 'mock-reasoner', object: 'model' }, { id: 'mock-mini', object: 'model' }] })); return
+  }
   let raw = ''
   for await (const c of req) raw += c
   const body = JSON.parse(raw || '{}')
   writeFileSync('/tmp/mock-last-request.json', JSON.stringify(body, null, 2))
+  if (req.headers.authorization !== 'Bearer ' + (process.env.MOCK_KEY ?? 'sk-mock')) { res.writeHead(401, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: { message: 'Invalid API key' } })); return }
+  if (body.stream === false) { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ id: 'c1', object: 'chat.completion', model: body.model, choices: [{ index: 0, message: { role: 'assistant', content: 'p' }, finish_reason: 'length' }] })); return }
   const p = plan(body)
   res.writeHead(200, { 'content-type': 'text/event-stream' })
   const base = { id: 'c' + Date.now(), object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: body.model }

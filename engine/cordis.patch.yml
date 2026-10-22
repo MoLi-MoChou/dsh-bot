@@ -5,29 +5,6 @@
   config:
     personaPrefix: !!js "process.env.DSH_BOT_PERSONA ?? 'You are DSH Bot, a personal assistant bot.'"
 
-- id: agent-default-model
-  config:
-    provider: !!js "process.env.DSH_BOT_PROVIDER ?? 'mock'"
-    model: !!js "process.env.DSH_BOT_MODEL ?? 'mock-chat'"
-
-- id: llm-pi-ai
-  config:
-    providers:
-      mock:
-        displayName: Mock (spike)
-        api: openai-completions
-        baseURL: !!js "process.env.MOCK_BASE_URL ?? 'http://127.0.0.1:4010/v1'"
-        apiKeyEnv: MOCK_API_KEY
-        compat:
-          thinkingFormat: deepseek
-        models:
-          - id: mock-chat
-            name: Mock Chat
-            contextWindow: 128000
-            reasoningEfforts:
-              off:
-              high: high
-
 - insert:
     - id: webserver
       name: '@deepseek-ai/dsh-host-webserver'
