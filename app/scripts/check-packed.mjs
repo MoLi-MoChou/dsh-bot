@@ -160,7 +160,15 @@ async function chat(cdp) {
   await dismissNotice()
   await evaluate("[...document.querySelectorAll('[role=textbox][contenteditable=true], textarea')].at(-1).focus()")
   await cdp.call('Input.insertText', { text: 'packaged app check' })
-  for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+  // Right after the greeting the composer can still be settling (on a slow CI runner the first
+  // Enter was dropped and the text stayed put), so Enter is pressed again until the text leaves.
+  const composerText = "([...document.querySelectorAll('[role=textbox][contenteditable=true], textarea')].at(-1)?.innerText ?? '').trim()"
+  for (let attempt = 0; attempt < 10; attempt++) {
+    for (const type of ['keyDown', 'keyUp']) await cdp.call('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await sleep(1000)
+    if (!(await evaluate(composerText)).includes('packaged app check')) break
+    if (attempt === 9) console.log('check-packed: Enter did not send after 10 tries')
+  }
   // The mock model starts its reply with 收到： and the message.
   await until(text('收到：packaged app check'), 'the reply').catch(async (error) => {
     // What the window showed, and what the mock model was asked, so a timeout says why.
