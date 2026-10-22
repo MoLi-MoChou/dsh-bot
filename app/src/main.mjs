@@ -2,7 +2,7 @@
 // The window loads the Host's loopback address as DSH Web does: DSH's sign-in sends the page's
 // origin as the address the browser comes back to, and accepts only a loopback one.
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron'
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { release } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
@@ -18,12 +18,14 @@ import { copyData, moveProblem } from './move-data.mjs'
 import { CHECK_PROFILE, PROFILE } from './profile.mjs'
 import { UPDATE_TEXT, watchReleases, watchUpdates } from './updates.mjs'
 import { needsNoSandbox } from './sandbox.mjs'
+import { engineFor, engineReady, enginesModules, ensureEngine } from './engines.mjs'
 import { CAPTION_HEIGHT, cssColor, micaAvailable, nativeThemeSource } from './window-frame.mjs'
 
 const IPC = {
   caption: 'ds-bot:caption-colors', nativeTheme: 'ds-bot:native-theme', fullscreen: 'ds-bot:fullscreen',
   dataLocation: 'ds-bot:data-location', moveData: 'ds-bot:move-data', teamWorkspace: 'ds-bot:team-workspace',
   updateState: 'ds-bot:update-state', updateCheck: 'ds-bot:update-check', updateInstall: 'ds-bot:update-install', updateChanged: 'ds-bot:update-changed',
+  engineState: 'ds-bot:engine-state', engineDownload: 'ds-bot:engine-download', engineChanged: 'ds-bot:engine-changed',
 }
 const MOVE_PROBLEMS = { drive: 'moveDrive', nested: 'moveNested', workspace: 'moveWorkspace', program: 'inProgram', notEmpty: 'moveNotEmpty' }
 const UPDATE_CHECK_WAIT_MS = 15_000
@@ -99,7 +101,7 @@ async function start() {
   const newHost = () => new HostProcess({
     entry: join(here, 'host.mjs'),
     cwd: profileDir,
-    env: { ...process.env, DSH_HOME: where.dataDir, DS_BOT_PORT: String(port), DS_BOT_APP: '1', DS_BOT_USER_DSH_HOME: userDshHome(), ...(where.workspace ? { DS_BOT_WORKSPACE: where.workspace } : {}) },
+    env: { ...process.env, ...engineEnv(), DSH_HOME: where.dataDir, DS_BOT_PORT: String(port), DS_BOT_APP: '1', DS_BOT_USER_DSH_HOME: userDshHome(), ...(where.workspace ? { DS_BOT_WORKSPACE: where.workspace } : {}) },
     pnpm,
     onFailure: fail,
   })
@@ -123,11 +125,15 @@ async function start() {
     // update can still come when this version's Host does not start.
     updates = startUpdates()
     host = newHost()
+    // DSH Bot patch: fetch the Office engine once the app is up.
+    setTimeout(() => { void downloadEngine() }, 20_000).unref?.()
     return host.start()
   })()
   ready.catch(fail)
   // A throwaway run (DS_BOT_HOME) keeps its folders where it was told.
   const fixed = Boolean(process.env.DS_BOT_HOME)
+  ipcMain.handle(IPC.engineState, (event) => { assertWindow(event); return engineState })
+  ipcMain.handle(IPC.engineDownload, async (event) => { assertWindow(event); await downloadEngine(); return engineState })
   // DSH Bot patch: Settings > About drives the app's own updater.
   ipcMain.handle(IPC.updateState, (event) => { assertWindow(event); return updates?.state?.() ?? { phase: 'unsupported', current: app.getVersion(), reason: updateUnsupported() } })
   ipcMain.handle(IPC.updateCheck, async (event) => { assertWindow(event); if (!updates?.check) return { phase: 'unsupported', current: app.getVersion(), reason: updateUnsupported() }; await updates.check(); return updates.state() })
@@ -332,6 +338,28 @@ function startUpdates() {
     })
   }
   return undefined
+}
+
+// DSH Bot patch: the Office-to-PDF engine is downloaded, not installed (engines.mjs).
+const enginesRoot = () => join(app.getPath('userData'), 'engines')
+const engine = engineFor()
+// In development, and in a build that still carries it, the engine is already there.
+const engineBundled = () => engine !== undefined && existsSync(join(app.getAppPath(), 'node_modules', engine.name, 'package.json'))
+const engineEnv = () => (engine === undefined || engineBundled() ? {} : { NODE_PATH: [enginesModules(enginesRoot()), process.env.NODE_PATH].filter(Boolean).join(process.platform === 'win32' ? ';' : ':') })
+let engineState = { phase: engine === undefined ? 'unsupported' : 'idle' }
+let engineRun
+function setEngineState(patch) {
+  engineState = { ...engineState, ...patch }
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(IPC.engineChanged, engineState)
+}
+function downloadEngine() {
+  if (engine === undefined) return Promise.resolve()
+  if (engineBundled() || engineReady(enginesRoot(), engine)) { setEngineState({ phase: 'ready', error: undefined }); return Promise.resolve() }
+  engineRun ??= ensureEngine({ root: enginesRoot(), engine, onProgress: setEngineState })
+    .then(() => setEngineState({ phase: 'ready', error: undefined }))
+    .catch((error) => { console.error(`DSH Bot: ${error instanceof Error ? error.message : String(error)}`); setEngineState({ phase: 'error', error: error instanceof Error ? error.message.slice(0, 200) : String(error) }) })
+    .finally(() => { engineRun = undefined })
+  return engineRun
 }
 
 function updateUnsupported() {

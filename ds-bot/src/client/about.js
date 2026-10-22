@@ -84,6 +84,29 @@ function AppUpdateRow({ Row, run }) {
   return h(Row, { label: 'DSH Bot', hint: appHint(state) }, control)
 }
 
+// DSH Bot patch: the Office preview engine is downloaded after install (app/src/engines.mjs).
+function EngineRow({ Row, run }) {
+  const bridge = typeof window === 'undefined' ? null : window.dsBotApp?.engine ?? null
+  const [state, setState] = useState(null)
+  useEffect(() => {
+    if (!bridge) return undefined
+    let live = true
+    bridge.state().then((value) => { if (live) setState(value) }, () => {})
+    const off = bridge.onChange((value) => { if (live) setState(value) })
+    return () => { live = false; off?.() }
+  }, [bridge])
+  if (!bridge || !state || state.phase === 'unsupported') return null
+  const hint = state.phase === 'ready' ? t('Ready')
+    : state.phase === 'downloading' ? t('Downloading {percent}%', { percent: Math.floor(state.percent ?? 0) })
+      : state.phase === 'unpacking' ? t('Unpacking…')
+        : state.phase === 'error' ? `${t('Download failed.')} ${state.error ?? ''}`
+          : t('Downloaded in the background the first time it is needed (about 70 MB).')
+  const control = state.phase === 'idle' || state.phase === 'error'
+    ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => run(bridge.download().then(setState)) }, state.phase === 'error' ? t('Try again') : t('Download now'))
+    : null
+  return h(Row, { label: t('Office file previews'), hint }, control)
+}
+
 const linkProps = href => ({ className: 'bt-soft bt-soft-sm bt-about-link', href, target: '_blank', rel: 'noopener noreferrer' })
 
 export function AboutPage({ useUpdate, actions, run, Section, Row }) {
@@ -145,6 +168,7 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
     repo ? h('p', { key: 'ask', className: 'bt-about-ask' }, t('If DS Bot helps you, a star on GitHub helps more people find it.')) : null,
     h(Section, { key: 'updates', title: t('Updates') },
       appBridge() ? h(AppUpdateRow, { Row, run }) : null,
+      h(EngineRow, { Row, run }),
       appBridge() ? null : h(Row, { label: 'DS Bot', hint: botHint(update) }, botControl, update.available && update.notesUrl ? h('a', linkProps(update.notesUrl), t("What's new")) : null),
       dsh?.current ? h(Row, { label: 'DeepSeek Harness', hint: dshHint(dsh, dshShown) }, dshControl) : null),
     h(Section, { key: 'links', title: t('Links') },

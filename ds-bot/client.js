@@ -523,6 +523,12 @@ var ZH = {
   "{version} is ready. Restart to update; nothing to reinstall.": "{version} 已下载好。重启即可更新，无需重新安装。",
   "Restart to update": "重启以更新",
   "Based on DS Bot": "基于 DS Bot",
+  "Office file previews": "Office 文档预览组件",
+  "Downloading {percent}%": "正在下载 {percent}%",
+  "Unpacking…": "正在解压…",
+  "Download failed.": "下载失败。",
+  "Downloaded in the background the first time it is needed (about 70 MB).": "安装包里不带，启动后在后台下载（约 70 MB）。",
+  "Download now": "立即下载",
   "The portable exe does not update itself: download the new one from the releases page and replace this file. Your data stays.": "便携版不会自动更新：请到发布页下载新版替换这个文件，数据会保留。",
   "Updates work in the installed app.": "安装后的应用才会自动更新。",
   "This package updates through its package manager; the AppImage and Windows installer update themselves.": "这个安装包请用系统包管理器更新；AppImage 和 Windows 安装版会自动更新。",
@@ -12240,6 +12246,29 @@ function AppUpdateRow({ Row: Row3, run }) {
   ) : phase === "unsupported" ? state.reason === "portable" ? (0, import_react32.createElement)("a", linkProps(RELEASES_PAGE), t("Open")) : null : (0, import_react32.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: phase === "checking", onClick: () => run(bridge.check().then(setState)) }, phase === "checking" ? t("Checking…") : t("Check for updates"));
   return (0, import_react32.createElement)(Row3, { label: "DSH Bot", hint: appHint(state) }, control);
 }
+function EngineRow({ Row: Row3, run }) {
+  const bridge = typeof window === "undefined" ? null : window.dsBotApp?.engine ?? null;
+  const [state, setState] = (0, import_react32.useState)(null);
+  (0, import_react32.useEffect)(() => {
+    if (!bridge) return void 0;
+    let live = true;
+    bridge.state().then((value) => {
+      if (live) setState(value);
+    }, () => {
+    });
+    const off = bridge.onChange((value) => {
+      if (live) setState(value);
+    });
+    return () => {
+      live = false;
+      off?.();
+    };
+  }, [bridge]);
+  if (!bridge || !state || state.phase === "unsupported") return null;
+  const hint = state.phase === "ready" ? t("Ready") : state.phase === "downloading" ? t("Downloading {percent}%", { percent: Math.floor(state.percent ?? 0) }) : state.phase === "unpacking" ? t("Unpacking…") : state.phase === "error" ? `${t("Download failed.")} ${state.error ?? ""}` : t("Downloaded in the background the first time it is needed (about 70 MB).");
+  const control = state.phase === "idle" || state.phase === "error" ? (0, import_react32.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => run(bridge.download().then(setState)) }, state.phase === "error" ? t("Try again") : t("Download now")) : null;
+  return (0, import_react32.createElement)(Row3, { label: t("Office file previews"), hint }, control);
+}
 var linkProps = (href) => ({ className: "bt-soft bt-soft-sm bt-about-link", href, target: "_blank", rel: "noopener noreferrer" });
 function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
   const update = useUpdate((value) => value) ?? {};
@@ -12323,6 +12352,7 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
       Section,
       { key: "updates", title: t("Updates") },
       appBridge() ? (0, import_react32.createElement)(AppUpdateRow, { Row: Row3, run }) : null,
+      (0, import_react32.createElement)(EngineRow, { Row: Row3, run }),
       appBridge() ? null : (0, import_react32.createElement)(Row3, { label: "DS Bot", hint: botHint(update) }, botControl, update.available && update.notesUrl ? (0, import_react32.createElement)("a", linkProps(update.notesUrl), t("What's new")) : null),
       dsh?.current ? (0, import_react32.createElement)(Row3, { label: "DeepSeek Harness", hint: dshHint(dsh, dshShown) }, dshControl) : null
     ),
