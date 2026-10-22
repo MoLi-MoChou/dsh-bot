@@ -1,0 +1,76 @@
+/* OpenUI 富消息：沿用 DS Bot 问答卡（styles.js 里的 .bt-q）的视觉语言——16px 圆角、半透明描边、
+   8px 圆角输入框、36px 胶囊按钮、带数字键的选项列表。只用 --bt-* 变量，暗色主题自动跟随。 */
+.ou-wrap{width:min(560px,100%);margin:2px 0 4px;min-width:0}
+.ou-wrap[data-wide]{width:min(680px,100%)}
+.ou-card.bt-q{margin:0;max-width:none;gap:14px;padding:16px}
+.ou-card.bt-q{animation:none}
+.ou-skel-card{animation:bt-veil-in .2s ease-out backwards}
+.ou-head{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ou-head:has(+*){padding-bottom:12px;border-bottom:1px solid var(--bt-q-rule)}
+.ou-title{margin:0;font-size:15px;line-height:22px;font-weight:600;color:var(--bt-ink);overflow-wrap:anywhere}
+.ou-sub{font-size:13px;line-height:18px;color:var(--bt-ink-2)}
+.ou-stack{display:flex;flex-direction:column;min-width:0}
+.ou-stack[data-dir=row]{flex-direction:row;flex-wrap:wrap;align-items:center}
+.ou-text{margin:0;font-size:14px;line-height:21px;color:var(--bt-ink);overflow-wrap:anywhere}
+.ou-text[data-variant=muted]{font-size:13px;line-height:18px;color:var(--bt-ink-2)}
+.ou-text[data-variant=strong]{font-weight:600}
+.ou-list{margin:0;padding-left:20px;font-size:14px;line-height:21px;color:var(--bt-ink);display:flex;flex-direction:column;gap:2px}
+.ou-list li::marker{color:var(--bt-ink-3)}
+.ou-kv{display:grid;grid-template-columns:minmax(64px,max-content) 1fr;gap:8px 20px;margin:0;font-size:13px;line-height:18px}
+.ou-kv dt{color:var(--bt-ink-2)}
+.ou-kv dd{margin:0;color:var(--bt-ink);overflow-wrap:anywhere}
+.ou-table-wrap{overflow-x:auto;margin:0 -4px;padding:0 4px}
+.ou-table{border-collapse:collapse;width:100%;font-size:13px;line-height:18px;font-variant-numeric:tabular-nums}
+.ou-table th{text-align:left;font-weight:500;font-size:12px;color:var(--bt-ink-2);padding:0 10px 8px 0;border-bottom:1px solid var(--bt-q-rule);white-space:nowrap}
+.ou-table td{padding:9px 10px 9px 0;border-bottom:1px solid var(--bt-q-rule-2);color:var(--bt-ink);vertical-align:top}
+.ou-table tr:last-child td{border-bottom:0;padding-bottom:0}
+.ou-table :is(th,td):last-child{padding-right:0}
+.ou-tag{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:500;background:var(--bt-hover);color:var(--bt-ink-2);white-space:nowrap}
+.ou-tag[data-tone=accent]{background:color-mix(in srgb,var(--bt-accent) 13%,transparent);color:var(--bt-accent)}
+.ou-tag[data-tone=success]{background:color-mix(in srgb,var(--bt-green,#16a34a) 13%,transparent);color:var(--bt-green,#16a34a)}
+.ou-tag[data-tone=warning]{background:color-mix(in srgb,#f59e0b 16%,transparent);color:#b45309}
+.ou-tag[data-tone=danger]{background:color-mix(in srgb,var(--bt-danger,#e02135) 11%,transparent);color:var(--bt-danger,#e02135)}
+body[data-ds-dark-theme] .ou-tag[data-tone=warning]{color:#fbbf24}
+.ou-callout{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;font-size:13px;line-height:19px;color:var(--bt-ink);background:color-mix(in srgb,var(--bt-accent) 7%,transparent);box-shadow:inset 3px 0 0 color-mix(in srgb,var(--bt-accent) 55%,transparent)}
+.ou-callout b{font-weight:600}
+.ou-callout[data-tone=success]{background:color-mix(in srgb,var(--bt-green,#16a34a) 8%,transparent);box-shadow:inset 3px 0 0 var(--bt-green,#16a34a)}
+.ou-callout[data-tone=warning]{background:color-mix(in srgb,#f59e0b 10%,transparent);box-shadow:inset 3px 0 0 #f59e0b}
+.ou-callout[data-tone=danger]{background:color-mix(in srgb,var(--bt-danger,#e02135) 7%,transparent);box-shadow:inset 3px 0 0 var(--bt-danger,#e02135)}
+.ou-progress{display:flex;flex-direction:column;gap:6px}
+.ou-progress-top{display:flex;justify-content:space-between;font-size:12px;line-height:16px;color:var(--bt-ink-2);font-variant-numeric:tabular-nums}
+.ou-progress-bar{height:6px;border-radius:999px;background:var(--bt-hover);overflow:hidden}
+.ou-progress-bar span{display:block;height:100%;border-radius:inherit;background:var(--bt-accent);transition:width .4s cubic-bezier(.2,.8,.2,1)}
+.ou-hr{border:0;border-top:1px solid var(--bt-q-rule);margin:0}
+.ou-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ou-label{font-size:12px;line-height:16px;color:var(--bt-ink-2)}
+.ou-field .bt-q-field{width:100%}
+.ou-select{appearance:none;cursor:pointer;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0 center;padding-right:18px}
+.ou-select option{background:var(--bt-card);color:var(--bt-ink)}
+.ou-check{display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;color:var(--bt-ink);cursor:pointer;align-self:flex-start}
+.ou-check input{width:16px;height:16px;accent-color:var(--bt-accent);margin:0;cursor:inherit}
+.ou-check:has(input:disabled){cursor:default;color:var(--bt-ink-2)}
+.ou-choices.bt-q-list{margin:0 -8px}
+.ou-choices .bt-q-opt:disabled{cursor:default}
+.ou-choices .bt-q-opt:disabled:not([aria-pressed=true]) .bt-q-label{color:color-mix(in srgb,var(--bt-ink) 45%,transparent)}
+.ou-buttons{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.ou-btn-solo{align-self:flex-end}
+.ou-card :is(.bt-q-submit,.bt-q-btn){animation:none}
+.ou-card .bt-q-btn:disabled{opacity:.4;cursor:default}
+.ou-card .bt-q-btn:disabled:hover{background:var(--bt-hover)}
+.ou-card [data-chosen]{opacity:1!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--bt-accent) 25%,transparent)}
+.ou-done{display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:var(--bt-ink-2)}
+.ou-done svg{width:14px;height:14px}
+/* 流式：块还没解析出根节点时先占一个骨架；解析出来后底部一条微光表示还在生成。 */
+.ou-skel{display:flex;flex-direction:column;gap:12px}
+.ou-skel i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--bt-hover) 25%,color-mix(in srgb,var(--bt-ink) 9%,transparent) 50%,var(--bt-hover) 75%);background-size:200% 100%;animation:ou-shimmer 1.4s linear infinite}
+.ou-skel i:nth-child(1){width:42%;height:16px}
+.ou-skel i:nth-child(2){width:88%}
+.ou-skel i:nth-child(3){width:70%}
+.ou-live::after{content:"";display:block;height:3px;margin:-4px 0 0;border-radius:2px;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--bt-accent) 45%,transparent),transparent);background-size:50% 100%;background-repeat:no-repeat;animation:ou-sweep 1.2s ease-in-out infinite}
+@keyframes ou-shimmer{to{background-position:-200% 0}}
+@keyframes ou-sweep{from{background-position:-50% 0}to{background-position:150% 0}}
+@media (prefers-reduced-motion:reduce){.ou-skel i,.ou-live::after{animation:none}}
+/* 解析失败：退回成代码块，不会留白。 */
+.ou-fallback{display:flex;flex-direction:column;gap:6px}
+.ou-fallback-note{font-size:12px;line-height:16px;color:var(--bt-ink-2)}
+.ou-fallback pre{margin:0;padding:10px 12px;border-radius:12px;background:var(--bt-hover);font:12px/18px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--bt-ink);white-space:pre-wrap;overflow-wrap:anywhere;max-height:320px;overflow:auto}

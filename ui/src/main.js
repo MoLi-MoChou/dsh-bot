@@ -12,6 +12,7 @@ import { createLocale } from './locale.js'
 import { App } from './app.js'
 import './app.css'
 import './bot.css'
+import './openui.css'
 
 const lang = new URLSearchParams(location.search).get('lang') ?? 'zh-CN'
 installLocale(createLocale(lang))

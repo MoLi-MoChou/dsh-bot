@@ -18,8 +18,8 @@ const OPENUI = [
   'progress = Progress(62, "整体进度")',
   'table = Table(["任务", "负责人", "状态"], [["接入 DSH 引擎", "我", "已完成"], ["复用 DS Bot 界面", "我", "进行中"], ["OpenUI 富消息", "我", "进行中"]])',
   'facts = KeyValue([["截止", "周五"], ["风险", "DSH 仍是预发布版"]])',
-  'note = TextArea("note", "给 bot 留句话…", $note)',
-  'pri = Select("pri", ["高", "中", "低"], $pri)',
+  'note = TextArea("note", "给 bot 留句话…", $note, "备注")',
+  'pri = Select("pri", ["高", "中", "低"], $pri, "优先级")',
   'done = Checkbox("done", "本周目标已确认", $done)',
   'actions = Buttons([later, send])',
   'later = Button("稍后再说", @ToAssistant("稍后再说"), "secondary")',
@@ -38,7 +38,12 @@ function plan(body) {
   const text = typeof lastUser?.content === 'string' ? lastUser.content : (lastUser?.content ?? []).map(c => c.text ?? '').join('')
   const tools = (body.tools ?? []).map(t => t.function?.name)
   if (!tools.length) return { text: 'DSH Bot 演示会话' } // 标题生成等辅助请求
+  const lastCall = [...msgs].reverse().find(m => m.tool_calls?.length)?.tool_calls?.[0]?.function?.name
+  if (last?.role === 'tool' && lastCall === 'memory_write') return { text: '记住了，下次会按这个来。' }
   if (last?.role === 'tool') return { reasoning: '命令已经执行完，把结果整理给用户。', text: `命令执行完成，输出如下：\n\n\`\`\`\n${String(last.content).slice(0, 400)}\n\`\`\`\n\n还需要我做什么？` }
+  if (/坏卡片/.test(text)) return { text: '这是一张写坏了的卡片：\n\n```openui\nroot = Card(oops\n  this is not openui ((\n```' }
+  if (/^记住/.test(text)) return { reasoning: '用户希望我记住一个偏好，写进长期记忆。', text: '好的。', tool: { name: 'memory_write', args: { file: 'journal', mode: 'append', content: text.replace(/^记住[:：，,\s]*/, '') } } }
+  if (/^(我的备注|稍后再说|看看风险|排一下)/.test(text)) return { text: `收到：“${text.slice(0, 40)}”。我会把它记在本周任务里。` }
   if (/表格|卡片|openui|任务/i.test(text)) return { reasoning: '用户想看结构化的内容，用 OpenUI 组件输出一张卡片。', text: OPENUI }
   if (/命令|shell|运行|执行/i.test(text)) {
     const bash = tools.find(n => /bash/i.test(n)) ?? tools[0]
