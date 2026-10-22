@@ -1,0 +1,11 @@
+**/node_modules
+.git
+app/ui
+app/dist-pack
+app/dist-next
+app/build
+deepseek-harness
+ds-bot/dev
+ds-bot/test
+**/.dsh-*
+**/*.tgz

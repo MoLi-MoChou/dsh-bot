@@ -1,0 +1,17 @@
+# DSH Bot web on a server: docker compose up -d --build (run from the repository root
+# copy, with .env beside this file: DSH_BOT_PASSWORD and the model provider keys).
+services:
+  dsh-bot:
+    build: { context: .., dockerfile: Dockerfile }
+    image: dsh-bot-web:latest
+    container_name: dsh-bot-web
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8290:8290"
+    volumes:
+      - ./data:/data
+    # bubblewrap needs user namespaces; without them DSH confines commands with Landlock.
+    security_opt:
+      - seccomp=unconfined
+      - apparmor=unconfined

@@ -48,7 +48,8 @@ async function main() {
   const pnpm = join(here, '..', 'node_modules', 'pnpm', 'bin', 'pnpm.mjs')
   const host = new HostProcess({
     entry: join(here, 'host.mjs'), cwd: profileDir, pnpm,
-    env: { ...env, DSH_HOME: dataDir, DS_BOT_PORT: env.DSH_BOT_HOST_PORT ?? '0', DS_BOT_WEB: '1', ...(env.DSH_BOT_WORKSPACE ? { DS_BOT_WORKSPACE: env.DSH_BOT_WORKSPACE } : {}) },
+    // The access password stays in this process; the Host never sees it.
+    env: { ...Object.fromEntries(Object.entries(env).filter(([name]) => name !== 'DSH_BOT_PASSWORD')), DSH_HOME: dataDir, DS_BOT_PORT: env.DSH_BOT_HOST_PORT ?? '0', DS_BOT_WEB: '1', ...(env.DSH_BOT_WORKSPACE ? { DS_BOT_WORKSPACE: env.DSH_BOT_WORKSPACE } : {}) },
     onFailure: (error) => { console.error(`dsh-bot web: the Host stopped: ${error.message}`); process.exit(1) },
   })
   const ready = await host.start()
