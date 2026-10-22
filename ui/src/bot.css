@@ -104,3 +104,39 @@
 .dsb-mem{flex-direction:column;align-items:stretch;gap:8px}
 .dsb-mem code{margin-left:6px;font-size:11px}
 .dsb-mem-text{min-height:160px;resize:vertical;font:12.5px/19px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:10px 12px;border-radius:10px;box-sizing:border-box;width:100%}
+
+/* OpenUI 组件（补全的白名单） */
+.ou-stack{display:flex;flex-direction:column}
+.ou-stack[data-dir=row]{flex-direction:row;flex-wrap:wrap;align-items:center}
+.ou-text{margin:0;font-size:14px;line-height:22px;color:var(--bt-ink)}
+.ou-text[data-variant=muted]{font-size:13px;color:var(--bt-ink-2)}
+.ou-text[data-variant=strong]{font-weight:600}
+.ou-list{margin:0;padding-left:20px;font-size:14px;line-height:22px;color:var(--bt-ink)}
+.ou-kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0;font-size:13px;line-height:19px}
+.ou-kv dt{color:var(--bt-ink-2)}
+.ou-kv dd{margin:0;color:var(--bt-ink)}
+.ou-tag{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:12px;background:var(--bt-hover);color:var(--bt-ink-2);align-self:flex-start}
+.ou-tag[data-tone=accent]{background:color-mix(in srgb,var(--bt-accent) 14%,transparent);color:var(--bt-accent)}
+.ou-tag[data-tone=success]{background:color-mix(in srgb,var(--bt-green) 14%,transparent);color:var(--bt-green)}
+.ou-tag[data-tone=warning]{background:color-mix(in srgb,#f5a623 18%,transparent);color:#b26a00}
+.ou-tag[data-tone=danger]{background:color-mix(in srgb,var(--bt-danger) 12%,transparent);color:var(--bt-danger)}
+.ou-callout{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:19px;background:color-mix(in srgb,var(--bt-accent) 8%,transparent);color:var(--bt-ink)}
+.ou-callout[data-tone=success]{background:color-mix(in srgb,var(--bt-green) 10%,transparent)}
+.ou-callout[data-tone=warning]{background:color-mix(in srgb,#f5a623 14%,transparent)}
+.ou-callout[data-tone=danger]{background:color-mix(in srgb,var(--bt-danger) 9%,transparent)}
+.ou-progress{display:flex;flex-direction:column;gap:6px}
+.ou-progress-top{display:flex;justify-content:space-between;font-size:12px;color:var(--bt-ink-2)}
+.ou-progress-bar{height:6px;border-radius:999px;background:var(--bt-hover);overflow:hidden}
+.ou-progress-bar span{display:block;height:100%;border-radius:inherit;background:var(--bt-accent);transition:width .3s ease}
+.ou-hr{border:0;border-top:1px solid var(--bt-line);margin:2px 0}
+.ou-textarea{height:auto;min-height:64px;border-radius:12px;padding:8px 14px;resize:vertical;line-height:20px}
+.ou-select{appearance:auto;padding-right:10px}
+.ou-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--bt-ink);cursor:pointer}
+.ou-check input{accent-color:var(--bt-accent);margin:0}
+.ou-choices{display:flex;flex-wrap:wrap;gap:8px}
+.ou-choice{height:30px;padding:0 14px;border-radius:999px;border:0;background:var(--bt-hover);color:var(--bt-ink);font:inherit;font-size:13px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--bt-line)}
+.ou-choice:hover{background:color-mix(in srgb,var(--bt-accent) 10%,var(--bt-hover))}
+.ou-choice:disabled{opacity:.5;cursor:default}
+.ou-buttons{display:flex;justify-content:flex-end;gap:8px}
+.ou-buttons .ou-btn{align-self:auto}
+.ou-btn[data-variant=secondary]{background:var(--bt-hover);color:var(--bt-ink);box-shadow:inset 0 0 0 1px var(--bt-line)}
