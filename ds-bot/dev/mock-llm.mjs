@@ -427,6 +427,9 @@ function decide(body) {
   if ((order = /^忘掉\s*[:：]?\s*(.+)$/.exec(userText)) && tools.has('forget')) return [tool('forget', { entry: order[1].trim() })]
   if ((order = /^回忆(?:\s+(.+))?$/.exec(userText)) && tools.has('recall')) return [tool('recall', order[1] ? { query: order[1].trim() } : {})]
   if ((order = /^搜索\s*[:：]\s*([^\n]+)/.exec(userText)) && tools.has('web_search')) return [tool('web_search', { queries: order[1].trim().split(/\s*[|｜]\s*/) })]
+  // "提权" in a Bot's own chat: a shell command that asks for full access, so the approval card shows.
+  const ownShell = ['pwsh', 'bash'].find(name => tools.has(name))
+  if (/^\s*提权/.test(userText) && ownShell) return [text('这一步要写工作区外的文件，我申请一次提权。'), tool(ownShell, { command: 'echo ok', description: '在工作区外写一个测试文件', justification: ESCALATION, sandbox_permissions: 'danger-full-access' })]
   if ((order = /^进目录\s+(.+)$/.exec(userText)) && tools.has('working_directory')) return [tool('working_directory', { cd: order[1].trim() })]
   if (/^看(?:网页|页面)/.test(userText) && tools.has('read_browser')) return [tool('read_browser', {})]
   if (userText.startsWith('写成文字')) return [text(WRITTEN_CALL)]
