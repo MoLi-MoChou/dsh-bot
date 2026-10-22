@@ -1024,6 +1024,14 @@ const HOST_ERRORS = [
   [/^This file cannot be read here$/, '这里读不了这个文件'],
   [/^Too large to download here \(over (\d+) MB\)$/, '文件太大，这里下载不了（超过 $1 MB）'],
   [/^No file named$/, '没有指定文件'],
+  [/^This message is no longer kept$/, '这条消息已经不再保留了'],
+  [/^Unknown Bot$/, '找不到这个 Bot'],
+  [/^Nothing to send$/, '没有要发送的内容'],
+  [/^This question is no longer open$/, '这个问题已经关掉了'],
+  [/^This view is no longer open$/, '这个视图已经关掉了'],
+  [/^Bot browsers are off on this host$/, '这台机器上 Bot 的浏览器是关着的'],
+  [/^A browser poll needs a clientId$/, '浏览器轮询缺少 clientId'],
+  [/^Unknown endpoint (.+)$/, '未知的接口 $1'],
 ]
 const HOST_ZH = {
   'Request failed': '请求失败',
@@ -1119,6 +1127,7 @@ const ERROR_COPY = {
   'bot/invalid': { en: 'The request holds something it cannot accept.', zh: '请求里有不能接受的内容。', hint: 'Change it and try again.', hintZh: '改一下再试。' },
   'bot/refused': { en: 'That was refused.', zh: '这个操作被拒绝了。', hint: 'Follow the hint and try another way.', hintZh: '按提示换个做法；还不行就到「设置 → 反馈」发诊断。' },
   'bot/not-found': { en: 'What it asked for is not there any more.', zh: '找不到要操作的对象了。', hint: 'Reload the page and check it is still there.', hintZh: '刷新页面，确认它还在。' },
+  'bot/stale': { en: 'That is no longer open.', zh: '这个已经关掉了。', hint: 'Reload the page and open it again.', hintZh: '刷新页面重新打开一次。' },
   'bot/read-only': { en: 'This window can only look, not change.', zh: '这个窗口现在只能看，不能改。', hint: 'Close the other dsh window that has this team open, then reload.', hintZh: '关掉另一个打开同一团队的 dsh 窗口，然后刷新。' },
   'bot/unavailable': { en: 'That is not available here.', zh: '这项内容现在拿不到。', hint: 'Try again in a moment.', hintZh: '稍后再试。' },
   'bot/browser-off': { en: 'The Bot\'s browser is off.', zh: 'Bot 的浏览器没有打开。', hint: 'Turn it on in the settings, or let the Bot do it another way.', hintZh: '在设置里打开浏览器，或者让 Bot 换一种方式做。' },

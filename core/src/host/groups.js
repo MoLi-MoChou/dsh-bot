@@ -24,7 +24,7 @@ import { GROUP_LINE_READ, ROOM_LATE_ROUNDS, ROOM_REPLY_TIMEOUT_MS, ROOM_STEP_GAP
 import { escapeRegExp, headOf, splitRef, textOf } from './text.js'
 import { mentionSpans, speakerOf } from '../shared/mentions.js'
 import { GROUP_REF, output } from './tools.js'
-import { failureLine } from './turns.js'
+import { failureLine, failureSay } from './turns.js'
 
 const ROOM_LOG_MAX = 60
 const ROOM_FIRST_LOOK = 12
@@ -834,7 +834,10 @@ export function install(rt) {
     const member = rt.botOf(owner?.botId)
     if (room === undefined || member === undefined || !room.members.includes(member.id)) return
     const { code, status, message } = failure
-    await postToRoom(room, member, `Could not finish: its model call failed (${failureLine(failure)}).`, {
+    const zh = String(rt.uiLanguage?.() ?? '').startsWith('Chinese')
+    await postToRoom(room, member, zh
+      ? `没能做完：${failureSay(failure, true)}。`
+      : `Could not finish: ${failureSay(failure)}.`, {
       late: true, quiet: true, failed: { code, ...(status ? { status } : {}), message },
     }).catch(error => rt.warn('ds-bot: late group failure from %s failed: %s', member.name, error))
   }
