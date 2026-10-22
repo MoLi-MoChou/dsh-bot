@@ -1,4 +1,4 @@
-// v1 端到端：在全新的 DSH_HOME 上，用 Playwright 驱动真实界面走一遍并截图到 ../screens/v1-*.png。
+// 端到端：在全新的 DSH_HOME 上，用 Playwright 驱动真实界面走一遍并截图到 ../screens/<SHOT_PREFIX>-*.png（默认 v2）。
 // 模型用 host/mock-llm.mjs（OpenAI 兼容，key 为 sk-mock）；模型配置就在界面里完成。
 import { chromium } from 'playwright'
 import { writeFileSync } from 'node:fs'
@@ -9,7 +9,9 @@ const page = await browser.newPage({ viewport: { width: 1400, height: 860 }, dev
 const errors = []
 page.on('pageerror', e => errors.push(e.message))
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
-const shot = async (name) => { await page.waitForTimeout(350); await page.screenshot({ path: `${out}/v1-${name}.png` }); console.log('shot', name) }
+page.on('response', r => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`) })
+const prefix = process.env.SHOT_PREFIX ?? 'v2'
+const shot = async (name) => { await page.waitForTimeout(350); await page.screenshot({ path: `${out}/${prefix}-${name}.png` }); console.log('shot', name) }
 const send = async (text) => { await page.fill('textarea[data-composer-input]', text); await page.keyboard.press('Enter') }
 const step = (msg) => console.log('·', msg)
 
@@ -84,17 +86,36 @@ await page.waitForTimeout(2500)
 await page.locator('.bt-toolcard summary').last().click()
 await shot('12-tool-result')
 
-step('OpenUI 卡片：表格、标签、进度、表单、快捷选项')
+step('OpenUI 卡片：流式骨架 → 完整卡片 → 提交后锁定')
 await send('给我一张本周任务卡片')
-await page.waitForSelector('.ou-card', { timeout: 20000 })
-await page.waitForTimeout(3500)
+await page.waitForSelector('.ou-wrap', { timeout: 20000 })
+await page.waitForTimeout(250)
+await shot('13a-openui-streaming')
+await page.waitForSelector('.ou-done, .ou-card .ou-buttons', { timeout: 20000 })
+await page.waitForFunction(() => !document.querySelector('.ou-wrap[aria-busy]'), null, { timeout: 20000 })
+await page.waitForTimeout(800)
 await page.fill('.ou-textarea', '先把审批卡做好看一点')
 await page.check('.ou-check input')
 await page.evaluate(() => document.querySelector('[data-conversation-scroll]').scrollTo(0, 1e9))
 await shot('13-openui')
-await page.click('.ou-buttons .ou-btn[data-variant=primary]')
-await page.waitForTimeout(3500)
-await shot('14-openui-action')
+await page.click('.ou-buttons .bt-q-submit')
+await page.waitForSelector('.bt-urow:has-text("先把审批卡做好看一点")', { timeout: 10000 })
+await page.waitForTimeout(3000)
+await page.evaluate(() => { const n = document.querySelectorAll('.ou-card'); n[n.length - 1]?.scrollIntoView({ block: 'center' }) })
+await shot('14-openui-submitted')
+
+step('写坏的卡片退回成代码块')
+await send('来一张坏卡片')
+await page.waitForSelector('.ou-fallback', { timeout: 20000 })
+await page.waitForTimeout(600)
+await shot('14b-openui-fallback')
+
+step('记忆：memory_write 工具直接写入，不弹审批')
+await send('记住：周报用表格，先给结论')
+await page.waitForFunction(() => [...document.querySelectorAll('.bt-toolcard summary')].some(n => n.textContent.includes('memory_write') && n.textContent.includes('✓')), null, { timeout: 20000 })
+if (await page.$('.bt-approval')) throw new Error('记忆写入弹出了审批')
+await page.waitForTimeout(1500)
+await shot('14c-memory-tool')
 
 step('附件：一张图片 + 一个文本文件')
 writeFileSync('/tmp/notes.txt', '会议纪要：周五前完成 v1。\n')
@@ -125,6 +146,16 @@ await page.click('.dsb-conv >> nth=0')
 await page.waitForTimeout(1200)
 await page.click('.bt-side-top button[aria-label="搜索对话"]')
 
+step('本对话的模型：DS Bot 的模型菜单')
+await page.click('.dsb-conv-model .bt-model-trigger')
+await page.waitForSelector('.bt-model-menu')
+await shot('18b-model-menu')
+await page.click('.bt-model-menu button[role=menuitemradio]:has-text("mock-reasoner")')
+await page.waitForSelector('.dsb-conv-model[data-own]')
+await send('你好')
+await page.waitForTimeout(3500)
+await shot('18c-model-picked')
+
 step('设置：通用、权限、记忆')
 await page.click('.dsb-settings')
 await page.waitForSelector('.bt-settings')
@@ -134,6 +165,9 @@ await page.waitForSelector('.bt-seg')
 await shot('20-settings-permissions')
 await page.click('.bt-settings-item:has-text("记忆")')
 await page.waitForSelector('.dsb-mem-text')
+await page.waitForTimeout(300)
+if (!(await page.inputValue('.dsb-mem-text >> nth=1')).includes('周报用表格')) throw new Error('journal 里没有工具写入的记忆')
+await shot('21a-memory-from-tool')
 await page.fill('.dsb-mem-text >> nth=0', '# 关于我\n\n- 称呼：凯\n- 回复用中文，先给结论\n')
 await page.click('.bt-set-section >> nth=0 >> .bt-fb-primary')
 await page.waitForSelector('.bt-secret-ok')

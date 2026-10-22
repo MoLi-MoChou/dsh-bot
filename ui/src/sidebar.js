@@ -69,7 +69,7 @@ export function Sidebar({ hooks, actions }) {
       h('button', { type: 'button', className: 'bt-round', 'aria-label': '新对话', title: '新对话', onClick: () => { setQuery(null); void actions.newChat().catch(actions.reportError) } }, h(PlusIcon))),
     h('div', { className: 'bt-list', role: 'region', 'aria-label': '对话列表' },
       h('div', { className: 'bt-tile-wrap' }, h('button', {
-        type: 'button', className: 'bt-tile', 'aria-label': BOT.name, 'data-bot-id': BOT.id, title: BOT.name,
+        type: 'button', className: 'bt-tile', 'aria-current': 'page', 'aria-label': BOT.name, 'data-bot-id': BOT.id, title: BOT.name,
         onClick: () => { if (rows[0]) actions.openSession(rows[0].id) },
       }, h(BotAvatar, { bot: BOT, size: 60, state, main: true }), h('span', { className: 'bt-tile-name' }, BOT.name), h('span', { className: 'bt-chip' }, BOT.role))),
       query !== null ? h('div', { className: 'dsb-search' },
