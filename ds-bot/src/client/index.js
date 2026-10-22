@@ -42,6 +42,7 @@ import { addAlwaysAllow } from './approval-always.js'
 import { listedOpener } from './open-listed.js'
 
 import { PROCESS_CSS } from './work-process.js'
+import { RetryCell, RETRY_CSS } from './retry-cell.js'
 import { StarterChips, STARTERS_CSS } from './starters.js'
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
 
@@ -662,7 +663,7 @@ export function apply(ctx) {
     () => installCompiledStyles(MEMBER_CSS, 'members'),
     () => installCompiledStyles(USER_MESSAGE_CSS, 'user-messages'),
     () => installCompiledStyles(WIDGET_CSS, 'widgets'),
-    () => installCompiledStyles(PROCESS_CSS + STARTERS_CSS, 'work-process'),
+    () => installCompiledStyles(PROCESS_CSS + RETRY_CSS + STARTERS_CSS, 'work-process'),
     browsers ? () => installCompiledStyles(BROWSER_CSS, 'browser') : null,
     () => installTheme(),
     () => shadow('sidebar.workspaces', { priority: BOT_PRIORITY, inject: face }, TeamSidebar),
@@ -686,6 +687,7 @@ export function apply(ctx) {
     () => shadow('conversation.chat.node', { key: 'assistant-step', priority: BOT_PRIORITY, locale: 'chat', inject: assistantFace }, AssistantCell),
     () => shadow('conversation.chat.node', { key: 'turn-trigger', priority: BOT_PRIORITY, locale: 'chat', inject: face }, TriggerCell),
     () => shadow('conversation.chat.node', { key: 'tool-call', priority: BOT_PRIORITY, locale: 'chat', inject: face }, ToolCell),
+    () => shadow('conversation.chat.node', { key: 'model-retry', priority: BOT_PRIORITY, locale: 'chat' }, RetryCell),
     () => shadow('conversation.chat.node', { key: 'turn-process', priority: BOT_PRIORITY, locale: 'chat', inject: face }, TurnProcessCell),
     // DSH's own turn tail stays, so what other plugins add there shows, such as the
     // cards of the files a turn delivered; its copy and branch row is hidden.

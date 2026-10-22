@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import { contentText, toolName, elapsedLabel } from './text.js'
 import { callTree } from './cells.js'
 import { t } from './i18n.js'
+import { useTurnRetries } from './retry-cell.js'
 
 // Steps carry no seq; both carry the time they began, which orders them.
 const seqOf = item => item?.time ?? item?.root?.time ?? item?.finalNode?.seq ?? item?.seq ?? item?.root?.seq ?? 0
@@ -25,9 +26,10 @@ export function processCount(steps, tools) {
   return thoughts + turnCalls(tools).length
 }
 
-export function WorkLine({ steps, tools, ms }) {
+export function WorkLine({ steps, tools, ms, sessionId, turn }) {
   const [open, setOpen] = useState(false)
-  const count = processCount(steps, tools)
+  const retries = useTurnRetries(sessionId, turn)
+  const count = processCount(steps, tools) + retries.length
   if (count === 0) return null
   const label = ms !== undefined && ms >= 1000
     ? t('Worked for {time} · {count} steps', { time: elapsedLabel(ms), count })
@@ -35,7 +37,7 @@ export function WorkLine({ steps, tools, ms }) {
   return h(Fragment, null,
     h('button', { type: 'button', className: 'bt-work-line', 'aria-haspopup': 'dialog', onClick: () => setOpen(true) },
       h('span', null, label), h('span', { 'aria-hidden': true, className: 'bt-work-chev' }, '›')),
-    open ? h(ProcessPanel, { steps, tools, label, onClose: () => setOpen(false) }) : null)
+    open ? h(ProcessPanel, { steps, tools, retries, label, onClose: () => setOpen(false) }) : null)
 }
 
 function pretty(raw) {
@@ -43,7 +45,7 @@ function pretty(raw) {
   try { return JSON.stringify(JSON.parse(raw), null, 2) } catch { return String(raw) }
 }
 
-function ProcessPanel({ steps, tools, label, onClose }) {
+function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
   useEffect(() => {
     const key = (event) => { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', key)
@@ -58,6 +60,7 @@ function ProcessPanel({ steps, tools, label, onClose }) {
     }
   }
   turnCalls(tools).forEach(({ call, seq }, index) => items.push({ seq: seq + 0.5 + index / 1000, key: `c${call.callId ?? index}`, kind: 'tool', call }))
+  for (const retry of retries) items.push({ seq: retry.seq, key: `r${retry.seq}`, kind: 'retry', retry })
   items.sort((a, b) => a.seq - b.seq)
   return createPortal(h('div', { className: 'bt-process-scrim', onMouseDown: (event) => { if (event.target === event.currentTarget) onClose() } },
     h('aside', { className: 'bt-process', role: 'dialog', 'aria-label': t('Work process') },
@@ -66,6 +69,9 @@ function ProcessPanel({ steps, tools, label, onClose }) {
         h('button', { type: 'button', className: 'bt-process-close', 'aria-label': t('Close'), onClick: onClose }, '×')),
       h('ol', null, items.map(item => h('li', { key: item.key, 'data-kind': item.kind },
         item.kind === 'tool' ? h(ToolItem, { call: item.call })
+          : item.kind === 'retry' ? h(Fragment, null,
+            h('div', { className: 'bt-process-tag' }, t('Model retry'), ' · ', item.retry.cancelled ? t('Retry cancelled') : `${t('Retried')} ${item.retry.retry}/${item.retry.maximum}`),
+            item.retry.failure ? h('div', { className: 'bt-process-text' }, item.retry.failure) : null)
           : item.kind === 'reasoning' ? h(Fragment, null,
             h('div', { className: 'bt-process-tag' }, t('Thinking')),
             h('div', { className: 'bt-process-text' }, item.text))

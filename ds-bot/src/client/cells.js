@@ -241,7 +241,7 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
         whole: true,
       })
     }),
-    workHere ? h(WorkLine, { steps: members, tools, ms: workMs }) : null,
+    workHere ? h(WorkLine, { steps: members, tools, ms: workMs, sessionId, turn: data.turn }) : null,
     texts.length ? h(Bubbles, { texts, roster, selfId, actions, streaming: running, sessionId, msgKey: `${sessionId}:${data.turn}:${node.key ?? data.seq ?? ''}`, useUi, mentions, fold: FOLD_HUGE }) : null)
 }
 
@@ -300,13 +300,27 @@ function GroupEvent({ prefix, room, name, roster, actions }) {
 
 // A change remember or forget made, which opens the memory it changed. Refusals and
 // entries already saved changed nothing and show no line.
-function MemoryEvent({ sessionId, scope, result, roster, actions, findBot }) {
+// Several changes to one memory in a turn show as one line: the first call keeps it.
+const memoryLines = new Map()
+const firstMemoryLine = (turnKey, target, callId) => {
+  if (turnKey === undefined || callId === undefined) return true
+  let lines = memoryLines.get(turnKey)
+  if (!lines) {
+    if (memoryLines.size > 500) memoryLines.delete(memoryLines.keys().next().value)
+    memoryLines.set(turnKey, lines = new Map())
+  }
+  if (!lines.has(target)) lines.set(target, callId)
+  return lines.get(target) === callId
+}
+
+function MemoryEvent({ sessionId, scope, result, roster, actions, findBot, turnKey, callId }) {
   if (!/^(Saved to|Updated in|Removed from) /.test(result)) return null
   const self = roster.byId[sessionId]
   const team = /^(team|团队|共享)$/i.test(String(scope ?? '').trim())
   const other = team || !scope ? undefined : findBot(scope)
   const target = other && other.id !== self?.id ? other : self
   if (!target) return null
+  if (!firstMemoryLine(turnKey, team ? 'team' : target.id, callId)) return null
   const label = team ? t('Team memory updated') : target === self ? t('Memory updated') : t("Updated {name}'s memory", { name: target.name })
   return h('div', { className: 'bt-event' },
     h('button', { type: 'button', title: result, onClick: () => actions.openMemory(target.id) }, h(MemoryIcon), label))
@@ -811,7 +825,7 @@ function useShownCards(actions, sessionId, callIds) {
   }, [sessionId, key])
 }
 
-function renderCall(call, { sessionId, roster, actions, useUi, useWork, findBot, heldCards }) {
+function renderCall(call, { sessionId, roster, actions, useUi, useWork, findBot, heldCards, turnKey }) {
   const tool = toolName(call)
   const done = call.kind === 'tool-result'
   const { text: arg, value: argValue } = toolArgs(call)
@@ -884,7 +898,7 @@ function renderCall(call, { sessionId, roster, actions, useUi, useWork, findBot,
     }
     case 'remember':
     case 'forget':
-      return done && !call.isError ? h(MemoryEvent, { sessionId, scope: arg('scope'), result: contentText(call.content), roster, actions, findBot }) : null
+      return done && !call.isError ? h(MemoryEvent, { sessionId, scope: arg('scope'), result: contentText(call.content), roster, actions, findBot, turnKey, callId: call.callId }) : null
     default:
       return null
   }
@@ -906,6 +920,6 @@ export function ToolCell({ node, sessionId, useRoster, useUi, useWork, useHeldCa
   useLiveNote(actions, sessionId, `tool:${root.callId ?? node.key}`, note)
   useShownCards(actions, sessionId, drawn.filter(call => CARDS.has(toolName(call)) && call.callId).map(call => call.callId))
   if (drawn.length === 0) return null
-  const env = { sessionId, roster, actions, useUi, useWork, findBot, heldCards }
+  const env = { sessionId, roster, actions, useUi, useWork, findBot, heldCards, turnKey: turn === undefined ? undefined : `${sessionId}:${turn}` }
   return h(Fragment, null, drawn.map((call, index) => h(Fragment, { key: call.callId ?? index }, renderCall(call, env))))
 }
