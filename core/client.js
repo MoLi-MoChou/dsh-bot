@@ -1169,11 +1169,23 @@ var ERROR_COPY = {
   "bot/internal": { en: "Moon Bot itself failed.", zh: "Moon Bot 内部出错了。", hint: "Restart DS Bot; if it keeps happening, send the diagnostics from Settings → Feedback.", hintZh: "重启 DS Bot；一直这样的话，到「设置 → 反馈」发诊断。" },
   "bot/error": { en: "Something went wrong.", zh: "出了点问题。", hint: "Try again; send the diagnostics if it keeps happening.", hintZh: "再试一次；一直这样就发诊断。" }
 };
+var detailOf = (message) => {
+  if (typeof message !== "string" || message.trim() === "") return "";
+  const text = message.trim();
+  if (!language().startsWith("zh")) return text;
+  const translated2 = hostText(text);
+  if (translated2 !== text) return translated2;
+  return /[一-鿿]/.test(text) ? text : "";
+};
 function errorCopy(code, message) {
   const copy2 = Object.hasOwn(ERROR_COPY, code ?? "") ? ERROR_COPY[code] : void 0;
   const zh = language().startsWith("zh");
-  if (copy2 !== void 0) return zh ? `${copy2.zh}${copy2.hintZh ? ` ${copy2.hintZh}` : ""}` : `${copy2.en}${copy2.hint ? ` ${copy2.hint}` : ""}`;
-  return typeof message === "string" && message !== "" ? hostText(message) : zh ? "出了点问题，请再试一次。" : "Something went wrong. Try again.";
+  const detail = detailOf(message);
+  if (copy2 === void 0) {
+    if (detail !== "") return detail;
+    return zh ? "出了点问题，请再试一次。" : "Something went wrong. Try again.";
+  }
+  return zh ? [copy2.zh, detail, copy2.hintZh].filter(Boolean).join(" ") : [copy2.en, detail, copy2.hint].filter(Boolean).join(" ");
 }
 function language() {
   const active = service?.getLocale?.().active;

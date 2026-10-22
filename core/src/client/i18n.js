@@ -1135,11 +1135,30 @@ const ERROR_COPY = {
   'bot/error': { en: 'Something went wrong.', zh: '出了点问题。', hint: 'Try again; send the diagnostics if it keeps happening.', hintZh: '再试一次；一直这样就发诊断。' },
 }
 
+// The host's own reason, in the user's language. A message that cannot be translated is
+// left out rather than shown in English: the generic copy already says what happened.
+const detailOf = (message) => {
+  if (typeof message !== 'string' || message.trim() === '') return ''
+  const text = message.trim()
+  if (!language().startsWith('zh')) return text
+  const translated = hostText(text)
+  if (translated !== text) return translated
+  return /[一-鿿]/.test(text) ? text : ''
+}
+
+// What happened and what to do, plus the host's own reason when it can be said in the
+// user's language: the generic copy alone would throw away what the server already knows.
 export function errorCopy(code, message) {
   const copy = Object.hasOwn(ERROR_COPY, code ?? '') ? ERROR_COPY[code] : undefined
   const zh = language().startsWith('zh')
-  if (copy !== undefined) return zh ? `${copy.zh}${copy.hintZh ? ` ${copy.hintZh}` : ''}` : `${copy.en}${copy.hint ? ` ${copy.hint}` : ''}`
-  return typeof message === 'string' && message !== '' ? hostText(message) : zh ? '出了点问题，请再试一次。' : 'Something went wrong. Try again.'
+  const detail = detailOf(message)
+  if (copy === undefined) {
+    if (detail !== '') return detail
+    return zh ? '出了点问题，请再试一次。' : 'Something went wrong. Try again.'
+  }
+  return zh
+    ? [copy.zh, detail, copy.hintZh].filter(Boolean).join(' ')
+    : [copy.en, detail, copy.hint].filter(Boolean).join(' ')
 }
 
 // The active DSH language tag, for dates and times.

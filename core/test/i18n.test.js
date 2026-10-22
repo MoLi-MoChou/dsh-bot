@@ -50,6 +50,12 @@ test('copy follows the DSH language and stays English without a locale service',
     assert.equal(errorCopy('HTTP_500'), '服务端出错了。 稍后再试；一直这样的话，到「设置 → 反馈」把诊断发给开发者。')
     assert.equal(errorCopy(undefined), '出了点问题，请再试一次。')
     assert.equal(errorCopy('some/code', 'This file no longer exists'), '这个文件已经不在原来的位置了')
+    // A known code keeps the host's own reason, translated, instead of only the generic copy.
+    assert.equal(errorCopy('bot/refused', 'This file is not one this conversation produced'), '这个操作被拒绝了。 这个文件不是这段对话产出的，不能从这里下载 按提示换个做法；还不行就到「设置 → 反馈」发诊断。')
+    assert.equal(errorCopy('bot/invalid', 'Nothing to send'), '请求里有不能接受的内容。 没有要发送的内容 改一下再试。')
+    // A reason that cannot be translated is left out, never shown in English.
+    assert.equal(errorCopy('bot/refused', 'Something server-side broke'), '这个操作被拒绝了。 按提示换个做法；还不行就到「设置 → 反馈」发诊断。')
+    assert.equal(errorCopy('bot/not-found', 'Unknown Bot'), '找不到要操作的对象了。 找不到这个 Bot 刷新页面，确认它还在。')
   } finally {
     off()
   }
@@ -57,4 +63,6 @@ test('copy follows the DSH language and stays English without a locale service',
   assert.equal(hostText('A Bot named Writer already exists'), 'A Bot named Writer already exists')
   assert.equal(errorCopy('NETWORK'), 'Could not reach Moon Bot: the network dropped or the service restarted. Check the network and try again in a moment.')
   assert.equal(errorCopy('bot/refused'), 'That was refused. Follow the hint and try another way.')
+  // English keeps the host's reason as it came.
+  assert.equal(errorCopy('bot/refused', 'This file no longer exists'), 'That was refused. This file no longer exists Follow the hint and try another way.')
 })
