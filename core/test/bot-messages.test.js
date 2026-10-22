@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
@@ -859,4 +859,58 @@ test('without file storage a message past 20,000 characters is not sent', async 
   // 20,000 characters still go as they are.
   await tool('message_bot', { to: 'Writer', message: 'x'.repeat(20_000) }, 'a')
   assert.equal(agentOf('b').calls.length, 1)
+})
+
+test('a turn\'s files become its message cards, and they are still there after a reload', async (t) => {
+  const work = mkdtempSync(join(tmpdir(), 'ds-bot-turn-files-'))
+  t.after(() => rmSync(work, { recursive: true, force: true }))
+  const seed = team()
+  seed.bots.b.workDir = work
+  const { ctx, call, emit, home, stop } = await start(seed)
+  t.after(stop)
+
+  // A file that was already there is not this turn's delivery.
+  writeFileSync(join(work, 'README.md'), '# before')
+  emit('b', 'turn/start', { turn: 4 })
+  await delay(50)
+  writeFileSync(join(work, 'notes.md'), '# done')
+  writeFileSync(join(work, 'shot.png'), 'png bytes')
+  mkdirSync(join(work, 'reports'))
+  writeFileSync(join(work, 'reports/q3.xlsx'), 'xlsx bytes')
+  mkdirSync(join(work, 'node_modules/pkg'), { recursive: true })
+  writeFileSync(join(work, 'node_modules/pkg/index.js'), 'dep')
+  writeFileSync(join(work, 'scratch.tmp'), 'temp')
+  emit('b', 'assistant/message', { ...assistantText('done'), turn: 4 })
+  emit('b', 'turn/end', { turn: 4, reason: { kind: 'completed' } })
+
+  const saved = () => {
+    try {
+      return JSON.parse(readFileSync(join(home, 'state.json'), 'utf8')).turnFiles ?? {}
+    } catch {
+      return {}
+    }
+  }
+  const turnOf = () => saved().b?.turns?.[4] ?? {}
+  await settled(() => (turnOf().produced ?? []).length === 3)
+  assert.deepEqual(turnOf().produced, [
+    { path: 'notes.md', name: 'notes.md', size: 6, mime: 'text/markdown' },
+    { path: 'reports/q3.xlsx', name: 'q3.xlsx', size: 10, mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    { path: 'shot.png', name: 'shot.png', size: 9, mime: 'image/png' },
+  ])
+  assert.equal(saved().b.folder, work)
+
+  // The live part of the team view carries the same cards, for a chat window that is open.
+  const live = (await call('state')).value
+  assert.deepEqual(live.turnFiles.b.turns[4], saved().b.turns[4])
+  assert.equal('folder' in live.turnFiles.b, false)
+
+  // The chat's own page attaches them to the turn's message, which is what a reload shows.
+  ctx.sessionController.page = async () => ({
+    records: [{ event: { type: 'assistant/message', seq: 1, time: 10, data: { turn: 4, message: { content: textBlock('done') } } } }],
+    hasMore: false,
+  })
+  const chat = (await call('chat', { botId: 'b' })).value
+  const message = chat.items.find(item => item.kind === 'bot')
+  assert.equal(message.turn, 4)
+  assert.deepEqual(message.produced, turnOf().produced)
 })

@@ -6,6 +6,7 @@ import { HANDOFF_ACK, MESSAGE_INLINE_MAX, REFERENCE_KIND, REPLY_KIND, SOURCE_KIN
 import { absoluteLinks } from './links.js'
 import { textOf } from './text.js'
 import { reminderText } from './schedules.js'
+import { producedOf, snapshot, TURN_FILES_KEPT, TURN_FILES_SESSIONS } from './turn-files.js'
 
 // A failed turn's `LlmFailure`, kept to what can be shown and logged. Like DSH's own
 // error row, an AUTH failure loses its message: providers may echo part of the key.
@@ -106,6 +107,58 @@ export function install(rt) {
     let entry = live.get(id)
     if (entry === undefined) live.set(id, entry = { texts: [], shown: 0 })
     return entry
+  }
+
+  // Files a turn wrote: the Session's folder is snapshotted when the turn starts and
+  // compared when it ends. The cards stay in the saved team (state.turnFiles), so the
+  // chat shows them again after a reload; they are not copied anywhere.
+  /** @type {Map<string, {root:string, promise:Promise<Map<string,{size:number,mtimeMs:number}>|undefined>}>} */
+  const scans = new Map()
+  // A turn whose end never reaches us (a crash, a Session moved away) leaves its scan
+  // behind; this many is more than the team can run at once.
+  const SCANS_KEPT = 64
+  // Keyed by Session and turn: a late end of an earlier turn must not compare against the
+  // next turn's snapshot.
+  const scanKey = (id, turn) => `${id}:${turn}`
+  const watchTurnFiles = (id, turn, session) => {
+    const root = rt.sessionFolder?.(session)
+    if (typeof root !== 'string' || root === '' || turn === undefined) return
+    const key = scanKey(id, turn)
+    if (!scans.has(key) && scans.size >= SCANS_KEPT) scans.delete(scans.keys().next().value)
+    scans.set(key, { root, promise: snapshot(root).catch(error => {
+      rt.warn('ds-bot: folder %s not scanned for files: %s', root, error)
+      return undefined
+    }) })
+  }
+  const turnFilesOf = id => state.turnFiles?.[id]
+  const turnFilesView = () => state.turnFiles ?? {}
+  const saveTurnFiles = (id, root, turn, produced) => {
+    const table = state.turnFiles ??= {}
+    const saved = table[id] ??= { folder: root, turns: {} }
+    saved.folder = root
+    saved.turns[turn] = produced
+    saved.at = Date.now()
+    const turns = Object.keys(saved.turns).map(Number).sort((a, b) => a - b)
+    for (const old of turns.slice(0, Math.max(0, turns.length - TURN_FILES_KEPT))) delete saved.turns[old]
+    const sessions = Object.keys(table)
+    if (sessions.length > TURN_FILES_SESSIONS) {
+      const oldest = sessions.sort((a, b) => (table[a].at ?? 0) - (table[b].at ?? 0)).slice(0, sessions.length - TURN_FILES_SESSIONS)
+      for (const old of oldest) delete table[old]
+    }
+    void rt.save().catch(error => rt.warn('ds-bot: files of turn %s not saved: %s', turn, error))
+  }
+  const forgetTurnFiles = (id, turn) => scans.delete(scanKey(id, turn))
+  async function collectTurnFiles(id, turn) {
+    const key = scanKey(id, turn)
+    const scan = scans.get(key)
+    scans.delete(key)
+    if (scan === undefined || turn === undefined) return
+    const before = await scan.promise
+    if (before === undefined) return
+    const after = await snapshot(scan.root).catch(() => undefined)
+    if (after === undefined) return
+    const { produced, more } = producedOf(before, after)
+    if (produced.length > 0) saveTurnFiles(id, scan.root, turn, { produced, ...(more === undefined ? {} : { more }) })
   }
 
   // What each running Bot is doing right now, for its mascot. Process-local: it is
@@ -384,6 +437,7 @@ export function install(rt) {
       case 'turn/start':
         setActivity(id, 'thinking')
         entry.turn = event.data.turn
+        watchTurnFiles(id, event.data.turn, session)
         entry.since = event.time ?? Date.now()
         entry.texts = []
         entry.shown = 0
@@ -523,7 +577,12 @@ export function install(rt) {
         const { lastText, lastCalled } = entry
         // A turn stopped for a switch goes on in the next part, which answers instead.
         const switched = entry.switched === true
+        const turn = entry.turn
         entry.turn = undefined
+        // The files this turn wrote become its message's cards; a switch collects in the
+        // part that answers, which has the same folder.
+        if (switched) forgetTurnFiles(id, turn)
+        else void collectTurnFiles(id, turn)
         entry.info = undefined
         entry.texts = []
         entry.shown = 0
@@ -642,5 +701,5 @@ export function install(rt) {
     }
   })
 
-  Object.assign(rt, { live, liveOf, roomWaiters, roomProgress, roomInbox, activityView, workView, roomWorkView, turnsView, callDetail, doingOf, stopRoomTurn, releaseBot })
+  Object.assign(rt, { live, liveOf, roomWaiters, roomProgress, roomInbox, activityView, workView, roomWorkView, turnsView, callDetail, doingOf, stopRoomTurn, releaseBot, turnFilesOf, turnFilesView })
 }

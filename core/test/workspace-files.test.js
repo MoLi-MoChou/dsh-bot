@@ -94,3 +94,43 @@ test('helpers', () => {
   assert.equal(formatBytes(20 * 1024 * 1024), '20 MB')
   assert.equal(typeLabel('a.zip', 'application/zip'), 'ZIP archive')
 })
+
+test('a file card\'s path resolves inside its own conversation, and nowhere else', async (t) => {
+  const dir = folder(t)
+  const team = join(dir, 'team')
+  const mine = join(team, 'bots', 'writer')
+  const other = join(team, 'bots', 'other')
+  mkdirSync(mine, { recursive: true })
+  mkdirSync(other, { recursive: true })
+  writeFileSync(join(mine, 'notes.md'), '# mine')
+  writeFileSync(join(mine, 'private.txt'), 'not a produced file')
+  writeFileSync(join(other, 'secret.md'), '# not yours')
+  writeFileSync(join(team, 'top.md'), '# team')
+  const folders = new Map([['s-a', mine], ['s-b', other]])
+  const rt = {
+    ctx: { workspaceRegistry: { list: () => [{ path: team }] } },
+    state: {
+      bots: {},
+      rooms: {},
+      turnFiles: { 's-a': { turns: { 1: { produced: [{ path: 'notes.md', name: 'notes.md', size: 6, mime: 'text/markdown' }] } } } },
+    },
+    resolveAgent: async id => {
+      if (!folders.has(id)) throw new Error('gone')
+      return { session: { id, header: { cwd: folders.get(id) } } }
+    },
+    sessionFolder: session => folders.get(session.id),
+  }
+  install(rt)
+  // Relative to the conversation's own folder.
+  assert.equal(Buffer.from((await rt.workspaceDownload('notes.md', 's-a')).data, 'base64').toString(), '# mine')
+  assert.equal((await rt.workspaceDescribe('./notes.md', 's-a')).size, 6)
+  // Another Bot's file, the team's own, and any way out of the folder are refused.
+  for (const path of ['../other/secret.md', join(other, 'secret.md'), '../../top.md', '..']) {
+    await assert.rejects(rt.workspaceDownload(path, 's-a'), { code: 'bot/refused' })
+  }
+  await assert.rejects(rt.workspaceDownload('notes.md', 's-gone'), { code: 'bot/refused' })
+  // A file in the folder that this conversation did not produce is not served either.
+  await assert.rejects(rt.workspaceDownload('private.txt', 's-a'), { code: 'bot/refused' })
+  // Without a Session the old team-wide check stands.
+  assert.equal(Buffer.from((await rt.workspaceDownload(join(mine, 'notes.md'))).data, 'base64').toString(), '# mine')
+})
