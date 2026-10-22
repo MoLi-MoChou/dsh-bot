@@ -2,6 +2,7 @@
 // 所有直接用到 DSH 接口的地方都集中在 engine/ 下（index.js 与 lib/*.js）。
 // 事件名参照 DS Bot ds-bot/src/host/feed.js、approvals.js、channel.js（Apache-2.0，见 NOTICE）。
 import http from 'node:http'
+import { timingSafeEqual } from 'node:crypto'
 import { randomUUID } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join, dirname, extname, resolve } from 'node:path'
@@ -14,7 +15,8 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 export const name = 'dsh-bot-engine'
 export const inject = ['sessionController', 'sessions', 'settings', 'credentials', 'llm', 'agentDefaultModel', 'systemPrompt', 'permissionPresets', 'fileUploads', 'tools']
 
-const UI_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+// 打包后引擎被拷进 node_modules/dsh-bot-engine，所以前端目录由宿主（host/host.mjs）告诉它。
+const UI_DIR = process.env.DSH_BOT_UI_DIR ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.json': 'application/json' }
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
 const MAX_BODY = 40 * 1024 * 1024
@@ -282,9 +284,24 @@ export function apply(ctx, config = {}) {
     'POST /api/memory': async ({ kind, text }) => { memory.write(kind, text); return memory.read() },
   }
 
+  // 桌面版：壳传入随机 DSH_BOT_TOKEN。窗口第一次带 ?token= 打开，换成 HttpOnly cookie 后跳回 /；
+  // 之后每个请求（页面、API、SSE、附件）都要这个 cookie。同机其他程序拿不到 token 就访问不了。
+  const token = process.env.DSH_BOT_TOKEN || null
+  const COOKIE = 'dshbot'
+  const authorized = (req, url) => {
+    if (!token) return true
+    const got = (req.headers.cookie ?? '').split(/;\s*/).find(c => c.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1)
+    if (got === undefined) return false
+    const [a, b] = [Buffer.from(got), Buffer.from(token)]
+    return a.length === b.length && timingSafeEqual(a, b)
+  }
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x')
     const path = url.pathname
+    if (token && url.searchParams.get('token') === token) {
+      res.writeHead(302, { 'set-cookie': `${COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/`, location: '/' }); res.end(); return
+    }
+    if (!authorized(req, url)) { res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' }); res.end('dsh-bot: 需要从桌面应用打开'); return }
     if (path === '/api/feed') {
       res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive' })
       res.write('event: hello\ndata: {}\n\n')
@@ -318,6 +335,11 @@ export function apply(ctx, config = {}) {
   })
   const host = config.host ?? process.env.DSH_BOT_HOST ?? '127.0.0.1'
   const port = config.port ?? 8787
-  server.listen(port, host, () => console.log(`dsh-bot on http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}`))
+  server.listen(port, host, () => {
+    const bound = server.address().port
+    console.log(`dsh-bot on http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${bound}`)
+    // 桌面壳通过 IPC 等这条“就绪”消息（DSH Desktop 的 Host 也是这样把地址告诉 Electron）。
+    if (process.send && process.env.DSH_BOT_APP) process.send({ type: 'ready', url: `http://127.0.0.1:${bound}/${token ? `?token=${token}` : ''}` })
+  })
   ctx.effect(() => () => server.close(), 'dsh-bot: http server')
 }
