@@ -1,4 +1,4 @@
-// DSH Bot: what an unpacked app is made of. Prints the total, the top-level files, and
+// Mochou: what an unpacked app is made of. Prints the total, the top-level files, and
 // the largest packages inside app.asar (by the sizes in its header) and app.asar.unpacked.
 // Usage: node scripts/size-report.mjs <unpacked app folder> [--json out.json]
 import { readdirSync, statSync, writeFileSync } from 'node:fs'

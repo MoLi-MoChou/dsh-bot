@@ -1,10 +1,10 @@
-# DSH Bot web on a server: docker compose up -d --build (run from the repository root
-# copy, with .env beside this file: DSH_BOT_PASSWORD and the model provider keys).
+# Mochou web on a server: docker compose up -d --build (run from the repository root
+# copy, with .env beside this file: MOCHOU_PASSWORD and the model provider keys).
 services:
-  dsh-bot:
+  mochou:
     build: { context: .., dockerfile: Dockerfile }
-    image: dsh-bot-web:latest
-    container_name: dsh-bot-web
+    image: mochou:latest
+    container_name: mochou
     restart: unless-stopped
     env_file: .env
     ports:

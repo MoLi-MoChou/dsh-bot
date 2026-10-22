@@ -61,7 +61,7 @@ function modelProfiles(from) {
       patch = parse(readFileSync(file, 'utf8'))
     } catch (error) {
       // An unreadable profile has no model settings to copy; the team is still there.
-      console.warn(`DSH Bot: skipped the model settings in ${file}: ${error instanceof Error ? error.message : String(error)}`)
+      console.warn(`Mochou: skipped the model settings in ${file}: ${error instanceof Error ? error.message : String(error)}`)
       return []
     }
     const rows = Array.isArray(patch) ? patch.filter(row => MODEL_ROWS.includes(row?.id)) : []
@@ -185,7 +185,7 @@ export async function importTeam({ from, to, workspace, profile, dsh, signal }) 
   if (existsSync(join(oldBot, 'workspace'))) {
     // Bots that ran npm or pnpm there leave links, some of them to nothing.
     const skipped = await copyTree(join(oldBot, 'workspace'), workspace, { force: false, skip: true, signal })
-    if (skipped.length > 0) console.warn('DSH Bot: the import skipped what it could not read in the old team workspace:', skipped)
+    if (skipped.length > 0) console.warn('Mochou: the import skipped what it could not read in the old team workspace:', skipped)
   }
   signal?.throwIfAborted()
   const keys = []

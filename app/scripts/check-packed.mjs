@@ -16,10 +16,10 @@ const executable = given || packedExecutable()
 
 function packedExecutable() {
   const out = join(root, 'dist-pack')
-  if (process.platform === 'win32') return join(out, 'win-unpacked', 'DSH Bot.exe')
-  if (process.platform === 'linux') return join(out, 'linux-unpacked', 'dsh-bot')
+  if (process.platform === 'win32') return join(out, 'win-unpacked', 'Mochou.exe')
+  if (process.platform === 'linux') return join(out, 'linux-unpacked', 'mochou')
   const dir = ['mac-arm64', 'mac'].find(name => existsSync(join(out, name))) ?? 'mac'
-  return join(out, dir, 'DSH Bot.app', 'Contents', 'MacOS', 'DSH Bot')
+  return join(out, dir, 'Mochou.app', 'Contents', 'MacOS', 'Mochou')
 }
 
 if (!existsSync(executable)) {

@@ -1,15 +1,15 @@
-// DSH Bot web mode: the same Host and UI, served to a normal browser without Electron.
+// Mochou web mode: the same Host and UI, served to a normal browser without Electron.
 //
-//   DSH_BOT_PASSWORD=… node src/web.mjs     (npm run web)
+//   MOCHOU_PASSWORD=… node src/web.mjs     (npm run web)
 //
-// The Host listens on loopback only. This process listens on DSH_BOT_WEB_HOST:DSH_BOT_WEB_PORT
+// The Host listens on loopback only. This process listens on MOCHOU_WEB_HOST:MOCHOU_WEB_PORT
 // (default 127.0.0.1:8290) and puts a password page in front of it: the right password is
 // exchanged for the Host's launch token, which makes DSH mint its own signed session cookie;
 // from then on DSH authenticates every request itself. Without a password set, the page
 // is skipped only on loopback (a local `npm run web`); on any other address it refuses to start.
 import { createServer, request as httpRequest } from 'node:http'
 import { connect } from 'node:net'
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -20,13 +20,21 @@ import { loginPage } from './web-login.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const env = process.env
-const dataDir = env.DSH_BOT_DATA ?? join(homedir(), '.dsh-bot')
-const bind = env.DSH_BOT_WEB_HOST ?? '127.0.0.1'
-const port = Number(env.DSH_BOT_WEB_PORT ?? 8290)
-const password = env.DSH_BOT_PASSWORD ?? ''
+// MOCHOU_* settings; the DSH_BOT_* names from before the Mochou rename still work.
+const setting = name => env[`MOCHOU_${name}`] ?? env[`DSH_BOT_${name}`]
+// New installs keep their data in ~/.mochou; one made before the rename keeps ~/.dsh-bot.
+const defaultData = () => {
+  const fresh = join(homedir(), '.mochou')
+  const legacy = join(homedir(), '.dsh-bot')
+  return !existsSync(fresh) && existsSync(legacy) ? legacy : fresh
+}
+const dataDir = setting('DATA') ?? defaultData()
+const bind = setting('WEB_HOST') ?? '127.0.0.1'
+const port = Number(setting('WEB_PORT') ?? 8290)
+const password = setting('PASSWORD') ?? ''
 const loopback = ['127.0.0.1', '::1', 'localhost'].includes(bind)
 if (!password && !loopback) {
-  console.error('dsh-bot web: set DSH_BOT_PASSWORD to listen on a non-loopback address.')
+  console.error('mochou web: set MOCHOU_PASSWORD to listen on a non-loopback address.')
   process.exit(1)
 }
 
@@ -49,8 +57,8 @@ async function main() {
   const host = new HostProcess({
     entry: join(here, 'host.mjs'), cwd: profileDir, pnpm,
     // The access password stays in this process; the Host never sees it.
-    env: { ...Object.fromEntries(Object.entries(env).filter(([name]) => name !== 'DSH_BOT_PASSWORD')), DSH_HOME: dataDir, DS_BOT_PORT: env.DSH_BOT_HOST_PORT ?? '0', DS_BOT_WEB: '1', ...(env.DSH_BOT_WORKSPACE ? { DS_BOT_WORKSPACE: env.DSH_BOT_WORKSPACE } : {}) },
-    onFailure: (error) => { console.error(`dsh-bot web: the Host stopped: ${error.message}`); process.exit(1) },
+    env: { ...Object.fromEntries(Object.entries(env).filter(([name]) => name !== 'MOCHOU_PASSWORD' && name !== 'DSH_BOT_PASSWORD')), DSH_HOME: dataDir, DS_BOT_PORT: setting('HOST_PORT') ?? '0', DS_BOT_WEB: '1', ...(setting('WORKSPACE') ? { DS_BOT_WORKSPACE: setting('WORKSPACE') } : {}) },
+    onFailure: (error) => { console.error(`mochou web: the Host stopped: ${error.message}`); process.exit(1) },
   })
   const ready = await host.start()
   const launch = new URL(ready.url)
@@ -107,7 +115,7 @@ async function main() {
     socket.on('error', () => upstream.destroy())
   })
   server.listen(port, bind, () => {
-    console.log(`dsh-bot web: http://${bind.includes(':') ? `[${bind}]` : bind}:${port}/${password ? 'login' : `login (no password: loopback only)`}`)
+    console.log(`mochou web: http://${bind.includes(':') ? `[${bind}]` : bind}:${port}/${password ? 'login' : `login (no password: loopback only)`}`)
   })
   const stop = async () => { server.close(); await host.stop().catch(() => {}); process.exit(0) }
   process.once('SIGINT', stop)

@@ -2,7 +2,7 @@
 
 - 日期：2026-10-08 定 Bot 浏览器，2026-10-09 定读网页和密钥卡，之后补了连接器
 - 相关：#114（链接在 Bot 浏览器里打开）、#128（关掉 auto 搜索后的恢复）、#184（opencode 路由的 `web_search`）
-- 代码：`ds-bot/src/host/browser.js`、`src/client/bot-browsers.js`、`src/client/read-page.js`、`ds-bot/web-search.js`、`src/host/secrets.js`、`src/host/connectors.js`
+- 代码：`core/src/host/browser.js`、`src/client/bot-browsers.js`、`src/client/read-page.js`、`core/web-search.js`、`src/host/secrets.js`、`src/host/connectors.js`
 
 ## 为什么
 

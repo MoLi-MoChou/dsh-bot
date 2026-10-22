@@ -2,7 +2,7 @@
 
 - 日期：2026-10-10 定预设和能力包，之后陆续补充
 - 相关：#99（思考强度）、#159（换模型不生效）、#208、#209（工作文件夹）
-- 代码：`ds-bot/src/host/roster.js`、`models.js`、`folders.js`、`capabilities.js`、`permissions.js`，建 Bot 表单在 `src/client/bot-draft.js`
+- 代码：`core/src/host/roster.js`、`models.js`、`folders.js`、`capabilities.js`、`permissions.js`，建 Bot 表单在 `src/client/bot-draft.js`
 
 权限预设（只读 / 工作区内修改 / 完全权限）和群的统一权限见[角色与权限](2026-10-07-roles-and-permissions.md)，这里不重复。
 

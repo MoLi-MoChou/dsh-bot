@@ -5,7 +5,7 @@ app/dist-pack
 app/dist-next
 app/build
 deepseek-harness
-ds-bot/dev
-ds-bot/test
+core/dev
+core/test
 **/.dsh-*
 **/*.tgz

@@ -49,7 +49,7 @@ At every start the Host puts these three bundles at the head of the profile's bu
 
 `npm test` checks the composition of the profile, the import on throwaway folders, the first-run check on a chat with a record that the pinned DSH does not know, and that every package the app runs on is a dependency (see [Package](#package)).
 
-`scripts/shot.mjs` starts the app on throwaway folders, saves a screenshot of its window, prints the page text, closes the window the way a user does and waits until the app exits. Use the mock model of the plugin, `../ds-bot/dev/mock-llm.mjs` (`MOCK_PORT=<port> node ../ds-bot/dev/mock-llm.mjs`).
+`scripts/shot.mjs` starts the app on throwaway folders, saves a screenshot of its window, prints the page text, closes the window the way a user does and waits until the app exits. Use the mock model of the plugin, `../core/dev/mock-llm.mjs` (`MOCK_PORT=<port> node ../core/dev/mock-llm.mjs`).
 
 ```sh
 DS_BOT_HOME=<tmp>/home DS_BOT_SHELL_DATA=<tmp>/shell \
@@ -122,7 +122,7 @@ The script serves a releases list with one release of that version that has this
 | `src/updates.mjs` | The Windows installer updates and macOS release-page checks |
 | `engine/` | On hold, not installed: the bundle `deepseek-bot-engine` for the app's own window in `ui/` |
 | `test/` | `npm test`: the composition of the profile, and the dependencies that the package needs |
-| `ui/` | On hold, not built or packaged: the app's own window. React, built with Vite (`vite.config.js`) into `ui/dist`. It draws the plugin's own Bot views from `../ds-bot/src/client/` (sidebar, chat rows, docks, dialogs and their stylesheets) and puts its own Markdown in place of DSH's. It uses ds-bot's `api/bot` channel and its live feed `api/bot/feed` |
+| `ui/` | On hold, not built or packaged: the app's own window. React, built with Vite (`vite.config.js`) into `ui/dist`. It draws the plugin's own Bot views from `../core/src/client/` (sidebar, chat rows, docks, dialogs and their stylesheets) and puts its own Markdown in place of DSH's. It uses ds-bot's `api/bot` channel and its live feed `api/bot/feed` |
 | `assets/` | The app icon: `icon.svg`, `icon.png` (1024 px) and `icon.ico` (Windows, 16 to 256 px). `npm run icon` (`scripts/icon.mjs`) draws them again from the Main Bot's whale in `../ds-bot` |
 | `electron-builder.yml`, `build/` | The package and the installer: app identity, files, icons, the Windows installer and the macOS disk image |
 | `scripts/check-packed.mjs` | `npm run check-packed`: the check of a packaged app |

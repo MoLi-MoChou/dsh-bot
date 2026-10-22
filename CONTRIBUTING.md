@@ -65,12 +65,12 @@ Keep one pull request to one issue. Split a large change into several pull reque
 
 ### Merge conflicts
 
-- **`ds-bot/client.js`**: never resolve it by hand. Resolve the conflicts in `ds-bot/src/client/`, run `npm run build` in `ds-bot/` and commit the new `client.js`.
+- **`core/client.js`**: never resolve it by hand. Resolve the conflicts in `core/src/client/`, run `npm run build` in `core/` and commit the new `client.js`.
 - **`CHANGELOG.md`**: pull requests do not change it, so it should not conflict. If it does, keep both sides.
 
 ### Releases (maintainer)
 
-1. In a pull request into `dev`, set the version in `ds-bot/package.json` and write the `CHANGELOG.md` section from the Changelog sentences of the merged pull requests.
+1. In a pull request into `dev`, set the version in `core/package.json` and write the `CHANGELOG.md` section from the Changelog sentences of the merged pull requests.
 2. Open a pull request from `dev` into `main` titled `release: vX.Y.Z`. List every `Fixes #<number>` of the release in its description, so that these issues close when it is merged.
 3. Before you merge it, run the [release checklist](docs/dev/release-checklist.md) (in Chinese) on a real Windows machine, and on macOS when the change touches it, and post the result in the pull request. Merge it with a merge commit and publish a GitHub release `vX.Y.Z` on `main`. The Release workflow checks that the tag matches the version and is on `main`, runs the checks and publishes the package to npm (a pre-release version under the npm tag `next`). Do not run `npm publish` by hand.
 4. For a hotfix, start `fix/hot-<name>` from `main`, open the pull request into `main`, release a patch version, then merge `main` into `dev`.
@@ -111,17 +111,17 @@ The `@deepseek-ai/*` packages are peer dependencies: in a real install, the DSH 
 
 | Path | What it is |
 |---|---|
-| `ds-bot/index.js`, `ds-bot/src/host/` | The server side: Bot roster and store, tools, turns and delivery, group chats, conversation parts and the search index, images, the Bot browser bridge, the `api/bot` channel |
-| `ds-bot/src/client/` | The browser side: sidebar, chat, panels and dialogs, themes, characters, the Bot browser panel |
-| `ds-bot/client.js` | Generated from `src/client/` by `scripts/build-client.mjs`. It is committed, so that Git installs need no build step |
-| `ds-bot/web-search.js` | The `auto` web-search provider. It does not depend on the Bot team code |
-| `ds-bot/cordis.patch.yml` | The profile patch that the plugin brings |
-| `ds-bot/test/` | Unit tests and fixtures |
-| `ds-bot/dev/` | The DSH packages for the unit tests (`harness/`), the mock model, the test bench, the smoke test, the character generator, the Desktop scripts for Linux, and two tools for real models: the steward evaluation and a logging pass-through |
+| `core/index.js`, `core/src/host/` | The server side: Bot roster and store, tools, turns and delivery, group chats, conversation parts and the search index, images, the Bot browser bridge, the `api/bot` channel |
+| `core/src/client/` | The browser side: sidebar, chat, panels and dialogs, themes, characters, the Bot browser panel |
+| `core/client.js` | Generated from `src/client/` by `scripts/build-client.mjs`. It is committed, so that Git installs need no build step |
+| `core/web-search.js` | The `auto` web-search provider. It does not depend on the Bot team code |
+| `core/cordis.patch.yml` | The profile patch that the plugin brings |
+| `core/test/` | Unit tests and fixtures |
+| `core/dev/` | The DSH packages for the unit tests (`harness/`), the mock model, the test bench, the smoke test, the character generator, the Desktop scripts for Linux, and two tools for real models: the steward evaluation and a logging pass-through |
 
 ## Test a change
 
-Run these in `ds-bot/`:
+Run these in `core/`:
 
 ```sh
 npm run build                          # src/client → client.js

@@ -65,12 +65,12 @@
 
 ### 合并冲突
 
-- **`ds-bot/client.js`**：不要手工解决。先解决 `ds-bot/src/client/` 里的冲突，再在 `ds-bot/` 里运行 `npm run build`，提交新生成的 `client.js`。
+- **`core/client.js`**：不要手工解决。先解决 `core/src/client/` 里的冲突，再在 `core/` 里运行 `npm run build`，提交新生成的 `client.js`。
 - **`CHANGELOG.md`**：Pull Request 不改它，所以不应该冲突。如果冲突了，两边都保留。
 
 ### 发版（维护者）
 
-1. 向 `dev` 提一个 Pull Request：修改 `ds-bot/package.json` 里的版本号，根据已合并 Pull Request 的 Changelog 句子写 `CHANGELOG.md` 的这一版。
+1. 向 `dev` 提一个 Pull Request：修改 `core/package.json` 里的版本号，根据已合并 Pull Request 的 Changelog 句子写 `CHANGELOG.md` 的这一版。
 2. 提一个从 `dev` 到 `main` 的 Pull Request，标题为 `release: vX.Y.Z`。在描述里列出这一版所有的 `Fixes #<号>`，合并时这些 Issue 会一起关闭。
 3. 合并前在 Windows 真机上做一遍[发版前真机检查](docs/dev/release-checklist.md)，改动涉及 macOS 时在 macOS 上也做一遍，结果贴在这个 PR 里。用 merge commit 合并，在 `main` 上发布 GitHub Release `vX.Y.Z`。Release 工作流会检查 tag 与版本号一致、且在 `main` 上，跑完检查后把包发到 npm（预发布版本发到 npm 的 `next` 标签）。不要手动 `npm publish`。
 4. 热修：从 `main` 切 `fix/hot-<短名>`，向 `main` 提 Pull Request，发一个补丁版本，再把 `main` 合回 `dev`。
@@ -111,17 +111,17 @@ git -C deepseek-harness checkout dsh-v0.2.1-rc.2
 
 | 路径 | 内容 |
 |---|---|
-| `ds-bot/index.js`、`ds-bot/src/host/` | 服务端：Bot 名册与存储、工具、回合与投递、群聊、对话分段与搜索索引、图片、Bot 浏览器桥接、`api/bot` 通道 |
-| `ds-bot/src/client/` | 浏览器端：侧栏、聊天、面板与对话框、主题、角色、Bot 浏览器面板 |
-| `ds-bot/client.js` | 由 `scripts/build-client.mjs` 从 `src/client/` 生成。它被提交进仓库，这样用 Git 安装时不需要构建 |
-| `ds-bot/web-search.js` | `auto` 网页搜索提供方。不依赖 Bot 团队代码 |
-| `ds-bot/cordis.patch.yml` | 插件带的 profile patch |
-| `ds-bot/test/` | 单元测试和测试数据 |
-| `ds-bot/dev/` | 单元测试用的 DSH 包（`harness/`）、模拟模型、测试台、冒烟测试、角色生成器、Linux 上的 Desktop 脚本，以及两个用真实模型的工具：上下文管家评测和日志转发 |
+| `core/index.js`、`core/src/host/` | 服务端：Bot 名册与存储、工具、回合与投递、群聊、对话分段与搜索索引、图片、Bot 浏览器桥接、`api/bot` 通道 |
+| `core/src/client/` | 浏览器端：侧栏、聊天、面板与对话框、主题、角色、Bot 浏览器面板 |
+| `core/client.js` | 由 `scripts/build-client.mjs` 从 `src/client/` 生成。它被提交进仓库，这样用 Git 安装时不需要构建 |
+| `core/web-search.js` | `auto` 网页搜索提供方。不依赖 Bot 团队代码 |
+| `core/cordis.patch.yml` | 插件带的 profile patch |
+| `core/test/` | 单元测试和测试数据 |
+| `core/dev/` | 单元测试用的 DSH 包（`harness/`）、模拟模型、测试台、冒烟测试、角色生成器、Linux 上的 Desktop 脚本，以及两个用真实模型的工具：上下文管家评测和日志转发 |
 
 ## 测试改动
 
-在 `ds-bot/` 里运行：
+在 `core/` 里运行：
 
 ```sh
 npm run build                          # src/client → client.js

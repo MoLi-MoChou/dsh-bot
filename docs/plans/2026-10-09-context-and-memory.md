@@ -2,7 +2,7 @@
 
 - 日期：2026-10-08 定记忆，2026-10-09 定分段和管家，2026-10-17 加群记忆
 - 相关：#122（会话换代）、#151（群内共享记忆）、#214（已保存的记忆在已开着的会话里不生效）
-- 代码：`ds-bot/src/host/steward.js`、`parts.js`、`memory.js`、`chat-index.js`，`read_own_chat` 在 `groups.js`
+- 代码：`core/src/host/steward.js`、`parts.js`、`memory.js`、`chat-index.js`，`read_own_chat` 在 `groups.js`
 
 ## 为什么
 

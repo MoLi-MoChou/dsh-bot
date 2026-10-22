@@ -4,6 +4,10 @@ All notable changes to DS Bot are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Changed
+
+- The fork is now called Mochou (莫愁): new name, logo, app id `com.molimochou.mochou`, data folder `~/.mochou` (an existing `~/.dsh-bot` is still used), `MOCHOU_*` settings (the `DSH_BOT_*` names still work), plugin folder `core/` and package `mochou-core` (profiles that list `ds-bot` move over by themselves).
+
 ## [0.2.0] - 2026-10-21
 
 ### Added
@@ -259,9 +263,9 @@ If you used the legacy `dsh-bot` package, remove it before you install `ds-bot`.
 ### Known limitations
 
 - Tested with DSH `0.2.1-alpha.1`, mainly on Linux and in DSH Web. DSH is an alpha, and a newer DSH can break the plugin.
-- The Bot browser is in DSH Desktop only, and Bots can only read pages ([Bot browser](ds-bot/README.md#bot-browser)).
-- Secrets are stored without encryption, and only exact copies of a value are hidden ([Secrets](ds-bot/README.md#secrets)).
-- Only one DSH can change a team at a time; a second DSH on the same DSH home opens it read-only ([Data and backups](ds-bot/README.md#data-and-backups)).
+- The Bot browser is in DSH Desktop only, and Bots can only read pages ([Bot browser](core/README.md#bot-browser)).
+- Secrets are stored without encryption, and only exact copies of a value are hidden ([Secrets](core/README.md#secrets)).
+- Only one DSH can change a team at a time; a second DSH on the same DSH home opens it read-only ([Data and backups](core/README.md#data-and-backups)).
 - Group chats use many tokens: each member reads the group and answers in turn.
 
 [Unreleased]: https://github.com/Fei2411/DeepSeek-Bot/compare/v0.2.0...HEAD

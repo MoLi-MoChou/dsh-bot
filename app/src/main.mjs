@@ -125,7 +125,7 @@ async function start() {
     // update can still come when this version's Host does not start.
     updates = startUpdates()
     host = newHost()
-    // DSH Bot patch: fetch the Office engine once the app is up.
+    // Mochou patch: fetch the Office engine once the app is up.
     setTimeout(() => { void downloadEngine() }, 20_000).unref?.()
     return host.start()
   })()
@@ -134,7 +134,7 @@ async function start() {
   const fixed = Boolean(process.env.DS_BOT_HOME)
   ipcMain.handle(IPC.engineState, (event) => { assertWindow(event); return engineState })
   ipcMain.handle(IPC.engineDownload, async (event) => { assertWindow(event); await downloadEngine(); return engineState })
-  // DSH Bot patch: Settings > About drives the app's own updater.
+  // Mochou patch: Settings > About drives the app's own updater.
   ipcMain.handle(IPC.updateState, (event) => { assertWindow(event); return updates?.state?.() ?? { phase: 'unsupported', current: app.getVersion(), reason: updateUnsupported() } })
   ipcMain.handle(IPC.updateCheck, async (event) => { assertWindow(event); if (!updates?.check) return { phase: 'unsupported', current: app.getVersion(), reason: updateUnsupported() }; await updates.check(); return updates.state() })
   ipcMain.handle(IPC.updateInstall, async (event) => { assertWindow(event); if (updates?.state?.().phase === 'downloaded') await updates.install() })
@@ -177,14 +177,14 @@ async function start() {
 // without the copied Sessions' folders, so the old team's folders are not offered as projects.
 // Before that, the app's own DSH reads every chat of the team once: a newer DSH can write
 // records that this one refuses while the log format stays the same. Such a chat stops the
-// copy, as a newer log format does; 'quit' means the user updates DSH Bot first, and
+// copy, as a newer log format does; 'quit' means the user updates Mochou first, and
 // 'stopped' that the app quit during the copy.
 async function copyTeam(where, newHost, newCheck, signal) {
   const unreadable = await checkTeam(where, newCheck, signal)
   if (signal.aborted) return 'stopped'
   if (unreadable > 0) {
     const t = text()
-    const { response } = await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', noLink: true, message: t.newer(unreadable), buttons: [t.quit, t.startEmpty], defaultId: 0, cancelId: 0, signal })
+    const { response } = await dialog.showMessageBox({ type: 'warning', title: 'Mochou', noLink: true, message: t.newer(unreadable), buttons: [t.quit, t.startEmpty], defaultId: 0, cancelId: 0, signal })
     if (signal.aborted) return 'stopped'
     if (response === 0) return 'quit'
     saveLocations(where)
@@ -201,11 +201,11 @@ async function copyTeam(where, newHost, newCheck, signal) {
     await warm.stop()
     host = undefined
     const summary = await importTeam({ ...where.import, to: where.dataDir, workspace: where.workspace, dsh: getDshRuntimeVersion(), signal })
-    console.log(`DSH Bot: copied ${String(summary.bots)} Bots and ${String(summary.sessions)} Sessions from ${summary.from}`)
+    console.log(`Mochou: copied ${String(summary.bots)} Bots and ${String(summary.sessions)} Sessions from ${summary.from}`)
   } catch (error) {
     if (signal.aborted) return 'stopped'
     console.error(error)
-    await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', message: text().failed(error instanceof Error ? error.message : String(error)), signal })
+    await dialog.showMessageBox({ type: 'warning', title: 'Mochou', message: text().failed(error instanceof Error ? error.message : String(error)), signal })
     if (signal.aborted) return 'stopped'
   } finally {
     signal.removeEventListener('abort', stopWarm)
@@ -235,14 +235,14 @@ async function checkTeam(where, newCheck, signal) {
     try {
       signal.throwIfAborted()
       const { unreadable } = await check.start()
-      if (unreadable.length > 0) console.warn(`DSH Bot: this DSH cannot read ${unreadable.join(', ')}`)
+      if (unreadable.length > 0) console.warn(`Mochou: this DSH cannot read ${unreadable.join(', ')}`)
       return unreadable.length
     } finally {
       signal.removeEventListener('abort', stop)
       await check.stop()
     }
   } catch (error) {
-    if (!signal.aborted) console.error('DSH Bot: the chats were not checked before the copy:', error)
+    if (!signal.aborted) console.error('Mochou: the chats were not checked before the copy:', error)
     return 0
   } finally {
     mainWindow?.setProgressBar(-1)
@@ -265,13 +265,13 @@ async function moveData(workspace) {
     for (const current of new Set([workspace, places.workspace])) {
       const problem = moveProblem({ from: places.dataDir, to, workspace: current, dshHome, program: app.isPackaged ? programFolder() : undefined })
       if (problem === undefined) continue
-      await dialog.showMessageBox(owner, { type: 'warning', title: 'DSH Bot', message: problem === 'dsh' ? t.inDsh(dshHome) : t[MOVE_PROBLEMS[problem]], buttons: ['OK'] })
+      await dialog.showMessageBox(owner, { type: 'warning', title: 'Mochou', message: problem === 'dsh' ? t.inDsh(dshHome) : t[MOVE_PROBLEMS[problem]], buttons: ['OK'] })
       return true
     }
     return false
   }
   if (await refused()) return false
-  const { response } = await dialog.showMessageBox(owner, { type: 'question', title: 'DSH Bot', noLink: true, message: t.moveConfirm(to), detail: t.moveDetail(places.dataDir), buttons: [t.move, t.cancel], defaultId: 0, cancelId: 1 })
+  const { response } = await dialog.showMessageBox(owner, { type: 'question', title: 'Mochou', noLink: true, message: t.moveConfirm(to), detail: t.moveDetail(places.dataDir), buttons: [t.move, t.cancel], defaultId: 0, cancelId: 1 })
   if (response !== 0 || stopping || await refused()) return false
   const signal = copyAbort.signal
   copying = (async () => {
@@ -285,7 +285,7 @@ async function moveData(workspace) {
     }
     // Another DSH on the same data would go on writing while the copy is made.
     if (teamInUse(places.dataDir)) {
-      await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', message: t.moveInUse })
+      await dialog.showMessageBox({ type: 'warning', title: 'Mochou', message: t.moveInUse })
       app.relaunch()
       return
     }
@@ -302,7 +302,7 @@ async function moveData(workspace) {
     } catch (error) {
       if (signal.aborted) return
       console.error(error)
-      await dialog.showMessageBox({ type: 'warning', title: 'DSH Bot', message: t.moveFailed(error instanceof Error ? error.message : String(error)) })
+      await dialog.showMessageBox({ type: 'warning', title: 'Mochou', message: t.moveFailed(error instanceof Error ? error.message : String(error)) })
     } finally {
       mainWindow?.setProgressBar(-1)
     }
@@ -328,9 +328,9 @@ function startUpdates() {
       current: app.getVersion(), arch: process.arch, feed, ask: throwaway ? undefined : askDownload, open: url => shell.openExternal(url),
     })
   }
-  // DSH Bot patch: the Linux AppImage updates itself in place too.
+  // Mochou patch: the Linux AppImage updates itself in place too.
   if ((process.platform === 'win32' && !process.env.PORTABLE_EXECUTABLE_DIR) || (process.platform === 'linux' && process.env.APPIMAGE)) {
-    // DSH Bot releases are GitHub pre-releases, which /releases/latest skips.
+    // Mochou releases are GitHub pre-releases, which /releases/latest skips.
     electronUpdater.autoUpdater.allowPrerelease = true
     return watchUpdates({
       updater: electronUpdater.autoUpdater, feed, ask: throwaway ? undefined : askRestart, beforeInstall: stopHost,
@@ -340,7 +340,7 @@ function startUpdates() {
   return undefined
 }
 
-// DSH Bot patch: the Office-to-PDF engine is downloaded, not installed (engines.mjs).
+// Mochou patch: the Office-to-PDF engine is downloaded, not installed (engines.mjs).
 const enginesRoot = () => join(app.getPath('userData'), 'engines')
 const engine = engineFor()
 // In development, and in a build that still carries it, the engine is already there.
@@ -357,7 +357,7 @@ function downloadEngine() {
   if (engineBundled() || engineReady(enginesRoot(), engine)) { setEngineState({ phase: 'ready', error: undefined }); return Promise.resolve() }
   engineRun ??= ensureEngine({ root: enginesRoot(), engine, onProgress: setEngineState })
     .then(() => setEngineState({ phase: 'ready', error: undefined }))
-    .catch((error) => { console.error(`DSH Bot: ${error instanceof Error ? error.message : String(error)}`); setEngineState({ phase: 'error', error: error instanceof Error ? error.message.slice(0, 200) : String(error) }) })
+    .catch((error) => { console.error(`Mochou: ${error instanceof Error ? error.message : String(error)}`); setEngineState({ phase: 'error', error: error instanceof Error ? error.message.slice(0, 200) : String(error) }) })
     .finally(() => { engineRun = undefined })
   return engineRun
 }
@@ -374,7 +374,7 @@ async function askRestart(version) {
   // After a failed start, fail() installs the update itself.
   if (failed) return false
   const t = localeText(UPDATE_TEXT)
-  const options = { type: 'info', title: 'DSH Bot', message: t.ready(version), detail: t.readyDetail, buttons: [t.restart, t.later], defaultId: 0, cancelId: 1, noLink: true }
+  const options = { type: 'info', title: 'Mochou', message: t.ready(version), detail: t.readyDetail, buttons: [t.restart, t.later], defaultId: 0, cancelId: 1, noLink: true }
   const { response } = await (mainWindow ? dialog.showMessageBox(mainWindow, options) : dialog.showMessageBox(options))
   return response === 0
 }
@@ -382,7 +382,7 @@ async function askRestart(version) {
 async function askDownload(version) {
   if (failed) return false
   const t = localeText(UPDATE_TEXT)
-  const options = { type: 'info', title: 'DSH Bot', message: t.available(version), detail: t.availableDetail, buttons: [t.download, t.later], defaultId: 0, cancelId: 1, noLink: true }
+  const options = { type: 'info', title: 'Mochou', message: t.available(version), detail: t.availableDetail, buttons: [t.download, t.later], defaultId: 0, cancelId: 1, noLink: true }
   const { response } = await (mainWindow ? dialog.showMessageBox(mainWindow, options) : dialog.showMessageBox(options))
   return response === 0
 }
@@ -392,7 +392,7 @@ function createWindow() {
   const win32 = process.platform === 'win32'
   mainWindow = new BrowserWindow({
     width: 1320, height: 860, minWidth: 720, minHeight: 480,
-    title: 'DSH Bot', show: false, icon: iconFile,
+    title: 'Mochou', show: false, icon: iconFile,
     backgroundColor: mica ? '#00000000' : dark ? '#1b1b1c' : '#ffffff',
     // Frameless as in DSH Desktop: the caption buttons overlay the page's band. They keep the
     // sidebar's colors until the page sends the colors of the surface under them.
@@ -466,7 +466,7 @@ function focusWindow() {
 function assertWindow(event) {
   const contents = mainWindow?.webContents
   if (contents === undefined || event.sender !== contents || event.senderFrame !== contents.mainFrame
-    || !event.senderFrame.url.startsWith(`${origin}/`)) throw new Error('DSH Bot: rejected IPC from an unknown page')
+    || !event.senderFrame.url.startsWith(`${origin}/`)) throw new Error('Mochou: rejected IPC from an unknown page')
 }
 
 function fromWindow(event) {
@@ -486,7 +486,7 @@ async function fail(error) {
   const throwaway = Boolean(process.env.DS_BOT_HOME)
   const t = localeText(UPDATE_TEXT)
   const next = found ? `\n\n${found.page ? t.onFailurePage(found.version) : t.onFailure(found.version)}` : ''
-  dialog.showErrorBox('DSH Bot', `${text().notStarted}\n\n${error instanceof Error ? error.message : String(error)}${next}`)
+  dialog.showErrorBox('Mochou', `${text().notStarted}\n\n${error instanceof Error ? error.message : String(error)}${next}`)
   if (found?.page) {
     if (!throwaway) await shell.openExternal(found.page)
     app.quit()

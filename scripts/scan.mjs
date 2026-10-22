@@ -56,7 +56,7 @@ const TEXT_RULES = [
   { id: 'third-party-logo', level: MUST, re: /WhaleLogo|favicon\.svg/g, notFiles: /(^|\/)test\// },
   { id: 'vendor-name', level: KEEP, re: new RegExp(VENDORS.source, 'gi'), notFiles: LOOK_FILES, summary: true },
   // Former names of the project and the package.
-  // DSH Bot patch: DS Bot's former name is this fork's name, so the two rules that kept
+  // Mochou patch: DS Bot's former name is this fork's name, so the two rules that kept
   // it out are dropped.
   { id: 'legacy-name-in-migration', level: KEEP, re: /\bdsh-bot\b|DeepSeek Bot\b/gi, onlyLegacy: true, summary: true },
   // Drafts and local-only material.
@@ -115,17 +115,17 @@ for (const file of files) {
 
 // Package checks: the license and the fields that npm and DSH read.
 if (!files.includes('LICENSE')) add(MUST, 'license', 'LICENSE', 0, 'no LICENSE at the root')
-if (!files.includes('ds-bot/package.json')) add(MUST, 'plugin-folder', '.', 0, 'no ds-bot/package.json')
+if (!files.includes('core/package.json')) add(MUST, 'plugin-folder', '.', 0, 'no core/package.json')
 else {
-  const pkg = JSON.parse(readFileSync(join(root, 'ds-bot/package.json'), 'utf8'))
-  if (pkg.name !== 'ds-bot') add(MUST, 'package', 'ds-bot/package.json', 0, `name is "${pkg.name}", expected "ds-bot"`)
-  if (!files.includes('ds-bot/LICENSE')) add(MUST, 'package', 'ds-bot/LICENSE', 0, 'the package has no LICENSE file')
-  if (!(pkg.files ?? []).includes('LICENSE')) add(MUST, 'package', 'ds-bot/package.json', 0, '"files" does not list LICENSE')
+  const pkg = JSON.parse(readFileSync(join(root, 'core/package.json'), 'utf8'))
+  if (pkg.name !== 'mochou-core') add(MUST, 'package', 'core/package.json', 0, `name is "${pkg.name}", expected "mochou-core"`)
+  if (!files.includes('core/LICENSE')) add(MUST, 'package', 'core/LICENSE', 0, 'the package has no LICENSE file')
+  if (!(pkg.files ?? []).includes('LICENSE')) add(MUST, 'package', 'core/package.json', 0, '"files" does not list LICENSE')
   for (const field of ['repository', 'homepage', 'bugs']) {
-    if (!pkg[field]) add(MUST, 'package', 'ds-bot/package.json', 0, `no "${field}" field`)
+    if (!pkg[field]) add(MUST, 'package', 'core/package.json', 0, `no "${field}" field`)
   }
   for (const [name, range] of Object.entries(pkg.peerDependencies ?? {})) {
-    if (range !== '*') add(KEEP, 'package', 'ds-bot/package.json', 0, `peer ${name} is "${range}", not "*"`)
+    if (range !== '*') add(KEEP, 'package', 'core/package.json', 0, `peer ${name} is "${range}", not "*"`)
   }
 }
 for (const name of ['README.md', 'README.zh.md', 'CONTRIBUTING.md', 'CHANGELOG.md', 'AGENTS.md', '.gitignore']) {

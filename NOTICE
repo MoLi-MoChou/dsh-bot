@@ -8,21 +8,25 @@ and the DS Bot contributors), imported unchanged and then modified. Every
 change is listed here (Apache-2.0 section 4(b)); code changes carry a
 "DSH Bot patch" comment.
 
-  1. Name: the app is "DSH Bot" (appId io.github.molimochou.dshbot, artifact
-     names DSH-Bot-*, data folders named after it, releases and links point at
-     MoLi-MoChou/dsh-bot). The sidebar, About page and Chinese copy say DSH Bot.
-  2. Slim product (ds-bot/src/client/lean.js): group chats, scheduled /
+  1. Name: the app is "Mochou" (莫愁 in Chinese; appId com.molimochou.mochou,
+     artifact names Mochou-*, data folder ~/.mochou, releases and links point at
+     MoLi-MoChou/mochou), with its own logo (a crescent moon over a lake) in
+     place of DS Bot's. It was called "DSH Bot" before; older data folders
+     (~/.dsh-bot) are still read. The plugin folder ds-bot/ is now core/ and
+     its package is mochou-core. The sidebar, About page, login page and
+     Chinese copy say 莫愁 / Mochou.
+  2. Slim product (core/src/client/lean.js): group chats, scheduled /
      automation tasks, the "Add DSH Agent" entry and the classic Agent mode
      switch are not offered (menus, settings pages, details drawer). The code
      stays; one flag brings each back.
-  3. Work steps (ds-bot/src/client/work-process.js): DS Bot's inline thinking
+  3. Work steps (core/src/client/work-process.js): DS Bot's inline thinking
      row is replaced by one line per finished turn, "已工作 Xs · N 步"; it opens
      a side panel with the turn's thinking, tool calls (input, output) and
      replies in order.
   4. Cards discoverable: starter chips over a fresh chat's composer
-     (ds-bot/src/client/starters.js), one prompt line that maps comparison,
+     (core/src/client/starters.js), one prompt line that maps comparison,
      to-do and "give me options" asks to show_view cards
-     (ds-bot/src/host/prompt.js), and matching replies in the dev mock model.
+     (core/src/host/prompt.js), and matching replies in the dev mock model.
   5. Updates: the Linux AppImage updates itself like the Windows installer;
      releases are GitHub pre-releases (allowPrerelease); Settings > About shows
      the app's own updater (check, download progress, restart to update) via
@@ -37,10 +41,10 @@ change is listed here (Apache-2.0 section 4(b)); code changes carry a
      a v* tag builds Windows + Linux, runs check-packed, and publishes a
      pre-release with latest.yml, the .blockmap and latest-linux.yml.
   9. Lean tools: under the slim product the Bots' own chats also lose the group
-     and schedule tools (ds-bot/src/shared/lean.js, host/tools.js guard) and
+     and schedule tools (core/src/shared/lean.js, host/tools.js guard) and
      the prompt rules about them (host/prompt.js). DSH's Automation tasks panel,
      scheduler, schedule tool and product-telemetry export are switched off in
-     ds-bot/cordis.patch.yml.
+     core/cordis.patch.yml.
  10. Size: the Office-to-PDF engine (LibreOfficeKit) is not packaged; the app
      downloads it once after install from npm (mirror fallback), checks its
      sha512 from the lockfile and unpacks it under the user data folder
@@ -71,7 +75,7 @@ Third-party code in this repository
 DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness)
 MIT License, Copyright (c) 2026 DeepSeek
 
-  - ds-bot/dev/desktop-linux/launch.mts follows the steps of
+  - core/dev/desktop-linux/launch.mts follows the steps of
     apps/desktop/scripts/dev.ts in DeepSeek Harness and reuses a few of its
     lines (the release record and the Electron launch arguments). It is a
     developer script for screenshots on Linux and is not in the npm package.
@@ -115,7 +119,7 @@ MIT License, Copyright (c) 2026 DeepSeek
 open-claude-ui (https://github.com/Caho1/open-claude-ui)
 MIT License, Copyright (c) 2026 Caho1
 
-  - ds-bot/src/client/ime-guard.js follows code-examples/ChatComposer.tsx and
+  - core/src/client/ime-guard.js follows code-examples/ChatComposer.tsx and
     RichComposerWithMentions.tsx: the isComposing / keyCode 229 Enter guard and
     the stray Enter after compositionend.
   - The thinking dots (styles.js), the context ring in the model menu
@@ -124,7 +128,7 @@ MIT License, Copyright (c) 2026 Caho1
     work line (work-process.js, after ThinkingAccordion.tsx), drag to reorder
     in the sidebar (sidebar.js, after DraggableSessionList.tsx) and the retry
     countdown (retry-cell.js, after useRateLimitBackoff.ts) adapt their code.
-  - The "Claude" theme in ds-bot/src/client/themes.js takes its colors, surface
+  - The "Claude" theme in core/src/client/themes.js takes its colors, surface
     ladder and radii from code-examples/cds-theme.css. No logos or marks.
 
   The MIT license text above applies, with this copyright notice.
@@ -132,9 +136,9 @@ MIT License, Copyright (c) 2026 Caho1
 framer-motion (https://github.com/motiondivision/motion)
 MIT License, Copyright (c) 2018 Framer B.V.
 
-  - ds-bot/src/client/vendor/framer-motion.js is a tree-shaken bundle of
+  - core/src/client/vendor/framer-motion.js is a tree-shaken bundle of
     framer-motion 12 (motion, AnimatePresence, Reorder), made by
-    ds-bot/scripts/build-vendor.mjs. The MIT license text above applies.
+    core/scripts/build-vendor.mjs. The MIT license text above applies.
 
 No other third-party code is copied into this repository. At run time the
 plugin uses the @deepseek-ai/* packages of the DeepSeek Harness install it

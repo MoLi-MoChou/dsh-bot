@@ -1,4 +1,4 @@
-// DSH Bot patch: the Office-to-PDF engine (LibreOfficeKit) is the largest part of the app
+// Mochou patch: the Office-to-PDF engine (LibreOfficeKit) is the largest part of the app
 // (182 MB on Windows, 145 MB on Linux), and only Office file previews use it. The
 // installer leaves it out; the app downloads the exact version the build was made with
 // in the background, checks it against the npm lockfile's sha512, and unpacks it into its

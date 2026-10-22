@@ -2,29 +2,29 @@
 
 export const UPDATE_TEXT = {
   en: {
-    ready: version => `DSH Bot ${version} is ready to install.`,
+    ready: version => `Mochou ${version} is ready to install.`,
     readyDetail: 'Restart now to update, or it is installed the next time you quit.',
     restart: 'Restart now', later: 'Later',
-    onFailure: version => `DSH Bot ${version} is installed when its download is done, and then DSH Bot opens again.`,
-    available: version => `DSH Bot ${version} is available.`,
-    availableDetail: 'This version cannot update itself. Download the new version from its release page, then replace DSH Bot in Applications.',
+    onFailure: version => `Mochou ${version} is installed when its download is done, and then Mochou opens again.`,
+    available: version => `Mochou ${version} is available.`,
+    availableDetail: 'This version cannot update itself. Download the new version from its release page, then replace Mochou in Applications.',
     download: 'Download',
-    onFailurePage: version => `DSH Bot ${version} is available. After this box, its download page opens.`,
+    onFailurePage: version => `Mochou ${version} is available. After this box, its download page opens.`,
   },
   zh: {
-    ready: version => `DSH Bot ${version} 已经下载好。`,
+    ready: version => `莫愁 ${version} 已经下载好。`,
     readyDetail: '现在重启就能更新；不重启的话，下次退出时安装。',
     restart: '立即重启', later: '稍后',
-    onFailure: version => `DSH Bot ${version} 下载完会自动安装，然后重新打开。`,
-    available: version => `DSH Bot ${version} 已经发布。`,
-    availableDetail: '这个版本不能自己更新。请到发布页下载新版，再用它替换「应用程序」里的 DSH Bot。',
+    onFailure: version => `莫愁 ${version} 下载完会自动安装，然后重新打开。`,
+    available: version => `莫愁 ${version} 已经发布。`,
+    availableDetail: '这个版本不能自己更新。请到发布页下载新版，再用它替换「应用程序」里的 莫愁。',
     download: '下载',
-    onFailurePage: version => `DSH Bot ${version} 已经发布。关掉这个对话框后，会打开它的下载页面。`,
+    onFailurePage: version => `莫愁 ${version} 已经发布。关掉这个对话框后，会打开它的下载页面。`,
   },
 }
 
 const CHECK_EVERY_MS = 4 * 60 * 60_000
-export const RELEASES_URL = 'https://api.github.com/repos/MoLi-MoChou/dsh-bot/releases?per_page=20'
+export const RELEASES_URL = 'https://api.github.com/repos/MoLi-MoChou/mochou/releases?per_page=20'
 
 function parseVersion(version) {
   if (typeof version !== 'string') return null
@@ -83,12 +83,12 @@ export function watchReleases({ current, arch, fetch = globalThis.fetch, ask, op
           headers: { accept: 'application/vnd.github+json', 'user-agent': `DeepSeek-Bot/${current}` },
         })
         if (!response.ok) {
-          log.error(`DSH Bot: update check failed: HTTP ${String(response.status)}`)
+          log.error(`Mochou: update check failed: HTTP ${String(response.status)}`)
           return null
         }
         const releases = await response.json()
         if (!Array.isArray(releases)) {
-          log.error('DSH Bot: update check failed: releases response is not an array')
+          log.error('Mochou: update check failed: releases response is not an array')
           return null
         }
         const currentVersion = parseVersion(current)
@@ -99,24 +99,24 @@ export function watchReleases({ current, arch, fetch = globalThis.fetch, ask, op
             || (release.prerelease === true && !allowPrerelease)) continue
           const version = typeof release.tag_name === 'string' ? release.tag_name.replace(/^v/u, '') : ''
           if (!isNewer(version, current)) continue
-          if (!Array.isArray(release.assets) || !release.assets.some(asset => asset?.name === `DSH-Bot-${version}-mac-${arch}.zip`)) continue
+          if (!Array.isArray(release.assets) || !release.assets.some(asset => asset?.name === `Mochou-${version}-mac-${arch}.zip`)) continue
           if (!isHttpsPage(release.html_url)) {
-            log.error('DSH Bot: update check failed: release page URL is not HTTPS')
+            log.error('Mochou: update check failed: release page URL is not HTTPS')
             continue
           }
           if (found === undefined || isNewer(version, found.version)) found = { version, page: release.html_url }
         }
         if (found === undefined) return null
-        log.info(`DSH Bot: update ${found.version} available`)
+        log.info(`Mochou: update ${found.version} available`)
         if (ask !== undefined && asked !== found.version) {
           asked = found.version
           void Promise.resolve().then(() => ask(found.version))
             .then(yes => (yes ? open(found.page) : undefined))
-            .catch((error) => { log.error(`DSH Bot: update ${found.version} not opened: ${error instanceof Error ? error.message : String(error)}`) })
+            .catch((error) => { log.error(`Mochou: update ${found.version} not opened: ${error instanceof Error ? error.message : String(error)}`) })
         }
         return found
       } catch (error) {
-        log.error(`DSH Bot: update check failed: ${error instanceof Error ? error.message : String(error)}`)
+        log.error(`Mochou: update check failed: ${error instanceof Error ? error.message : String(error)}`)
         return null
       }
     })()
@@ -151,7 +151,7 @@ export function watchUpdates({ updater, beforeInstall, ask, feed, log = console,
   updater.disableDifferentialDownload = false
   // One range per request, as the GitHub provider does: GitHub's CDN answers 501 to multi-range.
   if (feed) updater.setFeedURL({ provider: 'generic', url: feed, useMultipleRangeRequest: false })
-  // DSH Bot patch: the About page follows this state live (check, progress, ready).
+  // Mochou patch: the About page follows this state live (check, progress, ready).
   let state = { phase: 'idle', current: updater.currentVersion?.version }
   const set = (patch) => { state = { ...state, ...patch, at: Date.now() }; onState?.(state) }
   const install = async () => {
@@ -165,16 +165,16 @@ export function watchUpdates({ updater, beforeInstall, ask, feed, log = console,
   updater.on('download-progress', ({ percent, transferred, total, bytesPerSecond }) => set({ phase: 'downloading', percent, transferred, total, bytesPerSecond }))
   updater.on('update-downloaded', ({ version }) => {
     set({ phase: 'downloaded', version, percent: 100 })
-    log.info(`DSH Bot: update ${version} downloaded`)
+    log.info(`Mochou: update ${version} downloaded`)
     if (ask === undefined || asked === version) return
     asked = version
     void ask(version).then(now => (now ? install() : undefined))
-      .catch((error) => { log.error(`DSH Bot: update ${version} not installed: ${error instanceof Error ? error.message : String(error)}`) })
+      .catch((error) => { log.error(`Mochou: update ${version} not installed: ${error instanceof Error ? error.message : String(error)}`) })
   })
   updater.on('error', (error) => {
     const message = error instanceof Error ? error.message : String(error)
     if (state.phase !== 'downloaded') set({ phase: 'error', error: message.split('\n')[0].slice(0, 200) })
-    log.error(`DSH Bot: update failed: ${message}`)
+    log.error(`Mochou: update failed: ${message}`)
   })
   let latest = Promise.resolve(null)
   // A failed check or download also comes as an 'error' event.

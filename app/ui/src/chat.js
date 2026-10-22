@@ -1,11 +1,11 @@
 import { createElement as h, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { call } from '../../../ds-bot/src/client/api.js'
-import { Bubbles, ChatRows, Shimmer } from '../../../ds-bot/src/client/cells.js'
-import { ComposerPlus, ComposerVoice } from '../../../ds-bot/src/client/composer.js'
-import { t } from '../../../ds-bot/src/client/i18n.js'
-import { ArrowUpIcon } from '../../../ds-bot/src/client/icons.js'
-import { ModelChoiceDock } from '../../../ds-bot/src/client/model-menu.js'
-import { PendingQuestion } from '../../../ds-bot/src/client/questions.js'
+import { call } from '../../../core/src/client/api.js'
+import { Bubbles, ChatRows, Shimmer } from '../../../core/src/client/cells.js'
+import { ComposerPlus, ComposerVoice } from '../../../core/src/client/composer.js'
+import { t } from '../../../core/src/client/i18n.js'
+import { ArrowUpIcon } from '../../../core/src/client/icons.js'
+import { ModelChoiceDock } from '../../../core/src/client/model-menu.js'
+import { PendingQuestion } from '../../../core/src/client/questions.js'
 
 // The chat follows its end while the user is this close to it.
 const FOLLOW_PX = 80

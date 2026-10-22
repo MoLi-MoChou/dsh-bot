@@ -1,4 +1,4 @@
-// Draws the app icon from the Main Bot's whale in ../ds-bot and writes assets/icon.svg,
+// Draws the Mochou (莫愁) app icon, a crescent moon over lake ripples, and writes assets/icon.svg,
 // assets/icon.png (1024 px) and assets/icon.ico (Windows, 16 to 256 px).
 // Usage: npm run icon. It runs itself again inside Electron, which turns the SVG into PNGs.
 import { spawnSync } from 'node:child_process'
@@ -6,47 +6,28 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { characterMarkup, MASK_ID } from '../../ds-bot/src/client/characters.js'
 
 const here = fileURLToPath(import.meta.url)
 const assets = join(dirname(here), '..', 'assets')
 const ICO_SIZES = [16, 20, 24, 32, 36, 40, 48, 64, 72, 96, 128, 256]
 
-// The whale's body spans x 4..95.9 and y 20.9..79 of its 100 box.
-const WHALE = { cx: 49.95, cy: 49.95, width: 91.9 }
-
-// A superellipse close to the system's rounded-square app tile.
-function tile(size, inset) {
-  const radius = (size - 2 * inset) / 2
-  const center = size / 2
-  const points = []
-  for (let i = 0; i < 128; i += 1) {
-    const angle = (i / 128) * Math.PI * 2
-    const at = value => Math.sign(value) * Math.abs(value) ** 0.4
-    points.push(`${(center + radius * at(Math.cos(angle))).toFixed(2)} ${(center + radius * at(Math.sin(angle))).toFixed(2)}`)
-  }
-  return `M${points.join('L')}Z`
-}
-
-// `plate`: the tile's share of the canvas. macOS wants a margin around the tile; Windows
-// draws its icons nearly edge to edge, so its sizes use a fuller tile.
-function iconSvg(plate, size = 1024) {
-  const inset = (size * (1 - plate)) / 2
-  const whaleWidth = (size - 2 * inset) * 0.85
-  const scale = whaleWidth / WHALE.width
-  // The head carries the weight, so the whale sits a little left of and above center.
-  const x = size / 2 - WHALE.cx * scale - whaleWidth * 0.015
-  const y = size / 2 - WHALE.cy * scale - whaleWidth * 0.018
-  const path = tile(size, inset)
-  const whale = characterMarkup('whale', 'deepseek').replaceAll(MASK_ID, 'eyes').replaceAll('var(--bt-ink-deepseek)', '#4D6BFE')
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-<defs>
-<linearGradient id="plate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#eef1f7"/></linearGradient>
-<filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="${size * 0.012}" stdDeviation="${size * 0.012}" flood-color="#000" flood-opacity=".22"/></filter>
+// The mark on a 100 box; `plate` is the tile's share of the canvas (macOS wants a margin,
+// Windows draws its icons nearly edge to edge).
+export const MARK = `<defs>
+<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b8a92"/><stop offset="1" stop-color="#16485a"/></linearGradient>
+<mask id="m"><rect width="100" height="100" fill="#fff"/><circle cx="70" cy="28" r="12.5" fill="#000"/></mask>
 </defs>
-<path d="${path}" fill="url(#plate)" filter="url(#shadow)"/>
-<path d="${path}" fill="none" stroke="rgba(20,20,40,.1)" stroke-width="${size * 0.004}"/>
-<g transform="translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${scale.toFixed(4)})">${whale}</g>
+<circle cx="61" cy="35" r="15" fill="#fdf6e3" mask="url(#m)"/>
+<path d="M20 61 q7.5 -6 15 0 t15 0 t15 0 t15 0" fill="none" stroke="#fdf6e3" stroke-width="5" stroke-linecap="round"/>
+<path d="M30 75 q7.5 -6 15 0 t15 0 t15 0" fill="none" stroke="#fdf6e3" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"/>`
+function iconSvg(plate, size = 1024) {
+  const inset = (100 * (1 - plate)) / 2
+  const side = 100 - 2 * inset
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
+<!-- Mochou (莫愁): a crescent moon over the ripples of Mochou Lake. -->
+<rect x="${inset}" y="${inset}" width="${side}" height="${side}" rx="${side / 4}" fill="url(#g)"/>
+<g transform="translate(${inset} ${inset}) scale(${side / 100})">${MARK.replace(/<defs>[\s\S]*?<\/defs>/, '')}</g>
+${MARK.match(/<defs>[\s\S]*?<\/defs>/)[0]}
 </svg>
 `
 }
