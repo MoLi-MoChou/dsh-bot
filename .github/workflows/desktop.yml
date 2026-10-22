@@ -1,0 +1,89 @@
+name: Desktop
+
+# 打包桌面应用：Windows（NSIS 安装包 + 便携 exe）与 Linux（AppImage）。
+# 写法参照 DS Bot .github/workflows/release.yml（Apache-2.0）：在目标系统上 npm ci，再用 electron-builder 打包，
+# 原生模块用 npm 装好的预编译包（npmRebuild: false）。打完先跑冒烟测试，再上传产物。
+# 推送 v* 标签时，两个平台都通过后建一个 GitHub 预发布版并附上产物。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm run build
+      - run: npx electron-builder --win --publish never
+      - name: Smoke test (packaged app starts its Host on 127.0.0.1)
+        run: node scripts/smoke-packed.mjs "dist-pack/win-unpacked/DSH Bot.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DSH-Bot-win-x64
+          path: |
+            dist-pack/DSH-Bot-*-win-x64-setup.exe
+            dist-pack/DSH-Bot-*-win-x64-portable.exe
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  linux:
+    name: Linux x64
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-fund --no-audit
+      - run: npm run build
+      - run: npx electron-builder --linux AppImage --publish never
+      - name: Smoke test
+        run: xvfb-run -a node scripts/smoke-packed.mjs dist-pack/DSH-Bot-*-linux-x86_64.AppImage --appimage-extract-and-run --no-sandbox
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DSH-Bot-linux-x64
+          path: dist-pack/DSH-Bot-*-linux-x86_64.AppImage
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  release:
+    name: Pre-release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: Create the pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          ls -la out
+          gh release create "$TAG" out/* --repo "$GITHUB_REPOSITORY" --prerelease --title "DSH Bot $TAG" \
+            --notes "DSH Bot 桌面版预发布（未签名）。Windows：setup.exe 是安装包，portable.exe 免安装直接运行；Linux：AppImage。首次启动后在“设置 → 模型”里配置模型。"

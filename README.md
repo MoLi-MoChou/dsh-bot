@@ -30,3 +30,13 @@ npm run mock                            # :4010 的 OpenAI 兼容模拟模型，
 DSH_HOME=/tmp/dsh-e2e npm run host
 node scripts/shots.mjs                  # 全流程 e2e，截图到 ../screens/v2-*.png（SHOT_PREFIX 可改）
 ```
+
+## 桌面版
+
+Windows 安装包 / 便携 exe 与 Linux AppImage 由 GitHub Actions（`.github/workflows/desktop.yml`）打包，推送 `v*` 标签后发布为预发布版。应用自带 Electron 的 Node 运行 DSH，用户不需要装 Node。
+
+- 数据放在系统的用户数据目录（Windows：`%APPDATA%\DSH Bot\dsh-home`），工作目录默认 `文档\DSH Bot`。
+- Host 只监听 127.0.0.1，端口首次随机选定后固定；每次启动生成随机 token，窗口用它换 HttpOnly cookie，其他程序不带 cookie 访问返回 403。
+- 只允许一个实例；关闭窗口即退出并关掉 Host（与 DS Bot 一致，没有托盘）。
+
+本地打包：`npm run pack`（只出目录）或 `npm run dist`；冒烟测试：`node scripts/smoke-packed.mjs <可执行文件>`。

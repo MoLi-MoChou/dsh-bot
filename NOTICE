@@ -10,8 +10,13 @@ Copyright 2026 凯 章
    - ui/src/app.css、ui/src/locale.js、ui/src/primitives.js：拷贝自 app/ui/src 并修改（文件头已标注）。
    - vite.config.js、host/host.mjs、engine/cordis.patch.yml、engine/index.js：参照 DS Bot 的 app/ 与 ds-bot/src/host 写成（文件头已标注）。
    - ui/src/team.js、sidebar.js、chat.js、settings.js、models-page.js：仿照 DS Bot 的 app/ui/src 同名模块写成，沿用其 class 名与结构、并调用上面拷贝的 vendor 组件。
+   - desktop/host-port.mjs、desktop/host-process.mjs、scripts/before-pack.mjs、scripts/icon.mjs：拷贝自 DS Bot app/src 与 app/scripts（少量修改，文件头已标注）。
+   - desktop/main.mjs、electron-builder.yml、.github/workflows/desktop.yml：参照 DS Bot app/src/main.mjs、app/electron-builder.yml 与 .github/workflows/release.yml 写成。
    - DS Bot 原始 NOTICE 见 vendor/ds-bot/NOTICE.upstream。
 
 2. DeepSeek Harness（deepseek-ai/deepseek-harness），MIT License，作为 npm 依赖使用，未修改。
+   桌面版的做法（Electron 自带 Node 以 RunAsNode 子进程运行 runProfile、只监听 127.0.0.1、IPC 报告就绪、单实例锁、electron-builder 打包）沿用 apps/desktop 的设计。
+
+4. Electron（MIT）与 electron-builder（MIT），作为开发依赖用于打包。
 
 3. OpenUI（thesysdev/openui，@openuidev/react-lang），MIT License，作为 npm 依赖使用，未修改。
