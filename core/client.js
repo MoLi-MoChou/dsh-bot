@@ -1,6 +1,6 @@
 // Generated from src/client by `npm run build` (scripts/build-client.mjs). Do not edit by hand.
 window.__ModuleLoader__.load({
-  id: 'ds-bot',
+  id: 'mochou-core',
   factory: (require) => {
 const module = { exports: {} }
 var __create = Object.create;
@@ -1165,6 +1165,19 @@ function relabelShellVersion(appVersion) {
   };
   const observer = new MutationObserver(fix);
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  return () => observer.disconnect();
+}
+function relabelTitle() {
+  if (typeof MutationObserver === "undefined" || typeof document === "undefined" || !document.head) return () => {
+  };
+  const fix = () => {
+    const name = productName();
+    const next = document.title.includes("DeepSeek Harness") ? document.title.replace("DeepSeek Harness", name) : document.title || name;
+    if (next !== document.title) document.title = next;
+  };
+  fix();
+  const observer = new MutationObserver(fix);
+  observer.observe(document.head, { childList: true, subtree: true, characterData: true });
   return () => observer.disconnect();
 }
 
@@ -19802,6 +19815,7 @@ var inject = ["sessions", "uiWorkspace", "uiConversation", "slots", "theme", "la
 function apply(ctx) {
   quietShellOnboarding();
   installImeGuard();
+  relabelTitle();
   relabelShellVersion(true ? "0.1.4" : "");
   ctx.effect(() => installLocale(ctx.get("locale")), "ds-bot: interface copy");
   const roster = createSource(EMPTY_ROSTER);

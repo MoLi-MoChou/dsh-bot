@@ -18,7 +18,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MoLi-MoChou/mochou.git",
-    "directory": "ds-bot"
+    "directory": "core"
   },
   "license": "Apache-2.0",
   "type": "module",

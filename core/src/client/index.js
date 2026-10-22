@@ -1,4 +1,4 @@
-import { quietShellOnboarding, noteSignInAsked, relabelShellVersion } from './shell-quiet.js'
+import { quietShellOnboarding, noteSignInAsked, relabelShellVersion, relabelTitle } from './shell-quiet.js'
 import { call } from './api.js'
 import { isHex, inkText, paintCss } from './inks.js'
 import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.js'
@@ -50,6 +50,7 @@ export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'th
 export function apply(ctx) {
   quietShellOnboarding()
   installImeGuard()
+  relabelTitle()
   relabelShellVersion(typeof __MOCHOU_VERSION__ === 'string' ? __MOCHOU_VERSION__ : '')
   ctx.effect(() => installLocale(ctx.get('locale')), 'ds-bot: interface copy')
   const roster = createSource(EMPTY_ROSTER)

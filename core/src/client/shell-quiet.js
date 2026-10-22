@@ -49,3 +49,17 @@ export function relabelShellVersion(appVersion) {
   observer.observe(document.body, { childList: true, subtree: true, characterData: true })
   return () => observer.disconnect()
 }
+
+// The page title says the app's name where DSH puts its own ("Chief — DeepSeek Harness").
+export function relabelTitle() {
+  if (typeof MutationObserver === 'undefined' || typeof document === 'undefined' || !document.head) return () => {}
+  const fix = () => {
+    const name = productName()
+    const next = document.title.includes('DeepSeek Harness') ? document.title.replace('DeepSeek Harness', name) : document.title || name
+    if (next !== document.title) document.title = next
+  }
+  fix()
+  const observer = new MutationObserver(fix)
+  observer.observe(document.head, { childList: true, subtree: true, characterData: true })
+  return () => observer.disconnect()
+}
