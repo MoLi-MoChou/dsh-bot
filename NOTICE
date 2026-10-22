@@ -32,7 +32,7 @@ change is listed here (Apache-2.0 section 4(b)); code changes carry a
      A test feed (DS_BOT_UPDATE_URL) asks one range per request.
   7. Checks: scripts/scan.mjs no longer flags "DSH Bot" / dsh-bot (DS Bot's
      former name, this fork's name); test.yml checks the DSH Bot installer and
-     has no macOS package job (no macOS build).
+     has no macOS package or Docker job (neither is shipped).
   8. CI: .github/workflows/desktop.yml replaces release.yml (no npm publish);
      a v* tag builds Windows + Linux, runs check-packed, and publishes a
      pre-release with latest.yml, the .blockmap and latest-linux.yml.

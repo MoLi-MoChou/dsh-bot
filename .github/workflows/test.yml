@@ -176,52 +176,10 @@ jobs:
           if (Find-Entry 'HKCU:') { throw 'The uninstaller left its uninstall entry' }
           foreach ($file in $kept) { if (-not (Test-Path $file)) { throw "The uninstaller removed $file" } }
 
-  docker:
-    name: Docker startup and data migration
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [test, scan]
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: docker compose -f docker-compose.yml config --quiet
-      - run: docker compose -f docker/compose.yml config --quiet
-      - run: docker build -f docker/Dockerfile -t ds-bot:test .
-      - run: node docker/test.mjs ds-bot:test
-      - name: Publish the tested image
-        if: github.event_name == 'push' && github.repository == 'Fei2411/DeepSeek-Bot'
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GHCR_ACTOR: ${{ github.actor }}
-          GHCR_REPOSITORY: ${{ github.repository }}
-          GHCR_BRANCH: ${{ github.ref_name }}
-          GHCR_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          image="ghcr.io/${GHCR_REPOSITORY,,}"
-          case "$GHCR_BRANCH" in
-            main) tag=latest ;;
-            dev) tag=dev ;;
-            *) exit 0 ;;
-          esac
-          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_ACTOR" --password-stdin
-          docker tag ds-bot:test "$image:sha-$GHCR_SHA"
-          docker tag ds-bot:test "$image:$tag"
-          docker push "$image:sha-$GHCR_SHA"
-          docker push "$image:$tag"
-
-  # The one check that branch rules require. A job whose needs failed is skipped,
-  # and GitHub counts a skipped required check as passed, so this job always runs
-  # and fails unless the matrix, leak scan, app, app package and Docker checks passed.
   result:
     name: Test result
-    needs: [test, scan, app, app-package, docker]
+    needs: [test, scan, app, app-package]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - run: test "${{ needs.test.result }}" = success && test "${{ needs.scan.result }}" = success && test "${{ needs.app.result }}" = success && test "${{ needs.app-package.result }}" = success && test "${{ needs.docker.result }}" = success
+      - run: test "${{ needs.test.result }}" = success && test "${{ needs.scan.result }}" = success && test "${{ needs.app.result }}" = success && test "${{ needs.app-package.result }}" = success
