@@ -1,0 +1,16 @@
+DSH Bot
+Copyright 2026 凯 章
+
+本项目以 Apache License 2.0 发布（见 LICENSE）。
+
+本项目包含并修改了以下第三方作品：
+
+1. DeepSeek Bot（Fei2411/DeepSeek-Bot），Apache License 2.0。
+   - vendor/ds-bot/client、vendor/ds-bot/shared：原样拷贝自 ds-bot/src/client 与 ds-bot/src/shared（v0.2.0），未修改。
+   - ui/src/app.css、ui/src/locale.js、ui/src/primitives.js：拷贝自 app/ui/src 并修改（文件头已标注）。
+   - vite.config.js、host/host.mjs、engine/cordis.patch.yml、engine/index.js：参照 DS Bot 的 app/ 与 ds-bot/src/host 写成（文件头已标注）。
+   - DS Bot 原始 NOTICE 见 vendor/ds-bot/NOTICE.upstream。
+
+2. DeepSeek Harness（deepseek-ai/deepseek-harness），MIT License，作为 npm 依赖使用，未修改。
+
+3. OpenUI（thesysdev/openui，@openuidev/react-lang），MIT License，作为 npm 依赖使用，未修改。
