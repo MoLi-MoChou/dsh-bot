@@ -39,6 +39,18 @@ export function cardText(args) {
   return `[Question card] ${question}${detail ? ` (${detail})` : ''}\nOptions: ${options.join(' / ')}`
 }
 
+// The files a turn wrote ride on that turn's last message: one card group per message,
+// not one per text block. A page that cuts a turn attaches them to the block it has.
+export function withTurnFiles(items, turnFiles) {
+  for (const [turn, files] of Object.entries(turnFiles?.turns ?? {})) {
+    const last = items.findLast(item => item.kind === 'bot' && item.turn === Number(turn))
+    if (last === undefined) continue
+    last.files = files
+    last.filesFolder = turnFiles.folder
+  }
+  return items
+}
+
 // A show_view card as the user saw it. A call the tool would refuse (no title,
 // or a view that is not a component object) showed no card, so it gives no text.
 export function viewCardText(args) {
@@ -924,7 +936,7 @@ export function install(rt) {
       : { fallback: whole ? 'whole' : job.failed !== undefined ? 'failure' : job.overflow ? 'overflow' : 'failed', ...(previous?.note ? { note: previous.note, noteFrom: previous.noteFrom ?? previous.number } : {}) }
     carried ??= await readLines()
     if (signal.aborted) throw signal.reason
-    const dir = rt.workDirOf(job)
+    const dir = await rt.ensureWorkDir?.(job).catch(() => rt.workDirOf(job)) ?? rt.workDirOf(job)
     const intended = dir !== undefined && await rt.isFolder(dir) ? dir : rt.teamFolder()
     const freshId = await rt.createSession(room ? `${bot.name} · ${room.name}` : bot.name, { dir })
     const picked = await freshRoute(bot, session)
@@ -1064,6 +1076,9 @@ export function install(rt) {
     const place = placeOf(agent.id)
     const cwd = agent.session.header?.cwd
     if (place === undefined || cwd === undefined || (midTurn && place.roomId !== undefined) || Date.now() < (folderRetry.get(agent.id) ?? 0)) return undefined
+    // A Bot or group that has no folder of its own yet gets it now, so a team from before
+    // the app kept folders moves there like any other folder change.
+    if (rt.workDirOf(place) !== cwd) await rt.ensureWorkDir?.(place).catch(error => rt.warn('ds-bot: folder for %s not made: %s', agent.id, error))
     const wanted = rt.workDirOf(place)
     const usable = wanted !== undefined && await rt.isFolder(wanted)
     // A team copied from another DSH_HOME has no team workspace here until one is made, and its
@@ -1213,7 +1228,8 @@ export function install(rt) {
   // Earlier parts of a Bot's own chat, newest page first, for the chat to show above
   // the current part as one conversation.
   const EARLIER_PAGE = 60
-  function displayItems(partId, events) {
+  const displayItems = (partId, events) => withTurnFiles(itemsOf(partId, events), state.turnFiles?.[partId])
+  function itemsOf(partId, events) {
     const hidden = new Set(state.exchangeTurns[partId] ?? [])
     const items = []
     for (const event of events) {
@@ -1222,7 +1238,9 @@ export function install(rt) {
         // One entry per text block: the chat shows each block in a bubble of its own.
         const content = Array.isArray(event.data?.message?.content) ? event.data.message.content : []
         for (const block of content) {
-          if (block?.type === 'text' && typeof block.text === 'string' && block.text.trim() !== '') items.push({ kind: 'bot', text: block.text, time: event.time })
+          if (block?.type === 'text' && typeof block.text === 'string' && block.text.trim() !== '') {
+            items.push({ kind: 'bot', text: block.text, time: event.time, ...(typeof event.data?.turn === 'number' ? { turn: event.data.turn } : {}) })
+          }
         }
         continue
       }

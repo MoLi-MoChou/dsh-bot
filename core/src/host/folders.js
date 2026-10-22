@@ -20,10 +20,72 @@ export const dshHomeOf = value => resolve(expandHome(value?.trim() ? value : joi
 export function install(rt) {
   const { ctx, state } = rt
 
-  const teamFolder = () => ctx.workspaceRegistry.get?.(state.workspaceId)?.path
+  const teamFolder = () => ctx.workspaceRegistry?.get?.(state.workspaceId)?.path
   // The desktop app names the folder the user chose for the Bots' files.
   const defaultTeamFolder = () => rt.config.workspace ?? (process.env.DS_BOT_WORKSPACE?.trim() || join(rt.home, 'workspace'))
-  const workDirOf = ({ botId, roomId } = {}) => rt.roomOf(roomId)?.workDir ?? rt.botOf(botId)?.workDir
+  // Each Bot and group owns a folder the app keeps under the team folder, so the user
+  // never picks or sees a path. `folder` is the name saved at creation or first use, so
+  // a rename keeps the folder and its files.
+  const BOT_FOLDERS = 'bots'
+  const GROUP_FOLDERS = 'groups'
+  const folderStem = name => String(name ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/gu, '').slice(0, 40) || 'bot'
+  const uniqueName = (wanted, taken) => {
+    let name = wanted
+    for (let at = 2; taken.has(name); at += 1) name = `${wanted}-${at}`
+    return name
+  }
+  const botFolderName = bot => bot.folder ?? folderStem(bot.name)
+  const roomFolderName = room => room.folder ?? folderStem(room.name)
+  const teamRoot = () => teamFolder() ?? resolve(defaultTeamFolder())
+  const folderPath = (kind, name) => join(teamRoot(), kind, name)
+  const botFolder = bot => folderPath(BOT_FOLDERS, botFolderName(bot))
+  const roomFolder = room => folderPath(GROUP_FOLDERS, roomFolderName(room))
+  // A free folder name for a new Bot or group, and its folder made.
+  async function newFolder(kind, name, entries) {
+    const taken = new Set(entries.map(entry => (kind === BOT_FOLDERS ? botFolderName(entry) : roomFolderName(entry))))
+    const folder = uniqueName(folderStem(name), taken)
+    await mkdir(folderPath(kind, folder), { recursive: true })
+    return { folder, path: folderPath(kind, folder) }
+  }
+  const newBotFolder = name => newFolder(BOT_FOLDERS, name, Object.values(state.bots))
+  const newRoomFolder = name => newFolder(GROUP_FOLDERS, name, Object.values(state.rooms))
+  // The folder the user set in the advanced settings, else the app's own folder for it.
+  const workDirOf = ({ botId, roomId } = {}) => {
+    const room = rt.roomOf(roomId)
+    if (room !== undefined) return room.workDir ?? roomFolder(room)
+    const bot = rt.botOf(botId)
+    return bot === undefined ? undefined : bot.workDir ?? botFolder(bot)
+  }
+  // The folder a session of `place` starts in, made when it is the app's own folder.
+  async function ensureWorkDir(place) {
+    const room = rt.roomOf(place?.roomId)
+    if (room !== undefined) {
+      if (room.workDir !== undefined) return room.workDir
+      await mkdir(roomFolder(room), { recursive: true })
+      return roomFolder(room)
+    }
+    const bot = rt.botOf(place?.botId)
+    if (bot === undefined || bot.workDir !== undefined) return workDirOf(place)
+    await mkdir(botFolder(bot), { recursive: true })
+    return botFolder(bot)
+  }
+  // Bots and groups from before folders were automatic get a name and a folder once, so
+  // their conversations move there at the next turn like any other folder change.
+  async function nameFolders() {
+    const missing = [...Object.values(state.bots), ...Object.values(state.rooms)].filter(entry => entry.folder === undefined)
+    if (missing.length === 0) return
+    for (const entry of Object.values(state.bots)) {
+      if (entry.folder !== undefined) continue
+      entry.folder = uniqueName(folderStem(entry.name), new Set(Object.values(state.bots).filter(other => other.folder !== undefined).map(botFolderName)))
+      await mkdir(botFolder(entry), { recursive: true }).catch(error => rt.warn('ds-bot: folder of %s not made: %s', entry.name, error))
+    }
+    for (const entry of Object.values(state.rooms)) {
+      if (entry.folder !== undefined) continue
+      entry.folder = uniqueName(folderStem(entry.name), new Set(Object.values(state.rooms).filter(other => other.folder !== undefined).map(roomFolderName)))
+      await mkdir(roomFolder(entry), { recursive: true }).catch(error => rt.warn('ds-bot: folder of group %s not made: %s', entry.name, error))
+    }
+    await rt.save()
+  }
   const isFolder = path => stat(path).then(info => info.isDirectory(), () => false)
   const real = path => realpath(path).catch(() => resolve(path))
   // The real path of the deepest part that exists, with the rest after it.
@@ -206,5 +268,5 @@ export function install(rt) {
     }
   }
 
-  Object.assign(rt, { teamFolder, defaultTeamFolder, workDirOf, sessionFolder, isFolder, real, folderAt, cleanWorkDir, workFolder, inData, setTeamWorkspace, sessionsOfBot, approveFolder, folderEndpoint })
+  Object.assign(rt, { teamFolder, defaultTeamFolder, workDirOf, sessionFolder, isFolder, real, folderAt, cleanWorkDir, workFolder, inData, setTeamWorkspace, sessionsOfBot, approveFolder, folderEndpoint, botFolder, roomFolder, botFolderName, roomFolderName, newBotFolder, newRoomFolder, ensureWorkDir, nameFolders })
 }

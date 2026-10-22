@@ -15,8 +15,6 @@ import { turnReasoning, thinkingStep } from './turn-reasoning.js'
 import { FOLD_AT, FOLD_HUGE, stripLongNote, useFold } from './fold.js'
 import { heldCardKey } from './sources.js'
 import { WorkLine } from './work-process.js'
-import { FilesUnderReply } from './file-preview.js'
-import { turnFilesOf } from './turn-files.js'
 
 export { clockLabel }
 
@@ -208,12 +206,6 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
   const texts = groupPart === 'reasoning' ? [] : data.blocks.filter(block => block.kind === 'text' && block.text.trim() !== '').map(block => block.text)
   const running = data.status === 'running'
   const members = steps.length ? steps : [data]
-  // Moon Bot: one work line on the turn's last step, once the turn has settled, and the
-  // files it wrote or delivered under the reply.
-  const turnInfo = node.location?.turn
-  const lastStep = members[members.length - 1]
-  const settled = !running && members.every(step => step.status !== 'running') && (turnInfo?.status === undefined || turnInfo.status === 'closed')
-  const files = turnFilesOf(roster, sessionId, data.turn)
   const reasoning = groupPart === 'response' ? '' : turnReasoning(steps, data)
   // A live step of the same Turn keeps the row ticking even when it sits on an
   // earlier step's cell.
@@ -228,11 +220,15 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
   // DSH 0.2; the step that answers it shows the event line where it was read,
   // once, in the step's first cell.
   const relays = relayPart(data, groupPart) ? relaysBefore(contexts, steps, data) : []
+  // Moon Bot: one work line on the turn's last step, once the turn has settled.
+  const turnInfo = node.location?.turn
+  const lastStep = members[members.length - 1]
+  const settled = !running && members.every(step => step.status !== 'running') && (turnInfo?.status === undefined || turnInfo.status === 'closed')
   const tail = useTurnData?.('turn-tail')
   const closingSeq = tail?.closing?.finalNode?.seq
   const workHere = settled && groupPart !== 'reasoning' && (closingSeq !== undefined ? data.finalNode?.seq === closingSeq : lastStep === data)
   const workMs = typeof turnInfo?.start?.time === 'number' && typeof turnInfo?.end?.time === 'number' ? turnInfo.end.time - turnInfo.start.time : ms
-  if (texts.length === 0 && relays.length === 0 && !workHere && files.length === 0) return null
+  if (texts.length === 0 && relays.length === 0 && !workHere) return null
   const selfId = roster.byId[sessionId]?.id ?? sessionId
   return h(Fragment, null,
     relays.map(relay => {
@@ -247,8 +243,7 @@ export function AssistantCell({ node, groupPart, sessionId, openFile, fileMentio
       })
     }),
     workHere ? h(WorkLine, { steps: members, tools, ms: workMs, sessionId, turn: data.turn }) : null,
-    texts.length ? h(Bubbles, { texts, roster, selfId, actions, streaming: running, sessionId, msgKey: `${sessionId}:${data.turn}:${node.key ?? data.seq ?? ''}`, useUi, mentions, fold: FOLD_HUGE }) : null,
-    files.length ? h(FilesUnderReply, { files, botId: selfId }) : null)
+    texts.length ? h(Bubbles, { texts, roster, selfId, actions, streaming: running, sessionId, msgKey: `${sessionId}:${data.turn}:${node.key ?? data.seq ?? ''}`, useUi, mentions, fold: FOLD_HUGE }) : null)
 }
 
 function EventLine({ prefix, bots, joiner = t('and'), onOpen, whole = false }) {

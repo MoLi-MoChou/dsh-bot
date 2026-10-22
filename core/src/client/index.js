@@ -44,8 +44,6 @@ import { listedOpener } from './open-listed.js'
 
 import { PROCESS_CSS } from './work-process.js'
 import { installFilesPanel, FILES_PANEL_CSS } from './files-panel.js'
-import { FILE_CARD_CSS } from './file-card.js'
-import { FILE_PREVIEW_CSS } from './file-preview.js'
 import { RetryCell, RETRY_CSS } from './retry-cell.js'
 import { StarterChips, STARTERS_CSS } from './starters.js'
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
@@ -54,7 +52,7 @@ export function apply(ctx) {
   quietShellOnboarding()
   installImeGuard()
   relabelTitle()
-  ctx.effect(() => installFilesPanel(), 'moon-bot: workspace file downloads')
+  ctx.effect(() => installFilesPanel({ call }), 'moon-bot: workspace file downloads')
   relabelShellVersion(typeof __MOON_BOT_VERSION__ === 'string' ? __MOON_BOT_VERSION__ : '')
   ctx.effect(() => installLocale(ctx.get('locale')), 'ds-bot: interface copy')
   const roster = createSource(EMPTY_ROSTER)
@@ -672,7 +670,7 @@ export function apply(ctx) {
     () => installCompiledStyles(MEMBER_CSS, 'members'),
     () => installCompiledStyles(USER_MESSAGE_CSS, 'user-messages'),
     () => installCompiledStyles(WIDGET_CSS, 'widgets'),
-    () => installCompiledStyles(PROCESS_CSS + RETRY_CSS + STARTERS_CSS + FILES_PANEL_CSS + FILE_CARD_CSS + FILE_PREVIEW_CSS, 'work-process'),
+    () => installCompiledStyles(PROCESS_CSS + RETRY_CSS + STARTERS_CSS + FILES_PANEL_CSS, 'work-process'),
     browsers ? () => installCompiledStyles(BROWSER_CSS, 'browser') : null,
     () => installTheme(),
     () => shadow('sidebar.workspaces', { priority: BOT_PRIORITY, inject: face }, TeamSidebar),

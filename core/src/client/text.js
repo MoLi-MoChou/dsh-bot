@@ -251,7 +251,7 @@ export function usageOf(list, ids) {
   }
   if (input + output === 0) return ''
   const hit = input > 0 ? Math.round((cacheRead / input) * 100) : 0
-  return t('Usage {tokens} · Cache hit {hit}%', { tokens: formatTokens(input + output), hit })
+  return t('{tokens} tok · Cache hit {hit}%', { tokens: formatTokens(input + output), hit })
 }
 
 // A share that is not whole never reads as 100%: it gets decimals until it does not.
@@ -275,7 +275,7 @@ export function runStatsOf(values) {
   if (stats?.turns > 0) shown.push({ key: 'turns', text: stats.turns === 1 ? t('1 turn') : t('{count} turns', { count: stats.turns }) })
   if (stats?.decodeMs > 0 && stats.decodeTokens > 0) {
     const speed = stats.decodeTokens / (stats.decodeMs / 1000)
-    shown.push({ key: 'speed', text: t('Speed {speed}/s', { speed: speed >= 10 ? Math.round(speed) : Math.round(speed * 10) / 10 }) })
+    shown.push({ key: 'speed', text: t('{speed} tok/s', { speed: speed >= 10 ? Math.round(speed) : Math.round(speed * 10) / 10 }) })
   }
   const prompt = (usage?.uncachedInputTokens ?? 0) + (usage?.cacheReadTokens ?? 0) + (usage?.cacheWriteTokens ?? 0)
   if (prompt > 0) shown.push({ key: 'cache', text: t('Cache hit {hit}%', { hit: percentText(usage.cacheReadTokens ?? 0, prompt) }) })
@@ -284,7 +284,7 @@ export function runStatsOf(values) {
     shown.push({
       key: 'context',
       text: t('Context {percent}%', { percent: Math.min(100, Math.round((used / pressure.contextWindow) * 100)) }),
-      title: t('{used} of {total} of the context in use', { used: formatTokens(used), total: formatTokens(pressure.contextWindow) }),
+      title: t('{used} of {total} tokens of context in use', { used: formatTokens(used), total: formatTokens(pressure.contextWindow) }),
     })
   }
   return shown
