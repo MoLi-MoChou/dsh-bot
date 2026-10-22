@@ -57,6 +57,7 @@ export function teamActions({ call, after, partFor, roster, ui, live, cards, hel
     updateBot: (id, patch) => after(call('update-bot', { id, ...patch })),
     refreshModels: () => after(call('models')).catch(() => {}),
     efforts: ref => call('efforts', { ref }),
+    runStats: botId => call('run-stats', { botId }),
     folders: () => call('folders'),
     folderPick: () => call('folder-pick'),
     folderList: path => call('folder-list', { path: path ?? '' }),

@@ -128,7 +128,7 @@ export const PROCESS_CSS = `
 .bt-work-fold[data-open]{grid-template-rows:1fr;opacity:1}
 .bt-work-fold-in{overflow:hidden;min-height:0}
 .bt-work-steps{list-style:none;margin:0 0 6px;padding:2px 0 2px 10px;border-left:.5px solid var(--bt-line-2);display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--bt-ink-2)}
-.bt-work-steps li{display:flex;gap:8px;min-width:0}
+.bt-work-steps li{display:flex;align-items:baseline;gap:8px;min-width:0}
 .bt-work-kind{flex:none;color:var(--bt-ink-3)}
 .bt-work-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bt-work-steps li[data-kind=tool] .bt-work-text{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
