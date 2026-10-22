@@ -16,7 +16,8 @@
     "check-packed": "node scripts/check-packed.mjs",
     "shot": "node scripts/shot.mjs",
     "icon": "node scripts/icon.mjs",
-    "test": "node --test \"test/*.test.mjs\""
+    "test": "node --test \"test/*.test.mjs\"",
+    "postinstall": "node scripts/patch-deps.mjs"
   },
   "dependencies": {
     "@deepseek-ai/cordis-plugin-group": "1.0.5",

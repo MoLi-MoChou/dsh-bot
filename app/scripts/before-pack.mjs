@@ -3,6 +3,7 @@
 // another architecture would carry them and not start, so such a build stops here.
 import { Arch } from 'electron-builder'
 import { pruneDshManifest } from './prune.mjs'
+import { patchDeps } from './patch-deps.mjs'
 
 const WHERE = {
   darwin: { x64: 'on an Intel Mac, or under Rosetta with an x64 Node', arm64: 'on a Mac with Apple silicon' },
@@ -24,6 +25,7 @@ export async function beforePack(context) {
     for (const arch of archToNames.keys()) targets.push(Arch[arch])
   const problem = archProblem({ target: Arch[context.arch], platform: context.electronPlatformName, targets })
   if (problem !== undefined) throw new Error(problem)
+  patchDeps(context.packager?.info?.appDir ?? process.cwd())
   const removed = pruneDshManifest(context.packager?.info?.appDir ?? process.cwd())
   if (removed.length) console.log(`  • DSH Bot: dropped optional bundles ${removed.join(', ')}`)
 }
