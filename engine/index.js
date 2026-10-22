@@ -257,7 +257,7 @@ export function apply(ctx, config = {}) {
         const v = await ctx.sessionController.attachment({ sessionId: url.searchParams.get('sid'), attachmentId: url.searchParams.get('aid') })
         res.writeHead(200, { 'content-type': v.attachment?.mediaType ?? 'application/octet-stream', 'cache-control': 'private, max-age=86400' })
         res.end(Buffer.from(v.data, 'base64'))
-      } catch { res.writeHead(404); res.end() }
+      } catch (error) { debug('attachment-error', String(error?.stack ?? error)); res.writeHead(404); res.end() }
       return
     }
     const route = routes[`${req.method} ${path}`]

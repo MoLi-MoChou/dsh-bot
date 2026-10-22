@@ -5,8 +5,9 @@ export async function call(path, body) {
   if (!json.ok) throw new Error(json.error?.message ?? '请求失败')
   return json.value
 }
+const EVENTS = ['hello', 'item', 'stream', 'status', 'approval', 'approval-done', 'conversation', 'removed', 'prefs']
 export function openFeed(onEvent) {
   const source = new EventSource('api/feed')
-  for (const name of ['hello', 'item', 'stream', 'status', 'approval', 'approval-done']) source.addEventListener(name, e => onEvent(name, JSON.parse(e.data)))
+  for (const name of EVENTS) source.addEventListener(name, e => onEvent(name, JSON.parse(e.data)))
   return () => source.close()
 }
