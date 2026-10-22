@@ -365,6 +365,7 @@ var ZH = {
   "Rate limited, retrying in {seconds}s": "请求受限，{seconds}s 后重试",
   "Request failed, retrying in {seconds}s": "请求失败，{seconds}s 后重试",
   "Model retry": "模型请求重试",
+  "The web version updates when its server is redeployed.": "网页版随服务器重新部署更新。",
   "Full process": "查看完整过程",
   "Retried": "已重试",
   "Retry cancelled": "重试已取消",
@@ -10824,6 +10825,7 @@ function UpdateButton({ useUpdate, actions }) {
   const dsh = update?.dsh;
   const dshPhase = dsh?.phase ?? "idle";
   const dshRow = showsDshRow(dsh, update?.app);
+  if (update?.source === "web") return null;
   if (!update?.available && !dshRow && phase === "idle" && dshPhase === "idle") return null;
   const cloudPhase = phase === "installing" || dshPhase === "installing" ? "installing" : phase !== "idle" ? phase : dshPhase;
   const toggle = () => {
@@ -16424,6 +16426,7 @@ function botHint(update) {
   if (update.phase === "failed") return t("The update did not finish: {reason}", { reason: hostText(update.error ?? "") });
   if (update.available) return t("DS Bot {version} is available", { version: update.latest });
   if (update.source === "app") return t("Updates come with the DeepSeek Bot app.");
+  if (update.source === "web") return t("The web version updates when its server is redeployed.");
   if (update.enabled === false) return t("Update checks are off.");
   if (update.source === "path") return t("Installed from a local folder; update it there.");
   if (!update.checkedAt) return null;
@@ -16593,7 +16596,12 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
       ) : null
     ),
     repo ? (0, import_react33.createElement)("p", { key: "ask", className: "bt-about-ask" }, t("If DS Bot helps you, a star on GitHub helps more people find it.")) : null,
-    (0, import_react33.createElement)(
+    update.source === "web" ? (0, import_react33.createElement)(
+      Section,
+      { key: "updates", title: t("Updates") },
+      (0, import_react33.createElement)(Row3, { label: "DSH Bot", hint: botHint(update) }),
+      dsh?.current ? (0, import_react33.createElement)(Row3, { label: "DeepSeek Harness", hint: t("Version {version}", { version: dsh.current }) }) : null
+    ) : (0, import_react33.createElement)(
       Section,
       { key: "updates", title: t("Updates") },
       appBridge() ? (0, import_react33.createElement)(AppUpdateRow, { Row: Row3, run }) : null,

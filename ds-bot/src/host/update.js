@@ -171,7 +171,8 @@ export function install(rt) {
 
   async function runCheck() {
     // The desktop app updates as a whole, with this package inside it.
-    const source = process.env.DS_BOT_APP === '1' ? { kind: 'app' } : sourceOf(await installSpecOf(ctx))
+    // DSH Bot: the web build updates with its server deploy, never from the page.
+    const source = process.env.DS_BOT_WEB === '1' ? { kind: 'web' } : process.env.DS_BOT_APP === '1' ? { kind: 'app' } : sourceOf(await installSpecOf(ctx))
     status.source = source.kind
     let found = null
     try {

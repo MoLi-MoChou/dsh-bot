@@ -283,6 +283,7 @@ const ZH = {
   'Rate limited, retrying in {seconds}s': '请求受限，{seconds}s 后重试',
   'Request failed, retrying in {seconds}s': '请求失败，{seconds}s 后重试',
   'Model retry': '模型请求重试',
+  'The web version updates when its server is redeployed.': '网页版随服务器重新部署更新。',
   'Full process': '查看完整过程',
   'Retried': '已重试',
   'Retry cancelled': '重试已取消',

@@ -21,6 +21,7 @@ function botHint(update) {
   if (update.phase === 'failed') return t('The update did not finish: {reason}', { reason: hostText(update.error ?? '') })
   if (update.available) return t('DS Bot {version} is available', { version: update.latest })
   if (update.source === 'app') return t('Updates come with the DeepSeek Bot app.')
+  if (update.source === 'web') return t('The web version updates when its server is redeployed.')
   if (update.enabled === false) return t('Update checks are off.')
   if (update.source === 'path') return t('Installed from a local folder; update it there.')
   if (!update.checkedAt) return null
@@ -166,7 +167,10 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
       h('span', { className: 'bt-star-main' }, h('span', { className: 'bt-star-icon' }, h(StarLineIcon)), 'Star'),
       stars === null ? null : h('span', { className: 'bt-star-count' }, starCount(stars))) : null),
     repo ? h('p', { key: 'ask', className: 'bt-about-ask' }, t('If DS Bot helps you, a star on GitHub helps more people find it.')) : null,
-    h(Section, { key: 'updates', title: t('Updates') },
+    update.source === 'web' ? h(Section, { key: 'updates', title: t('Updates') },
+      h(Row, { label: 'DSH Bot', hint: botHint(update) }),
+      dsh?.current ? h(Row, { label: 'DeepSeek Harness', hint: t('Version {version}', { version: dsh.current }) }) : null)
+    : h(Section, { key: 'updates', title: t('Updates') },
       appBridge() ? h(AppUpdateRow, { Row, run }) : null,
       h(EngineRow, { Row, run }),
       appBridge() ? null : h(Row, { label: 'DS Bot', hint: botHint(update) }, botControl, update.available && update.notesUrl ? h('a', linkProps(update.notesUrl), t("What's new")) : null),
