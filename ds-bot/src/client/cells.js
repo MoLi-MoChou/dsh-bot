@@ -302,6 +302,7 @@ function GroupEvent({ prefix, room, name, roster, actions }) {
 // entries already saved changed nothing and show no line.
 // Several changes to one memory in a turn show as one line: the first call keeps it.
 const memoryLines = new Map()
+export const forgetMemoryLines = () => memoryLines.clear()
 const firstMemoryLine = (turnKey, target, callId) => {
   if (turnKey === undefined || callId === undefined) return true
   let lines = memoryLines.get(turnKey)

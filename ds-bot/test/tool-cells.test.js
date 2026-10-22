@@ -9,7 +9,7 @@ import { build } from 'esbuild'
 const { outputFiles } = await build({
   stdin: {
     contents: [
-      "export { ToolCell, TriggerCell, callTree, stackReplies } from './src/client/cells.js'",
+      "export { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines } from './src/client/cells.js'",
       "export { QuestionDock } from './src/client/questions.js'",
       "export { SecretDock } from './src/client/secret-card.js'",
       "export { countCards } from './src/client/sources.js'",
@@ -44,7 +44,7 @@ runInNewContext(outputFiles[0].text, {
     throw new Error(`Unexpected platform module ${name}`)
   },
 })
-const { ToolCell, TriggerCell, callTree, stackReplies, QuestionDock, SecretDock, countCards } = module.exports
+const { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines, QuestionDock, SecretDock, countCards } = module.exports
 
 // Runs the effects collected since the last render; returns the cleanups.
 const mount = () => {
@@ -202,10 +202,13 @@ const rosterFor = callId => team({ questions: { chief: question(callId) }, secre
 test('every call ToolCell draws shows the same nested in a PTC program as on its own', () => {
   assert.equal(BRANCHES.length, 15)
   for (const [name, options, expected] of BRANCHES) {
+    forgetMemoryLines()
     const native = shown(call(name, 'direct', options), { roster: rosterFor('direct') })
     assert.match(native, expected, `${name} on its own`)
+    forgetMemoryLines()
     const nested = shown(program([call(name, 'program:ptc:1', options)]), { roster: rosterFor('program:ptc:1') })
     assert.equal(nested, native, `${name} under run_code`)
+    forgetMemoryLines()
     const deep = shown(program([call('run_code', 'program:ptc:1', { subCalls: [call(name, 'program:ptc:1:ptc:1', options)] })]), { roster: rosterFor('program:ptc:1:ptc:1') })
     assert.equal(deep, native, `${name} two programs deep`)
   }
@@ -602,4 +605,13 @@ test('a display-only call still draws when the args come through the value acces
   const title = find(node, item => item.props?.className === 'bt-q-title')
   assert.ok(title !== undefined, 'the card draws')
   assert.equal(text(title), 'Status')
+})
+
+test('two changes to the same memory in one turn show one memory line', () => {
+  forgetMemoryLines()
+  const root = program([
+    call('remember', 'program:ptc:1', { args: { scope: 'Chief' }, content: 'Saved to Chief memory.' }),
+    call('remember', 'program:ptc:2', { args: { scope: 'Chief' }, content: 'Saved to Chief memory.' }),
+  ])
+  assert.equal(count(shown(root, { roster: team({}) }), 'Memory updated'), 1)
 })

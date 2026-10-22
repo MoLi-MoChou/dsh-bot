@@ -67,7 +67,7 @@ export function RetryCell({ node, sessionId }) {
 
 export const RETRY_CSS = `
 .bt-retry{display:inline-flex;align-items:center;gap:8px;margin:4px 0;padding:4px 10px;border-radius:999px;border:.5px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink-2);font-size:12.5px;font-variant-numeric:tabular-nums}
-.bt-retry-dot{width:6px;height:6px;border-radius:50%;background:var(--bt-warn,#d4a72c);animation:bt-retry-pulse 1.2s ease-in-out infinite}
+.bt-retry-dot{width:6px;height:6px;border-radius:50%;background:var(--bt-accent);animation:bt-retry-pulse 1.2s ease-in-out infinite}
 .bt-retry-n{color:var(--bt-ink-3)}
 @keyframes bt-retry-pulse{0%,100%{opacity:.35}50%{opacity:1}}
 @media (prefers-reduced-motion:reduce){.bt-retry-dot{animation:none}}
