@@ -1,4 +1,4 @@
-import { hostText, t } from './i18n.js'
+import { errorCopy } from './i18n.js'
 import { markNoted, noteClientError } from './diagnostics.js'
 
 const ROUTE = 'api/bot'
@@ -20,18 +20,18 @@ export const call = async (endpoint, payload, signal) => {
     if (error?.name === 'AbortError') throw error
     noteClientError(endpoint, Object.assign(new Error(`network error: ${error?.message ?? error}`), { code: 'NETWORK' }))
     // The browser's own text ("Failed to fetch", "Load failed") does not say what failed.
-    throw markNoted(Object.assign(new Error(t('Could not reach DSH. Check that it is still running.')), { code: 'NETWORK', cause: error }))
+    throw markNoted(Object.assign(new Error(errorCopy('NETWORK')), { code: 'NETWORK', cause: error }))
   }
   if (!response.ok) {
-    const error = Object.assign(new Error(hostText(`HTTP ${response.status}`)), { code: `HTTP_${response.status}` })
+    const error = Object.assign(new Error(errorCopy(`HTTP_${response.status}`, `HTTP ${response.status}`)), { code: `HTTP_${response.status}` })
     noteClientError(endpoint, error)
     throw error
   }
   const result = await response.json()
   if (!result.ok) {
     const code = result.error?.code ?? 'bot/error'
-    const message = hostText(result.error?.message ?? 'Request failed')
-    const error = Object.assign(new Error(code === 'bot/internal' ? `${message} ${t('Settings → Feedback has the details.')}` : message), { code })
+    const message = errorCopy(code, result.error?.message ?? 'Request failed')
+    const error = Object.assign(new Error(message), { code })
     if (!REFUSALS.has(code)) {
       noteClientError(endpoint, Object.assign(new Error(result.error?.message ?? 'Request failed'), { code }))
       markNoted(error)
