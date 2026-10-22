@@ -36,7 +36,10 @@ export function createModels(ctx) {
         editable: id in user, routable: catalog?.routableProviders?.includes(id) ?? false, error: fail?.message ?? null,
       }
     }))
-    return { presets: PRESETS, protocols: PROTOCOLS, profiles, default: def ?? null }
+    // 给会话模型菜单（DS Bot 的 ModelMenu）用的扁平目录：只列能路由的服务。
+    const EFFORTS = { efforts: [{ id: 'off', name: '不思考' }, { id: 'high', name: '深度思考' }] }
+    const catalogModels = profiles.filter(p => p.routable).flatMap(p => p.models.map(m => ({ ref: `${p.id}/${m.id}`, name: m.name, provider: p.id, providerName: p.name, ...(m.reasoning ? { reasoning: EFFORTS } : {}) })))
+    return { presets: PRESETS, protocols: PROTOCOLS, profiles, default: def ?? null, catalog: catalogModels }
   }
 
   async function save(body) {

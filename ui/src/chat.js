@@ -8,6 +8,7 @@ import { ArrowUpIcon, CloseIcon, PaperclipIcon, PlusIcon } from '../../vendor/ds
 import { useLinger } from '../../vendor/ds-bot/client/motion.js'
 import { call } from './api.js'
 import { OpenUIBlock, splitOpenUI } from './openui.js'
+import { ModelMenu } from '../../vendor/ds-bot/client/model-menu.js'
 import { BOT } from './team.js'
 
 const FOLLOW_PX = 80
@@ -58,12 +59,14 @@ function FileChips({ files, sessionId, removable, onRemove }) {
     }))
 }
 
-function BotText({ text, streaming, onSend, roster }) {
+// 卡片状态按“会话 + 卡片源码”记：流式行与之后落盘的条目是两次挂载，但源码相同，表单值不会丢。
+const hashOf = (text) => { let x = 5381; for (let i = 0; i < text.length; i++) x = ((x << 5) + x + text.charCodeAt(i)) | 0; return (x >>> 0).toString(36) }
+function BotText({ text, streaming, onSend, roster, stateKey, locked }) {
   const parts = splitOpenUI(text)
   if (!parts.some(p => p.kind === 'ui')) return h(Bubbles, { texts: [text], roster, selfId: BOT.id, actions: {}, streaming })
   return h(Fragment, null, parts.map((p, i) => (p.kind === 'md'
     ? h(Bubbles, { key: i, texts: [p.text], roster, selfId: BOT.id, actions: {}, streaming: streaming && i === parts.length - 1 })
-    : h(OpenUIBlock, { key: i, source: p.text, streaming: streaming && p.open, onSend }))))
+    : h(OpenUIBlock, { key: i, source: p.text, streaming: streaming && p.open, onSend, locked, stateKey: `${stateKey}:${hashOf(p.text.trim())}` }))))
 }
 
 function ToolCard({ item, result }) {
@@ -105,7 +108,7 @@ function Flow({ sessionId, items, pending, stream, approvals, roster, actions, o
     if (item.kind === 'bot' && !item.text.includes('```openui')) { chat.push(item); return }
     if (item.kind === 'tool-result') return
     flush()
-    if (item.kind === 'bot') rows.push(h('div', { key: i, className: 'bt-astack dsb-ui-row' }, h(BotText, { text: item.text, onSend, roster })))
+    if (item.kind === 'bot') rows.push(h('div', { key: i, className: 'bt-astack dsb-ui-row' }, h(BotText, { text: item.text, onSend, roster, stateKey: sessionId, locked: items.slice(i + 1).some(x => x.kind === 'user') })))
     else if (item.kind === 'reasoning') rows.push(h(ThinkingRow, { key: i, text: item.text, live: false, viewKey: `${sessionId}:r${i}` }))
     else if (item.kind === 'tool') rows.push(h('div', { key: i, className: 'dsb-row-tool' }, h(ToolCard, { item, result: results[item.id] })))
     else if (item.kind === 'error') rows.push(h('div', { key: i, className: 'dsb-error-row', role: 'alert' }, item.text, /设置/.test(item.text) ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => actions.openSettings('models') }, '去配置模型') : null))
@@ -116,7 +119,7 @@ function Flow({ sessionId, items, pending, stream, approvals, roster, actions, o
     p.files?.length ? h('div', { className: 'dsb-urow-files' }, h(FileChips, { files: p.files, sessionId })) : null,
     p.text ? h(ChatRows, { items: [{ kind: 'user', text: p.text, time: p.time }], sessionId, roster, actions }) : null))))
   if (stream?.reasoning && !stream.text) rows.push(h(ThinkingRow, { key: 'sr', text: stream.reasoning, live: true, at: stream.at, viewKey: `${sessionId}:live` }))
-  if (stream?.text) rows.push(h('div', { key: 'st', className: 'bt-astack dsb-ui-row' }, h(BotText, { text: stream.text, streaming: true, onSend, roster })))
+  if (stream?.text) rows.push(h('div', { key: 'st', className: 'bt-astack dsb-ui-row' }, h(BotText, { text: stream.text, streaming: true, onSend, roster, stateKey: sessionId })))
   for (const a of approvals) rows.push(h(ApprovalCard, { key: a.id, entry: a, actions }))
   return rows
 }
@@ -152,7 +155,24 @@ const readFile = file => new Promise((resolve, reject) => {
   r.readAsDataURL(file)
 })
 
-function Composer({ sessionId, running, onSend, onStop, actions, useUi }) {
+// 本会话用的模型：DS Bot 的 ModelMenu。没单独选时跟随全局默认（菜单里标“默认”）；选回默认模型就恢复跟随。
+const refOf = sel => (sel ? `${sel.provider}/${sel.model}` : undefined)
+function ConvModel({ sessionId, actions, hooks }) {
+  const own = hooks.useSessions(list => list.byId[sessionId]?.model ?? null)
+  const [cat, setCat] = useState(null)
+  const refresh = useCallback(() => call('models').then(v => setCat(v)).catch(() => {}), [])
+  useEffect(() => { void refresh() }, [refresh, sessionId])
+  if (!cat || cat.catalog.length === 0) return null
+  const defaultModel = refOf(cat.default)
+  const roster = { models: cat.catalog, defaultModel }
+  const bot = { id: sessionId, name: '本对话', model: refOf(own), appliedModel: defaultModel, effort: own?.reasoningEffort }
+  const save = (ref, effort) => call('conversation/model', { id: sessionId, ref, effort }).catch(actions.reportError)
+  const menuActions = { refreshModels: refresh, openModels: () => actions.openSettings('models') }
+  return h('div', { className: 'dsb-conv-model', 'data-own': own ? '' : undefined },
+    h(ModelMenu, { bot, roster, actions: menuActions, onPick: ref => save(ref, undefined), onPickEffort: effort => save(bot.model ?? defaultModel, effort) }))
+}
+
+function Composer({ sessionId, running, onSend, onStop, actions, useUi, hooks }) {
   const [text, setText] = useState('')
   const [files, setFiles] = useState([])
   const [error, setError] = useState(null)
@@ -200,6 +220,7 @@ function Composer({ sessionId, running, onSend, onStop, actions, useUi }) {
         onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void submit() } },
       })),
     h('div', { className: 'dsb-composer-trailing' },
+      hooks ? h(ConvModel, { sessionId, actions, hooks }) : null,
       h(ComposerVoice, { sessionId, inputActions, actions, useUi }),
       running && empty
         ? h('button', { type: 'button', className: 'dsb-send dsb-stop', 'aria-label': '停止', title: '停止', onClick: onStop }, h('span', { className: 'dsb-stop-sq' }))
@@ -232,7 +253,7 @@ export function Chat({ sessionId, team }) {
           // DS Bot 的活动行（头部胶囊里的 ActivityIndicator）画在这里。
           h('div', { 'data-chat-running': '' })))),
     h('div', { className: 'dsb-composer-root' },
-      h(Composer, { sessionId, running, onSend: send, onStop: () => void actions.cancel(sessionId).catch(actions.reportError), actions, useUi: hooks.useUi })))
+      h(Composer, { sessionId, running, onSend: send, onStop: () => void actions.cancel(sessionId).catch(actions.reportError), actions, useUi: hooks.useUi, hooks })))
 }
 
 function Welcome({ onPick }) {

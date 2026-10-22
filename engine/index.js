@@ -9,9 +9,10 @@ import { fileURLToPath } from 'node:url'
 import { createStore } from './lib/store.js'
 import { createModels } from './lib/models.js'
 import { createMemory } from './lib/memory.js'
+import { defineTool } from '@deepseek-ai/dsh-tools'
 
 export const name = 'dsh-bot-engine'
-export const inject = ['sessionController', 'sessions', 'settings', 'credentials', 'llm', 'agentDefaultModel', 'systemPrompt', 'permissionPresets', 'fileUploads']
+export const inject = ['sessionController', 'sessions', 'settings', 'credentials', 'llm', 'agentDefaultModel', 'systemPrompt', 'permissionPresets', 'fileUploads', 'tools']
 
 const UI_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.json': 'application/json' }
@@ -26,11 +27,17 @@ export function apply(ctx, config = {}) {
   // 会话会沿用自己上次请求时的模型；界面里只有一个“默认模型”，所以发送前让会话跟上当前默认。
   const applied = new Map()
   const followDefault = async (sessionId) => {
-    const want = ctx.agentDefaultModel.currentSelection()
+    const own = store.get(sessionId)?.model
+    const want = own ?? ctx.agentDefaultModel.currentSelection()
     const key = `${want.provider}/${want.model}/${want.reasoningEffort ?? ''}`
     if (applied.get(sessionId) === key) return
-    try { await ctx.sessionController.selectModel({ sessionId, ...want }); applied.set(sessionId, key) }
-    catch (e) { ctx.logger?.warn?.(`dsh-bot: 切换会话模型失败：${e?.message ?? e}`) }
+    // DSH 的 selectModel 会顺手把选择存成全局默认；会话自己的选择不该改默认，所以存完再还原。
+    const before = ctx.agentDefaultModel.currentSelection()
+    try {
+      await ctx.sessionController.selectModel({ sessionId, ...want })
+      applied.set(sessionId, key)
+      if (own) { await new Promise(r => setTimeout(r, 30)); await ctx.agentDefaultModel.saveSelection(before) }
+    } catch (e) { ctx.logger?.warn?.(`dsh-bot: 切换会话模型失败：${e?.message ?? e}`) }
   }
   const memory = createMemory(join(home, 'memory'))
   const prefsPath = join(home, 'prefs.json')
@@ -39,6 +46,21 @@ export function apply(ctx, config = {}) {
   const debug = process.env.DSH_BOT_DEBUG ? (k, v) => appendFileSync(join(home, 'events.log'), JSON.stringify({ k, v }, (key, val) => (key === 'agent' || key === 'session' || key === 'signal' ? undefined : val)) + '\n') : () => {}
 
   // 记忆作为运行时上下文注入每一步
+  // 记忆专用工具：直接写 dsh-bot 自己的两个记忆文件，不经过文件沙箱，所以不会弹审批。
+  ctx.tools.register(defineTool({
+    name: 'memory_write',
+    description: 'Update your long-term memory about the user. file "profile" holds stable facts and preferences (use mode "replace" with the full new text); file "journal" holds dated notes (use mode "append" with one short line). Never store secrets.',
+    parameters: {
+      file: { type: 'string', enum: ['profile', 'journal'], required: true, description: 'Which memory file to update.' },
+      mode: { type: 'string', enum: ['append', 'replace'], required: true, description: 'append a line, or replace the whole file.' },
+      content: { type: 'string', required: true, description: 'Text to write.' },
+    },
+    output: {
+      schema: { type: 'object', additionalProperties: false, properties: { file: { type: 'string', required: true }, mode: { type: 'string', required: true } } },
+      render: (_args, value) => [{ type: 'text', text: `已更新记忆：${value.file}（${value.mode}）` }],
+    },
+    async execute(args) { const r = memory.update(args.file, args.mode, args.content); publish('memory', memory.read()); return r },
+  }))
   ctx.effect(() => ctx.systemPrompt.context({ name: 'dsh-bot:memory', order: 900, interpolate: false, text: () => memory.context() }), 'dsh-bot: memory context')
 
   const clients = new Set()
@@ -169,6 +191,15 @@ export function apply(ctx, config = {}) {
       const cur = store.current && store.get(store.current)
       if (cur && store.items(cur.id).length === 0 && cur.cwd === prefs.cwd) return cur
       return await createConversation()
+    },
+    'POST /api/conversation/model': async ({ id, ref, effort }) => {
+      need(id)
+      const def = ctx.agentDefaultModel.currentSelection()
+      const [provider, ...rest] = String(ref ?? '').split('/')
+      const model = rest.join('/')
+      const followsDefault = !ref || (provider === def.provider && model === def.model && !effort)
+      store.edit(id, { model: followsDefault ? null : { provider, model, ...(effort ? { reasoningEffort: effort } : {}) } })
+      publish('conversation', store.get(id)); return store.get(id)
     },
     'POST /api/rename': async ({ id, title }) => {
       const value = String(title ?? '').trim().slice(0, 60)
