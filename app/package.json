@@ -54,6 +54,7 @@
     "ds-bot": "file:../ds-bot",
     "electron-updater": "6.8.10",
     "pnpm": "11.7.0",
+    "tar": "7.5.22",
     "yaml": "2.9.1"
   },
   "devDependencies": {
@@ -66,9 +67,6 @@
     "vite": "8.3.4"
   },
   "overrides": {
-    "@deepseek-ai/cordis": "4.0.5",
-    "@deepseek-ai/dsh-llm": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-tools": "0.2.1-rc.2",
-    "@deepseek-ai/dsh-web": "0.2.1-rc.2"
+    "zod": "4.6.7"
   }
 }
