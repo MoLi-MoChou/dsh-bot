@@ -17,3 +17,16 @@
   config:
     searchProvider: auto
     fetchProvider: http
+
+# DSH Bot patch (lean): no Automation tasks entry in the sidebar. The scheduler itself
+# stays, and the Bots' schedule tools are already hidden (src/shared/lean.js).
+- id: ui-schedule
+  disabled: true
+# The scheduler and its tool are not offered either.
+- id: schedule
+  disabled: true
+- id: tool-schedule
+  disabled: true
+# No product telemetry export.
+- id: desktop-product-telemetry
+  disabled: true
