@@ -30,6 +30,9 @@ test('tsconfig keeps the migration gates on, and lets the existing JS stay as it
     assert.equal(tsconfig.compilerOptions[gate], true, gate)
   }
   assert.deepEqual(tsconfig.include, ['src/**/*.ts', 'src/**/*.tsx'])
+  // Phase 2 turns the client entry into TSX: the transform must be the shell's React,
+  // never a second copy bundled into client.js.
+  assert.equal(tsconfig.compilerOptions.jsx, 'react-jsx')
 })
 
 test('the client build accepts a TSX/TS entry and still writes the same client.js', () => {
@@ -37,12 +40,17 @@ test('the client build accepts a TSX/TS entry and still writes the same client.j
   assert.match(script, /src\/client\/index\.tsx/)
   assert.match(script, /src\/client\/index\.ts/)
   assert.match(script, /join\(PLUGIN, 'tsconfig\.json'\)/)
+  for (const external of ['react/jsx-runtime', 'react/jsx-dev-runtime']) assert.ok(script.includes(external), external)
   assert.match(script, /node scripts\/build-client\.mjs --check/)
 })
 
 test('the shared contract layer exists and names the endpoints both ends share', () => {
   const rpc = read('src/shared/rpc.ts')
   for (const endpoint of ['state: {', 'chat: {', 'send: {', "'workspace-download': {"]) assert.ok(rpc.includes(endpoint), endpoint)
+  // The envelope's error code is a closed union, not a free string.
+  assert.match(rpc, /export type RpcErrorCode =/)
+  for (const code of ["'bot/refused'", "'bot/stale'", "'bot/read-only'", "'bot/internal'", "'NETWORK'"]) assert.ok(rpc.includes(code), code)
+  assert.match(rpc, /HTTP_\$\{number\}/)
   const schema = read('src/shared/schema.ts')
   for (const name of ['BotSchema', 'RoomSchema', 'ExchangeTurnSchema', 'MemoryEntrySchema', 'ScheduleTaskSchema', 'BotSkillSchema', 'BotWorkspaceSchema']) {
     assert.match(schema, new RegExp(`export const ${name}`))

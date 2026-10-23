@@ -16,13 +16,27 @@ import type {
 } from './schema.js'
 import type { WidgetView } from './views.js'
 
+/** The error codes the host raises, plus the two the client makes up itself. */
+export type RpcErrorCode =
+  | 'bot/invalid'
+  | 'bot/stale'
+  | 'bot/not-found'
+  | 'bot/browser-off'
+  | 'bot/unavailable'
+  | 'bot/read-only'
+  | 'bot/refused'
+  | 'bot/internal'
+  | 'bot/error'
+  | 'NETWORK'
+  | `HTTP_${number}`
+
 /** The envelope every endpoint answers with. */
 export type RpcResultBody<T> =
   | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly error: { readonly code: string; readonly message: string; readonly details?: Record<string, unknown> } }
+  | { readonly ok: false; readonly error: RpcError }
 
 export interface RpcError {
-  readonly code: string
+  readonly code: RpcErrorCode
   readonly message: string
   readonly details?: Record<string, unknown>
 }
@@ -163,6 +177,8 @@ export interface BotChannelRpcMap {
   'remove-agent': { request: Record<string, unknown>; response: StateView }
 
   // Turns, questions, views, approvals
+  // These take the current part's **Session id** (client resolves it through `partFor()`),
+  // never a Bot id.
   send: { request: { sessionId: string; text: string }; response: Record<string, unknown> }
   'answer-question': { request: { sessionId: string; questionId: string; answer?: unknown }; response: Record<string, unknown> }
   'view-reply': { request: { sessionId: string; viewId: string; action?: string; values?: Record<string, unknown> }; response: Record<string, unknown> }
