@@ -25,8 +25,6 @@ test('client.js registers a factory that exports apply and inject', () => {
     'react': { createElement: () => null, Fragment: Symbol('Fragment'), useState: initial => [initial, () => {}], useEffect: () => {}, useMemo: make => make(), useRef: current => ({ current }) },
     'react-dom': { createPortal: node => node },
     '@deepseek-ai/dsh-client-ui-primitives': { MarkdownText: () => null },
-    // .tsx sources compile to the automatic runtime, which the shell seeds too.
-    'react/jsx-runtime': { jsx: () => null, jsxs: () => null, Fragment: Symbol('Fragment') },
   }
   const exports = factory((specifier) => {
     requested.push(specifier)
@@ -34,6 +32,9 @@ test('client.js registers a factory that exports apply and inject', () => {
     return platform[specifier]
   })
   assert.deepEqual([...new Set(requested)].sort(), Object.keys(platform).sort())
+  // A .tsx source must compile to h() calls: the shell has no react/jsx-runtime, and a
+  // bundle that requires one fails to resolve in the browser (the client never registers).
+  assert.ok(!requested.some(specifier => specifier.startsWith('react/jsx')), 'client.js must not require a jsx runtime')
   assert.equal(Object.prototype.toString.call(exports), '[object Module]')
   assert.deepEqual(Object.keys(exports), ['apply', 'inject'])
   assert.equal(typeof exports.apply, 'function')

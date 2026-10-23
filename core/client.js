@@ -1575,8 +1575,8 @@ function bodyOf(def, paint, flat = false) {
     return "";
   }
 }
-var eyeMarkup = ([cx, cy, w, h42, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h42 / 2}" width="${w}" height="${h42}" rx="${w / 2}"/></g>`;
-var happyEyeMarkup = ([cx, cy, w, h42, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h42 * 0.14}Q0 ${-h42 * 0.42} ${w * 0.62} ${h42 * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`;
+var eyeMarkup = ([cx, cy, w, h43, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h43 / 2}" width="${w}" height="${h43}" rx="${w / 2}"/></g>`;
+var happyEyeMarkup = ([cx, cy, w, h43, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h43 * 0.14}Q0 ${-h43 * 0.42} ${w * 0.62} ${h43 * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`;
 var maskBox = (size) => `maskUnits="userSpaceOnUse" x="${-size}" y="${-size}" width="${size * 3}" height="${size * 3}"`;
 var holes = (def, eyes) => `<rect x="${-def.size}" y="${-def.size}" width="${def.size * 3}" height="${def.size * 3}" fill="#fff"/>${eyes}`;
 var MASK_ID = "%MASK%";
@@ -2472,12 +2472,12 @@ function liveSprings(apply2) {
     const dt = Math.min(0.5, Math.max(1e-3, (now - last) / 1e3));
     last = now;
     const steps = Math.ceil(dt * 240);
-    const h42 = dt / steps;
+    const h43 = dt / steps;
     let moving = false;
     for (const value of values.values()) {
       for (let index = 0; index < steps; index += 1) {
-        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h42;
-        value.x += value.v * h42;
+        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h43;
+        value.x += value.v * h43;
       }
       if (Math.abs(value.x - value.to) < 0.05 && Math.abs(value.v) < 1) {
         value.x = value.to;
@@ -4148,8 +4148,8 @@ function framerMotion() {
           s.has(c) && (l.schedule(c), t2()), c(i);
         }
         let l = { schedule: (c, u = false, m = false) => {
-          let h42 = m && r ? e : o;
-          return u && s.add(c), h42.add(c), c;
+          let h43 = m && r ? e : o;
+          return u && s.add(c), h43.add(c), c;
         }, cancel: (c) => {
           o.delete(c), s.delete(c);
         }, process: (c) => {
@@ -4165,9 +4165,9 @@ function framerMotion() {
       }
       var yc = 40;
       function $o(t2, e) {
-        let o = false, r = true, n = { delta: 0, timestamp: 0, isProcessing: false }, s = () => o = true, i = no.reduce((y, T) => (y[T] = Zi(s), y), {}), { setup: a, read: l, resolveKeyframes: c, preUpdate: u, update: m, preRender: f, render: h42, postRender: p } = i, d = () => {
+        let o = false, r = true, n = { delta: 0, timestamp: 0, isProcessing: false }, s = () => o = true, i = no.reduce((y, T) => (y[T] = Zi(s), y), {}), { setup: a, read: l, resolveKeyframes: c, preUpdate: u, update: m, preRender: f, render: h43, postRender: p } = i, d = () => {
           let y = Z.useManualTiming, T = y ? n.timestamp : performance.now();
-          o = false, y || (n.delta = r ? 1e3 / 60 : Math.max(Math.min(T - n.timestamp, yc), 1)), n.timestamp = T, n.isProcessing = true, a.process(n), l.process(n), c.process(n), u.process(n), m.process(n), f.process(n), h42.process(n), p.process(n), n.isProcessing = false, o && e && (r = false, t2(d));
+          o = false, y || (n.delta = r ? 1e3 / 60 : Math.max(Math.min(T - n.timestamp, yc), 1)), n.timestamp = T, n.isProcessing = true, a.process(n), l.process(n), c.process(n), u.process(n), m.process(n), f.process(n), h43.process(n), p.process(n), n.isProcessing = false, o && e && (r = false, t2(d));
         }, g = () => {
           o = true, r = true, n.isProcessing || t2(d);
         };
@@ -4353,11 +4353,11 @@ function framerMotion() {
         St(t2 <= N(F.maxDuration), "Spring duration must be 10 seconds or less", "spring-duration-limit");
         let i = 1 - e;
         i = W(F.minDamping, F.maxDamping, i), t2 = W(F.minDuration, F.maxDuration, $(t2)), i < 1 ? (n = (c) => {
-          let u = c * i, m = u * t2, f = u - o, h42 = Ln(c, i), p = Math.exp(-m);
-          return Rn - f / h42 * p;
+          let u = c * i, m = u * t2, f = u - o, h43 = Ln(c, i), p = Math.exp(-m);
+          return Rn - f / h43 * p;
         }, s = (c) => {
-          let m = c * i * t2, f = m * o + o, h42 = Math.pow(i, 2) * Math.pow(c, 2) * t2, p = Math.exp(-m), d = Ln(Math.pow(c, 2), i);
-          return (-n(c) + Rn > 0 ? -1 : 1) * ((f - h42) * p) / d;
+          let m = c * i * t2, f = m * o + o, h43 = Math.pow(i, 2) * Math.pow(c, 2) * t2, p = Math.exp(-m), d = Ln(Math.pow(c, 2), i);
+          return (-n(c) + Rn > 0 ? -1 : 1) * ((f - h43) * p) / d;
         }) : (n = (c) => {
           let u = Math.exp(-c * t2), m = (c - o) * t2 + 1;
           return -Rn + u * m;
@@ -4388,7 +4388,7 @@ function framerMotion() {
         return e;
       }
       function Me(t2 = F.visualDuration, e = F.bounce) {
-        let o = typeof t2 != "object" ? { visualDuration: t2, keyframes: [0, 1], bounce: e } : t2, { restSpeed: r, restDelta: n } = o, s = o.keyframes[0], i = o.keyframes[o.keyframes.length - 1], a = { done: false, value: s }, { stiffness: l, damping: c, mass: u, duration: m, velocity: f, isResolvedFromDuration: h42 } = Kc({ ...o, velocity: -$(o.velocity || 0) }), p = f || 0, d = c / (2 * Math.sqrt(l * u)), g = i - s, x = $(Math.sqrt(l / u)), v = Math.abs(g) < 5;
+        let o = typeof t2 != "object" ? { visualDuration: t2, keyframes: [0, 1], bounce: e } : t2, { restSpeed: r, restDelta: n } = o, s = o.keyframes[0], i = o.keyframes[o.keyframes.length - 1], a = { done: false, value: s }, { stiffness: l, damping: c, mass: u, duration: m, velocity: f, isResolvedFromDuration: h43 } = Kc({ ...o, velocity: -$(o.velocity || 0) }), p = f || 0, d = c / (2 * Math.sqrt(l * u)), g = i - s, x = $(Math.sqrt(l / u)), v = Math.abs(g) < 5;
         r || (r = v ? F.restSpeed.granular : F.restSpeed.default), n || (n = v ? F.restDelta.granular : F.restDelta.default);
         let y, T, b, A, E, V;
         if (d < 1) b = Ln(x, d), A = (p + d * x * g) / b, y = (P) => {
@@ -4411,13 +4411,13 @@ function framerMotion() {
             return Tt * (_ * Math.sinh(ft) + vt * Math.cosh(ft));
           };
         }
-        let M = { calculatedDuration: h42 && m || null, velocity: (P) => N(T(P)), next: (P) => {
-          if (!h42 && d < 1) {
+        let M = { calculatedDuration: h43 && m || null, velocity: (P) => N(T(P)), next: (P) => {
+          if (!h43 && d < 1) {
             let _ = Math.exp(-d * x * P), vt = Math.sin(b * P), mt = Math.cos(b * P), Tt = i - _ * (A * vt + g * mt), ft = N(_ * (E * vt + V * mt));
             return a.done = Math.abs(ft) <= r && Math.abs(i - Tt) <= n, a.value = a.done ? i : Tt, a;
           }
           let R = y(P);
-          if (h42) a.done = P >= m;
+          if (h43) a.done = P >= m;
           else {
             let _ = N(T(P));
             a.done = Math.abs(_) <= r && Math.abs(i - R) <= n;
@@ -4440,13 +4440,13 @@ function framerMotion() {
         return qe(o - t2(r), e - r);
       }
       function co({ keyframes: t2, velocity: e = 0, power: o = 0.8, timeConstant: r = 325, bounceDamping: n = 10, bounceStiffness: s = 500, modifyTarget: i, min: a, max: l, restDelta: c = 0.5, restSpeed: u }) {
-        let m = t2[0], f = { done: false, value: m }, h42 = (V) => a !== void 0 && V < a || l !== void 0 && V > l, p = (V) => a === void 0 ? l : l === void 0 || Math.abs(a - V) < Math.abs(l - V) ? a : l, d = o * e, g = m + d, x = i === void 0 ? g : i(g);
+        let m = t2[0], f = { done: false, value: m }, h43 = (V) => a !== void 0 && V < a || l !== void 0 && V > l, p = (V) => a === void 0 ? l : l === void 0 || Math.abs(a - V) < Math.abs(l - V) ? a : l, d = o * e, g = m + d, x = i === void 0 ? g : i(g);
         x !== g && (d = x - m);
         let v = (V) => -d * Math.exp(-V / r), y = (V) => x + v(V), T = (V) => {
           let M = v(V), P = y(V);
           f.done = Math.abs(M) <= c, f.value = f.done ? x : P;
         }, b, A, E = (V) => {
-          h42(f.value) && (b = V, A = Me({ keyframes: [f.value, p(f.value)], velocity: er(y, V, f.value), damping: n, stiffness: s, restDelta: c, restSpeed: u }));
+          h43(f.value) && (b = V, A = Me({ keyframes: [f.value, p(f.value)], velocity: er(y, V, f.value), damping: n, stiffness: s, restDelta: c, restSpeed: u }));
         };
         return E(0), { calculatedDuration: null, next: (V) => {
           let M = false;
@@ -4553,14 +4553,14 @@ function framerMotion() {
         tick(e, o = false) {
           let { generator: r, totalDuration: n, mixKeyframes: s, mirroredGenerator: i, resolvedDuration: a, calculatedDuration: l } = this;
           if (this.startTime === null) return r.next(0);
-          let { delay: c = 0, keyframes: u, repeat: m, repeatType: f, repeatDelay: h42, type: p, onUpdate: d, finalKeyframe: g } = this.options;
+          let { delay: c = 0, keyframes: u, repeat: m, repeatType: f, repeatDelay: h43, type: p, onUpdate: d, finalKeyframe: g } = this.options;
           this.speed > 0 ? this.startTime = Math.min(this.startTime, e) : this.speed < 0 && (this.startTime = Math.min(e - n / this.speed, this.startTime)), o ? this.currentTime = e : this.updateTime(e);
           let x = this.currentTime - c * (this.playbackSpeed >= 0 ? 1 : -1), v = this.playbackSpeed >= 0 ? x < 0 : x > n;
           this.currentTime = Math.max(x, 0), this.state === "finished" && this.holdTime === null && (this.currentTime = n);
           let y = this.currentTime, T = r;
           if (m) {
             let V = Math.min(this.currentTime, n) / a, M = Math.floor(V), P = V % 1;
-            !P && V >= 1 && (P = 1), P === 1 && M--, M = Math.min(M, m + 1), M % 2 && (f === "reverse" ? (P = 1 - P, h42 && (P -= h42 / a)) : f === "mirror" && (T = i)), y = W(0, 1, P) * a;
+            !P && V >= 1 && (P = 1), P === 1 && M--, M = Math.min(M, m + 1), M % 2 && (f === "reverse" ? (P = 1 - P, h43 && (P -= h43 / a)) : f === "mirror" && (T = i)), y = W(0, 1, P) * a;
           }
           let b;
           v ? (this.delayState.value = u[0], b = this.delayState) : b = T.next(y), s && !v && (b.value = s(b.value));
@@ -4909,8 +4909,8 @@ function framerMotion() {
           super(), this.stop = () => {
             this._animation && (this._animation.stop(), this.stopTimeline?.()), this.keyframeResolver?.cancel();
           }, this.createdAt = B.now();
-          let f = { autoplay: e, delay: o, type: r, repeat: n, repeatDelay: s, repeatType: i, name: l, motionValue: c, element: u, ...m }, h42 = u?.KeyframeResolver || Nt;
-          this.keyframeResolver = new h42(a, (p, d, g) => this.onKeyframesResolved(p, d, f, !g), l, c, u), this.keyframeResolver?.scheduleResolve();
+          let f = { autoplay: e, delay: o, type: r, repeat: n, repeatDelay: s, repeatType: i, name: l, motionValue: c, element: u, ...m }, h43 = u?.KeyframeResolver || Nt;
+          this.keyframeResolver = new h43(a, (p, d, g) => this.onKeyframesResolved(p, d, f, !g), l, c, u), this.keyframeResolver?.scheduleResolve();
         }
         onKeyframesResolved(e, o, r, n) {
           this.keyframeResolver = void 0;
@@ -4918,13 +4918,13 @@ function framerMotion() {
           this.resolvedAt = B.now();
           let m = true;
           Ls(e, s, i, a) || (m = false, (Z.instantAnimations || !l) && u?.(Ot(e, r, o)), e[0] = e[e.length - 1], uo(r), r.repeat = 0);
-          let h42 = { startTime: n ? this.resolvedAt ? this.resolvedAt - this.createdAt > au ? this.resolvedAt : this.createdAt : this.createdAt : void 0, finalKeyframe: o, ...r, keyframes: e }, p = m && !c && Is(h42), d = h42.motionValue?.owner?.current, g;
+          let h43 = { startTime: n ? this.resolvedAt ? this.resolvedAt - this.createdAt > au ? this.resolvedAt : this.createdAt : this.createdAt : void 0, finalKeyframe: o, ...r, keyframes: e }, p = m && !c && Is(h43), d = h43.motionValue?.owner?.current, g;
           if (p) try {
-            g = new ur({ ...h42, element: d });
+            g = new ur({ ...h43, element: d });
           } catch {
-            g = new bt(h42);
+            g = new bt(h43);
           }
-          else g = new bt(h42);
+          else g = new bt(h43);
           g.finished.then(() => {
             this.notifyFinished();
           }).catch(I), this.pendingTimeline && (this.stopTimeline = g.attachTimeline(this.pendingTimeline), this.pendingTimeline = void 0), this._animation = g;
@@ -5189,8 +5189,8 @@ function framerMotion() {
         s = s ? ee(s, l) : l;
         let c = s?.reduceMotion, u = s?.skipAnimations;
         r && (s = r);
-        let m = [], f = n && t2.animationState && t2.animationState.getState()[n], h42 = s?.path;
-        h42 && h42.animateVisualElement(t2, a, s, o, m);
+        let m = [], f = n && t2.animationState && t2.animationState.getState()[n], h43 = s?.path;
+        h43 && h43.animateVisualElement(t2, a, s, o, m);
         for (let p in a) {
           let d = t2.getValue(p, t2.latestValues[p] ?? null), g = a[p];
           if (g === void 0 || f && vu(f, p)) continue;
@@ -5390,7 +5390,7 @@ function framerMotion() {
             c && (c(g), c = void 0), u();
           }, f = (g) => {
             a = false, window.removeEventListener("pointerup", f), window.removeEventListener("pointercancel", f), l && (l = false, m(g));
-          }, h42 = () => {
+          }, h43 = () => {
             a = true, window.addEventListener("pointerup", f, n), window.addEventListener("pointercancel", f, n);
           }, p = (g) => {
             if (g.pointerType !== "touch") {
@@ -5406,7 +5406,7 @@ function framerMotion() {
             let x = e(i, g);
             typeof x == "function" && (c = x, i.addEventListener("pointerleave", p, n));
           };
-          i.addEventListener("pointerenter", d, n), i.addEventListener("pointerdown", h42, n);
+          i.addEventListener("pointerenter", d, n), i.addEventListener("pointerdown", h43, n);
         }), s;
       }
       var Xn = (t2, e) => e ? t2 === e ? true : Xn(t2, e.parentElement) : false;
@@ -5451,13 +5451,13 @@ function framerMotion() {
           if (!Xs(a) || qs.has(a)) return;
           ke.add(l), o.stopPropagation && qs.add(a);
           let c = e(l, a), u = { ...n, capture: true }, m = (p, d) => {
-            window.removeEventListener("pointerup", f, u), window.removeEventListener("pointercancel", h42, u), ke.has(l) && ke.delete(l), Xs(p) && typeof c == "function" && c(p, { success: d });
+            window.removeEventListener("pointerup", f, u), window.removeEventListener("pointercancel", h43, u), ke.has(l) && ke.delete(l), Xs(p) && typeof c == "function" && c(p, { success: d });
           }, f = (p) => {
             m(p, l === window || l === document || o.useGlobalTarget || Xn(l, p.target));
-          }, h42 = (p) => {
+          }, h43 = (p) => {
             m(p, false);
           };
-          window.addEventListener("pointerup", f, u), window.addEventListener("pointercancel", h42, u);
+          window.addEventListener("pointerup", f, u), window.addEventListener("pointercancel", h43, u);
         };
         return r.forEach((a) => {
           (o.useGlobalTarget ? window : a).addEventListener("pointerdown", i, n), ie(a) && (a.addEventListener("focus", (c) => Ys(c, n)), !qn(a) && !a.hasAttribute("tabindex") && (a.tabIndex = 0));
@@ -5577,15 +5577,15 @@ function framerMotion() {
           this.current = null, this.children = /* @__PURE__ */ new Set(), this.isVariantNode = false, this.isControllingVariants = false, this.shouldReduceMotion = null, this.shouldSkipAnimations = false, this.values = /* @__PURE__ */ new Map(), this.KeyframeResolver = Nt, this.features = {}, this.valueSubscriptions = /* @__PURE__ */ new Map(), this.prevMotionValues = {}, this.hasBeenMounted = false, this.events = {}, this.propEventSubscriptions = {}, this.notifyUpdate = () => this.notify("Update", this.latestValues), this.render = () => {
             this.current && (this.triggerBuild(), this.renderInstance(this.current, this.renderState, this.props.style, this.projection));
           }, this.renderScheduledAt = 0, this.scheduleRender = () => {
-            let h42 = B.now();
-            this.renderScheduledAt < h42 && (this.renderScheduledAt = h42, w.render(this.render, false, true));
+            let h43 = B.now();
+            this.renderScheduledAt < h43 && (this.renderScheduledAt = h43, w.render(this.render, false, true));
           };
           let { latestValues: c, renderState: u } = a;
           this.latestValues = c, this.baseTarget = { ...c }, this.initialValues = o.initial ? { ...c } : {}, this.renderState = u, this.parent = e, this.props = o, this.presenceContext = r, this.depth = e ? e.depth + 1 : 0, this.reducedMotionConfig = n, this.skipAnimationsConfig = s, this.options = l, this.blockInitialAnimation = !!i, this.isControllingVariants = Wt(o), this.isVariantNode = vo(o), this.isVariantNode && (this.variantChildren = /* @__PURE__ */ new Set()), this.manuallyAnimateOnMount = !!(e && e.current);
           let { willChange: m, ...f } = this.scrapeMotionValuesFromProps(o, {}, this);
-          for (let h42 in f) {
-            let p = f[h42];
-            c[h42] !== void 0 && D(p) && p.set(c[h42]);
+          for (let h43 in f) {
+            let p = f[h43];
+            c[h43] !== void 0 && D(p) && p.set(c[h43]);
           }
         }
         mount(e) {
@@ -5947,7 +5947,7 @@ function framerMotion() {
         t2.attrs = t2.style, t2.style = {};
         let { attrs: m, style: f } = t2;
         m.transform && (f.transform = m.transform, delete m.transform), (f.transform || m.transformOrigin) && (f.transformOrigin = m.transformOrigin ?? "50% 50%", delete m.transformOrigin), f.transform && (f.transformBox = u?.transformBox ?? "fill-box", delete m.transformBox);
-        for (let h42 of Ku) m[h42] !== void 0 && (f[h42] = m[h42], delete m[h42]);
+        for (let h43 of Ku) m[h43] !== void 0 && (f[h43] = m[h43], delete m[h43]);
         e !== void 0 && (m.x = e), o !== void 0 && (m.y = o), r !== void 0 && (m.scale = r), n !== void 0 && da(m, n, s, i, false);
       }
       var Br = /* @__PURE__ */ new Set(["baseFrequency", "diffuseConstant", "kernelMatrix", "kernelUnitLength", "keySplines", "keyTimes", "limitingConeAngle", "markerHeight", "markerWidth", "numOctaves", "targetX", "targetY", "surfaceScale", "specularConstant", "specularExponent", "stdDeviation", "tableValues", "viewBox", "gradientTransform", "pathLength", "startOffset", "textLength", "lengthAdjust"]);
@@ -6020,7 +6020,7 @@ function framerMotion() {
         let e = Yu(t2), o = xa(), r = true, n = false, s = (c) => (u, m) => {
           let f = tt(t2, m, c === "exit" ? t2.presenceContext?.custom : void 0);
           if (f) {
-            let { transition: h42, transitionEnd: p, ...d } = f;
+            let { transition: h43, transitionEnd: p, ...d } = f;
             u = { ...u, ...d, ...p };
           }
           return u;
@@ -6029,7 +6029,7 @@ function framerMotion() {
           e = c(t2);
         }
         function a(c) {
-          let { props: u } = t2, m = mi(t2.parent) || {}, f = [], h42 = /* @__PURE__ */ new Set(), p = {}, d = 1 / 0;
+          let { props: u } = t2, m = mi(t2.parent) || {}, f = [], h43 = /* @__PURE__ */ new Set(), p = {}, d = 1 / 0;
           for (let x = 0; x < _u; x++) {
             let v = $u[x], y = o[v], T = u[v] !== void 0 ? u[v] : m[v], b = xt(T), A = v === c ? y.isActive : null;
             A === false && (d = x);
@@ -6042,7 +6042,7 @@ function framerMotion() {
             let V = ya(y.prevProp, T), M = V || v === c && y.isActive && !E && b || x > d && b, P = false, R = Array.isArray(T) ? T : [T], _ = R.reduce(s(v), {});
             A === false && (_ = {});
             let { prevResolvedValues: vt = {} } = y, mt = { ...vt, ..._ }, Tt = (Y) => {
-              M = true, h42.has(Y) && (P = true, h42.delete(Y)), y.needsAnimating[Y] = true;
+              M = true, h43.has(Y) && (P = true, h43.delete(Y)), y.needsAnimating[Y] = true;
               let ot = t2.getValue(Y);
               ot && (ot.liveStyle = false);
             };
@@ -6050,7 +6050,7 @@ function framerMotion() {
               let ot = _[Y], Yt = vt[Y];
               if (p.hasOwnProperty(Y)) continue;
               let Te = false;
-              mo(ot) && mo(Yt) ? Te = !fi(ot, Yt) || V : Te = ot !== Yt, Te ? ot != null ? Tt(Y) : h42.add(Y) : ot !== void 0 && h42.has(Y) ? Tt(Y) : y.protectedKeys[Y] = true;
+              mo(ot) && mo(Yt) ? Te = !fi(ot, Yt) || V : Te = ot !== Yt, Te ? ot != null ? Tt(Y) : h43.add(Y) : ot !== void 0 && h43.has(Y) ? Tt(Y) : y.protectedKeys[Y] = true;
             }
             y.prevProp = T, y.prevResolvedValues = _, y.isActive && (p = { ...p, ..._ }), (r || n) && t2.blockInitialAnimation && (M = false);
             let ft = E && V;
@@ -6066,13 +6066,13 @@ function framerMotion() {
               return { animation: Y, options: ot };
             }));
           }
-          if (h42.size) {
+          if (h43.size) {
             let x = {};
             if (typeof u.initial != "boolean") {
               let v = tt(t2, Array.isArray(u.initial) ? u.initial[0] : u.initial);
               v && v.transition && (x.transition = v.transition);
             }
-            h42.forEach((v) => {
+            h43.forEach((v) => {
               let y = t2.getBaseTarget(v), T = t2.getValue(v);
               T && (T.liveStyle = true), x[v] = y ?? null;
             }), f.push({ animation: x });
@@ -6181,8 +6181,8 @@ function framerMotion() {
       function Aa(t2, e, o) {
         let r = "", n = t2.x.translate / e.x, s = t2.y.translate / e.y, i = o?.z || 0;
         if ((n || s || i) && (r = `translate3d(${n}px, ${s}px, ${i}px) `), (e.x !== 1 || e.y !== 1) && (r += `scale(${1 / e.x}, ${1 / e.y}) `), o) {
-          let { transformPerspective: c, rotate: u, pathRotation: m, rotateX: f, rotateY: h42, skewX: p, skewY: d } = o;
-          c && (r = `perspective(${c}px) ${r}`), u && (r += `rotate(${u}deg) `), m && (r += `rotate(${m}deg) `), f && (r += `rotateX(${f}deg) `), h42 && (r += `rotateY(${h42}deg) `), p && (r += `skewX(${p}deg) `), d && (r += `skewY(${d}deg) `);
+          let { transformPerspective: c, rotate: u, pathRotation: m, rotateX: f, rotateY: h43, skewX: p, skewY: d } = o;
+          c && (r = `perspective(${c}px) ${r}`), u && (r += `rotate(${u}deg) `), m && (r += `rotate(${m}deg) `), f && (r += `rotateX(${f}deg) `), h43 && (r += `rotateY(${h43}deg) `), p && (r += `skewX(${p}deg) `), d && (r += `skewY(${d}deg) `);
         }
         let a = t2.x.scale * e.x, l = t2.y.scale * e.y;
         return (a !== 1 || l !== 1) && (r += `scale(${a}, ${l})`), r || "none";
@@ -6331,22 +6331,22 @@ function framerMotion() {
               w.read(() => {
                 m = window.innerWidth;
               }), t2(i, () => {
-                let h42 = window.innerWidth;
-                h42 !== m && (m = h42, this.root.updateBlockedByResize = true, u && u(), u = Ba(f, 250), de.hasAnimatedSinceResize && (de.hasAnimatedSinceResize = false, this.nodes.forEach(ja)));
+                let h43 = window.innerWidth;
+                h43 !== m && (m = h43, this.root.updateBlockedByResize = true, u && u(), u = Ba(f, 250), de.hasAnimatedSinceResize && (de.hasAnimatedSinceResize = false, this.nodes.forEach(ja)));
               });
             }
-            a && this.root.registerSharedNode(a, this), this.options.animate !== false && c && (a || l) && this.addEventListener("didUpdate", ({ delta: u, hasLayoutChanged: m, hasRelativeLayoutChanged: f, layout: h42 }) => {
+            a && this.root.registerSharedNode(a, this), this.options.animate !== false && c && (a || l) && this.addEventListener("didUpdate", ({ delta: u, hasLayoutChanged: m, hasRelativeLayoutChanged: f, layout: h43 }) => {
               if (this.isTreeAnimationBlocked()) {
                 this.target = void 0, this.relativeTarget = void 0;
                 return;
               }
-              let p = this.options.transition || c.getDefaultTransition() || Sm, { onLayoutAnimationStart: d, onLayoutAnimationComplete: g } = c.getProps(), x = !this.targetLayout || !Vi(this.targetLayout, h42), v = !m && f;
+              let p = this.options.transition || c.getDefaultTransition() || Sm, { onLayoutAnimationStart: d, onLayoutAnimationComplete: g } = c.getProps(), x = !this.targetLayout || !Vi(this.targetLayout, h43), v = !m && f;
               if (this.options.layoutRoot || this.resumeFrom || v || m && (x || !this.currentAnimation)) {
                 this.resumeFrom && (this.resumingFrom = this.resumeFrom, this.resumingFrom.resumingFrom = void 0);
                 let y = { ...De(p, "layout"), onPlay: d, onComplete: g };
                 (c.shouldReduceMotion || this.options.layoutRoot) && (y.delay = 0, y.type = false), this.startAnimation(y), this.setAnimationOrigin(u, v, y.path);
               } else m || ja(this), this.isLead() && this.options.onExitComplete && this.options.onExitComplete();
-              this.targetLayout = h42;
+              this.targetLayout = h43;
             });
           }
           unmount() {
@@ -6526,12 +6526,12 @@ function framerMotion() {
             at(this.layoutCorrected, this.layout.layoutBox);
             let m = this.treeScale.x, f = this.treeScale.y;
             ma(this.layoutCorrected, this.treeScale, this.path, a), i.layout && !i.target && (this.treeScale.x !== 1 || this.treeScale.y !== 1) && (i.target = i.layout.layoutBox, i.targetWithTransforms = k());
-            let { target: h42 } = i;
-            if (!h42) {
+            let { target: h43 } = i;
+            if (!h43) {
               this.prevProjectionDelta && (this.createProjectionDeltas(), this.scheduleRender());
               return;
             }
-            !this.projectionDelta || !this.prevProjectionDelta ? this.createProjectionDeltas() : (hi(this.prevProjectionDelta.x, this.projectionDelta.x), hi(this.prevProjectionDelta.y, this.projectionDelta.y)), pe(this.projectionDelta, this.layoutCorrected, h42, this.latestValues), (this.treeScale.x !== m || this.treeScale.y !== f || !bi(this.projectionDelta.x, this.prevProjectionDelta.x) || !bi(this.projectionDelta.y, this.prevProjectionDelta.y)) && (this.hasProjected = true, this.scheduleRender(), this.notifyListeners("projectionUpdate", h42)), le.value && ge.calculatedProjections++;
+            !this.projectionDelta || !this.prevProjectionDelta ? this.createProjectionDeltas() : (hi(this.prevProjectionDelta.x, this.projectionDelta.x), hi(this.prevProjectionDelta.y, this.projectionDelta.y)), pe(this.projectionDelta, this.layoutCorrected, h43, this.latestValues), (this.treeScale.x !== m || this.treeScale.y !== f || !bi(this.projectionDelta.x, this.prevProjectionDelta.x) || !bi(this.projectionDelta.y, this.prevProjectionDelta.y)) && (this.hasProjected = true, this.scheduleRender(), this.notifyListeners("projectionUpdate", h43)), le.value && ge.calculatedProjections++;
           }
           hide() {
             this.isVisible = false;
@@ -6552,12 +6552,12 @@ function framerMotion() {
           setAnimationOrigin(i, a = false, l) {
             let c = this.snapshot, u = c ? c.latestValues : {}, m = { ...this.latestValues }, f = Gt();
             (!this.relativeParent || !this.relativeParent.options.layoutRoot) && (this.relativeTarget = this.relativeTargetOrigin = void 0), this.attemptToResolveRelativeTarget = !a;
-            let h42 = k(), p = c ? c.source : void 0, d = this.layout ? this.layout.source : void 0, g = p !== d, x = this.getStack(), v = !x || x.members.length <= 1, y = !!(g && !v && this.options.crossfade === true && !this.path.some(Tm));
+            let h43 = k(), p = c ? c.source : void 0, d = this.layout ? this.layout.source : void 0, g = p !== d, x = this.getStack(), v = !x || x.members.length <= 1, y = !!(g && !v && this.options.crossfade === true && !this.path.some(Tm));
             this.animationProgress = 0;
             let T, b = l?.interpolateProjection(i);
             this.mixTargetDelta = (A) => {
               let E = A / 1e3, V = b?.(E);
-              V ? (f.x.translate = V.x, f.x.scale = C(i.x.scale, 1, E), f.x.origin = i.x.origin, f.x.originPoint = i.x.originPoint, f.y.translate = V.y, f.y.scale = C(i.y.scale, 1, E), f.y.origin = i.y.origin, f.y.originPoint = i.y.originPoint) : (Na(f.x, i.x, E), Na(f.y, i.y, E)), this.setTargetDelta(f), this.relativeTarget && this.relativeTargetOrigin && this.layout && this.relativeParent && this.relativeParent.layout && (je(h42, this.layout.layoutBox, this.relativeParent.layout.layoutBox, this.options.layoutAnchor || void 0), vm(this.relativeTarget, this.relativeTargetOrigin, h42, E), T && Ca(this.relativeTarget, T) && (this.isProjectionDirty = false), T || (T = k()), at(T, this.relativeTarget)), g && (this.animationValues = m, Ra(m, u, this.latestValues, E, y, v)), V && V.rotate !== void 0 && (this.animationValues || (this.animationValues = m), this.animationValues.pathRotation = V.rotate), this.root.scheduleUpdateProjection(), this.scheduleRender(), this.animationProgress = E;
+              V ? (f.x.translate = V.x, f.x.scale = C(i.x.scale, 1, E), f.x.origin = i.x.origin, f.x.originPoint = i.x.originPoint, f.y.translate = V.y, f.y.scale = C(i.y.scale, 1, E), f.y.origin = i.y.origin, f.y.originPoint = i.y.originPoint) : (Na(f.x, i.x, E), Na(f.y, i.y, E)), this.setTargetDelta(f), this.relativeTarget && this.relativeTargetOrigin && this.layout && this.relativeParent && this.relativeParent.layout && (je(h43, this.layout.layoutBox, this.relativeParent.layout.layoutBox, this.options.layoutAnchor || void 0), vm(this.relativeTarget, this.relativeTargetOrigin, h43, E), T && Ca(this.relativeTarget, T) && (this.isProjectionDirty = false), T || (T = k()), at(T, this.relativeTarget)), g && (this.animationValues = m, Ra(m, u, this.latestValues, E, y, v)), V && V.rotate !== void 0 && (this.animationValues || (this.animationValues = m), this.animationValues.pathRotation = V.rotate), this.root.scheduleUpdateProjection(), this.scheduleRender(), this.animationProgress = E;
             }, this.mixTargetDelta(this.options.layoutRoot ? 1e3 : 0);
           }
           startAnimation(i) {
@@ -6652,8 +6652,8 @@ function framerMotion() {
             this.applyTransformsToTarget();
             let m = Aa(this.projectionDeltaWithTransform, this.treeScale, u);
             l && (m = l(u, m)), i.transform = m;
-            let { x: f, y: h42 } = this.projectionDelta;
-            i.transformOrigin = `${f.origin * 100}% ${h42.origin * 100}% 0`, c.animationValues ? i.opacity = c === this ? u.opacity ?? this.latestValues.opacity ?? 1 : this.preserveOpacity ? this.latestValues.opacity : u.opacityExit : i.opacity = c === this ? u.opacity !== void 0 ? u.opacity : "" : u.opacityExit !== void 0 ? u.opacityExit : 0;
+            let { x: f, y: h43 } = this.projectionDelta;
+            i.transformOrigin = `${f.origin * 100}% ${h43.origin * 100}% 0`, c.animationValues ? i.opacity = c === this ? u.opacity ?? this.latestValues.opacity ?? 1 : this.preserveOpacity ? this.latestValues.opacity : u.opacityExit : i.opacity = c === this ? u.opacity !== void 0 ? u.opacity : "" : u.opacityExit !== void 0 ? u.opacityExit : 0;
             for (let p in Co) {
               if (u[p] === void 0) continue;
               let { correct: d, applyTo: g, isCSSVariable: x } = Co[p], v = m === "none" ? u[p] : d(u[p], c);
@@ -6700,10 +6700,10 @@ function framerMotion() {
             if (u && !u.resumeFrom) {
               let { snapshot: m, layout: f } = u;
               if (m && f) {
-                let h42 = t2.options.layoutAnchor || void 0, p = k();
-                je(p, e.layoutBox, m.layoutBox, h42);
+                let h43 = t2.options.layoutAnchor || void 0, p = k();
+                je(p, e.layoutBox, m.layoutBox, h43);
                 let d = k();
-                je(d, o, f.layoutBox, h42), Vi(p, d) || (c = true), u.options.layoutRoot && (t2.relativeTarget = d, t2.relativeTargetOrigin = p, t2.relativeParent = u);
+                je(d, o, f.layoutBox, h43), Vi(p, d) || (c = true), u.options.layoutRoot && (t2.relativeTarget = d, t2.relativeTargetOrigin = p, t2.relativeParent = u);
               }
             }
           }
@@ -6831,8 +6831,8 @@ function framerMotion() {
       function Za({ children: t2, isPresent: e, anchorX: o, anchorY: r, root: n, pop: s }) {
         let i = (0, Mt.useId)(), a = (0, Mt.useRef)(null), l = (0, Mt.useRef)({ width: 0, height: 0, top: 0, left: 0, right: 0, bottom: 0, direction: "ltr" }), { nonce: c } = (0, Mt.useContext)(ct), u = s !== false ? t2.props?.ref ?? t2?.ref : void 0, m = qa(a, u);
         return (0, Mt.useInsertionEffect)(() => {
-          let { width: f, height: h42, top: p, left: d, right: g, bottom: x, direction: v } = l.current;
-          if (e || s === false || !a.current || !f || !h42) return;
+          let { width: f, height: h43, top: p, left: d, right: g, bottom: x, direction: v } = l.current;
+          if (e || s === false || !a.current || !f || !h43) return;
           let y = v === "rtl", T = o === "left" ? y ? `right: ${g}` : `left: ${d}` : y ? `left: ${d}` : `right: ${g}`, b = r === "bottom" ? `bottom: ${x}` : `top: ${p}`;
           a.current.dataset.motionPopId = i;
           let A = document.createElement("style");
@@ -6842,7 +6842,7 @@ function framerMotion() {
           [data-motion-pop-id="${i}"] {
             position: absolute !important;
             width: ${f}px !important;
-            height: ${h42}px !important;
+            height: ${h43}px !important;
             ${T}px !important;
             ${b}px !important;
           }
@@ -6852,16 +6852,16 @@ function framerMotion() {
         }, [e]), j(Ai, { isPresent: e, childRef: a, sizeRef: l, pop: s, children: s === false ? t2 : Wr.cloneElement(t2, { ref: m }) });
       }
       var Qa = ({ children: t2, initial: e, isPresent: o, onExitComplete: r, custom: n, presenceAffectsLayout: s, mode: i, anchorX: a, anchorY: l, root: c }) => {
-        let u = K(wm), m = (0, zt.useId)(), f = (0, zt.useRef)(o), h42 = (0, zt.useRef)(r);
+        let u = K(wm), m = (0, zt.useId)(), f = (0, zt.useRef)(o), h43 = (0, zt.useRef)(r);
         Dt(() => {
-          f.current = o, h42.current = r;
+          f.current = o, h43.current = r;
         });
         let p = true, d = (0, zt.useMemo)(() => (p = false, { id: m, initial: e, isPresent: o, custom: n, onExitComplete: (g) => {
           u.set(g, true);
           for (let x of u.values()) if (!x) return;
           r && r();
         }, register: (g) => (u.set(g, false), () => {
-          u.delete(g), !f.current && !u.size && h42.current?.();
+          u.delete(g), !f.current && !u.size && h43.current?.();
         }) }), [o, u, r]);
         return s && p && (d = { ...d }), (0, zt.useMemo)(() => {
           u.forEach((g, x) => u.set(x, false));
@@ -6891,26 +6891,26 @@ function framerMotion() {
         }), e;
       }
       var Ei = ({ children: t2, custom: e, initial: o = true, onExitComplete: r, presenceAffectsLayout: n = true, mode: s = "sync", propagate: i = false, anchorX: a = "left", anchorY: l = "top", root: c }) => {
-        let [u, m] = Ur(i), f = (0, ut.useMemo)(() => Mi(t2), [t2]), h42 = i && !u ? [] : f.map(Io), p = (0, ut.useRef)(true), d = (0, ut.useRef)(f), g = K(() => /* @__PURE__ */ new Map()), x = (0, ut.useRef)(/* @__PURE__ */ new Set()), [v, y] = (0, ut.useState)(f), [T, b] = (0, ut.useState)(f);
+        let [u, m] = Ur(i), f = (0, ut.useMemo)(() => Mi(t2), [t2]), h43 = i && !u ? [] : f.map(Io), p = (0, ut.useRef)(true), d = (0, ut.useRef)(f), g = K(() => /* @__PURE__ */ new Map()), x = (0, ut.useRef)(/* @__PURE__ */ new Set()), [v, y] = (0, ut.useState)(f), [T, b] = (0, ut.useState)(f);
         Dt(() => {
           p.current = false, d.current = f;
           for (let V = 0; V < T.length; V++) {
             let M = Io(T[V]);
-            h42.includes(M) ? (g.delete(M), x.current.delete(M)) : g.get(M) !== true && g.set(M, false);
+            h43.includes(M) ? (g.delete(M), x.current.delete(M)) : g.get(M) !== true && g.set(M, false);
           }
-        }, [T, h42.length, h42.join("-")]);
+        }, [T, h43.length, h43.join("-")]);
         let A = [];
         if (f !== v) {
           let V = [...f];
           for (let M = 0; M < T.length; M++) {
             let P = T[M], R = Io(P);
-            h42.includes(R) || (V.splice(M, 0, P), A.push(P));
+            h43.includes(R) || (V.splice(M, 0, P), A.push(P));
           }
           return s === "wait" && A.length && (V = A), b(Mi(V)), y(f), null;
         }
         let { forceRender: E } = (0, ut.useContext)(Se);
         return j(He.Fragment, { children: T.map((V) => {
-          let M = Io(V), P = i && !u ? false : f === T || h42.includes(M), R = () => {
+          let M = Io(V), P = i && !u ? false : f === T || h43.includes(M), R = () => {
             if (x.current.has(M)) return;
             if (g.has(M)) x.current.add(M), g.set(M, true);
             else return;
@@ -7035,8 +7035,8 @@ function framerMotion() {
         let m = u ? a : i;
         if (m && typeof m != "boolean" && !Ct(m)) {
           let f = Array.isArray(m) ? m : [m];
-          for (let h42 = 0; h42 < f.length; h42++) {
-            let p = re(t2, f[h42]);
+          for (let h43 = 0; h43 < f.length; h43++) {
+            let p = re(t2, f[h43]);
             if (p) {
               let { transitionEnd: d, transition: g, ...x } = p;
               for (let v in x) {
@@ -7083,8 +7083,8 @@ function framerMotion() {
         return t2 && typeof t2 == "object" && Object.prototype.hasOwnProperty.call(t2, "current");
       }
       function Sl(t2, e, o, r, n, s) {
-        let { visualElement: i } = (0, J.useContext)(Ht), a = (0, J.useContext)(Kr), l = (0, J.useContext)(Rt), c = (0, J.useContext)(ct), u = c.reducedMotion, m = c.skipAnimations, f = (0, J.useRef)(null), h42 = (0, J.useRef)(false);
-        r = r || a.renderer, !f.current && r && (f.current = r(t2, { visualState: e, parent: i, props: o, presenceContext: l, blockInitialAnimation: l ? l.initial === false : false, reducedMotionConfig: u, skipAnimations: m, isSVG: s }), h42.current && f.current && (f.current.manuallyAnimateOnMount = true));
+        let { visualElement: i } = (0, J.useContext)(Ht), a = (0, J.useContext)(Kr), l = (0, J.useContext)(Rt), c = (0, J.useContext)(ct), u = c.reducedMotion, m = c.skipAnimations, f = (0, J.useRef)(null), h43 = (0, J.useRef)(false);
+        r = r || a.renderer, !f.current && r && (f.current = r(t2, { visualState: e, parent: i, props: o, presenceContext: l, blockInitialAnimation: l ? l.initial === false : false, reducedMotionConfig: u, skipAnimations: m, isSVG: s }), h43.current && f.current && (f.current.manuallyAnimateOnMount = true));
         let p = f.current, d = (0, J.useContext)(qr);
         p && !p.projection && n && (p.type === "html" || p.type === "svg") && Lm(f.current, o, n, d);
         let g = (0, J.useRef)(false);
@@ -7093,7 +7093,7 @@ function framerMotion() {
         });
         let x = o[fo], v = (0, J.useRef)(!!x && typeof window < "u" && !window.MotionHandoffIsComplete?.(x) && window.MotionHasOptimisedAnimation?.(x));
         return Dt(() => {
-          h42.current = true, p && (g.current = true, window.MotionIsMounted = true, p.updateFeatures(), p.scheduleRenderMicrotask(), v.current && p.animationState && p.animationState.animateChanges());
+          h43.current = true, p && (g.current = true, window.MotionIsMounted = true, p.updateFeatures(), p.scheduleRenderMicrotask(), v.current && p.animationState && p.animationState.animateChanges());
         }), (0, J.useEffect)(() => {
           p && (!v.current && p.animationState && p.animationState.animateChanges(), v.current && (queueMicrotask(() => {
             window.MotionHandoffMarkAsComplete?.(x);
@@ -7111,13 +7111,13 @@ function framerMotion() {
         r && rl(r);
         let s = o ? o === "svg" : Ge(t2), i = s ? xl : gl;
         function a(c, u) {
-          let m, f = { ...(0, Ue.useContext)(ct), ...c, layoutId: km(c) }, { isStatic: h42 } = f, p = cl(c), d = i(c, h42);
-          if (!h42 && typeof window < "u") {
+          let m, f = { ...(0, Ue.useContext)(ct), ...c, layoutId: km(c) }, { isStatic: h43 } = f, p = cl(c), d = i(c, h43);
+          if (!h43 && typeof window < "u") {
             Im(f, r);
             let g = Bm(f);
             m = g.MeasureLayout, p.visualElement = Sl(t2, d, f, n, g.ProjectionNode, s);
           }
-          return j(Ht.Provider, { value: p, children: [m && p.visualElement ? j(m, { visualElement: p.visualElement, ...f }) : null, dl(t2, c, vl(d, p.visualElement, u), d, h42, e, s)] });
+          return j(Ht.Provider, { value: p, children: [m && p.visualElement ? j(m, { visualElement: p.visualElement, ...f }) : null, dl(t2, c, vl(d, p.visualElement, u), d, h43, e, s)] });
         }
         a.displayName = `motion.${typeof t2 == "string" ? t2 : `create(${t2.displayName ?? t2.name ?? ""})`}`;
         let l = (0, Ue.forwardRef)(a);
@@ -7240,8 +7240,8 @@ function framerMotion() {
           this.history = [{ ...u, timestamp: m }];
           let { onSessionStart: f } = o;
           f && f(e, Ii(c, this.history));
-          let h42 = { passive: true, capture: true };
-          this.removeListeners = lt(_t(this.contextWindow, "pointermove", this.handlePointerMove, h42), _t(this.contextWindow, "pointerup", this.handlePointerUp, h42), _t(this.contextWindow, "pointercancel", this.handlePointerUp, h42)), a && this.startScrollTracking(a);
+          let h43 = { passive: true, capture: true };
+          this.removeListeners = lt(_t(this.contextWindow, "pointermove", this.handlePointerMove, h43), _t(this.contextWindow, "pointerup", this.handlePointerUp, h43), _t(this.contextWindow, "pointercancel", this.handlePointerUp, h43)), a && this.startScrollTracking(a);
         }
         startScrollTracking(e) {
           let o = e.parentElement;
@@ -7336,8 +7336,8 @@ function framerMotion() {
           let s = (m) => {
             o && this.snapToCursor(Et(m).point), this.stopAnimation();
           }, i = (m, f) => {
-            let { drag: h42, dragPropagation: p, onDragStart: d } = this.getProps();
-            if (h42 && !p && (this.openDragLock && this.openDragLock(), this.openDragLock = _n(h42), !this.openDragLock)) return;
+            let { drag: h43, dragPropagation: p, onDragStart: d } = this.getProps();
+            if (h43 && !p && (this.openDragLock && this.openDragLock(), this.openDragLock = _n(h43), !this.openDragLock)) return;
             this.latestPointerEvent = m, this.latestPanInfo = f, this.isDragging = true, this.currentDirection = null, this.resolveConstraints(), this.visualElement.projection && (this.visualElement.projection.isAnimationBlocked = true, this.visualElement.projection.target = void 0), et((x) => {
               let v = this.getAxisMotionValue(x).get() || 0;
               if (q.test(v)) {
@@ -7353,8 +7353,8 @@ function framerMotion() {
             g && g.setActive("whileDrag", true);
           }, a = (m, f) => {
             this.latestPointerEvent = m, this.latestPanInfo = f;
-            let { dragPropagation: h42, dragDirectionLock: p, onDirectionLock: d, onDrag: g } = this.getProps();
-            if (!h42 && !this.openDragLock) return;
+            let { dragPropagation: h43, dragDirectionLock: p, onDirectionLock: d, onDrag: g } = this.getProps();
+            if (!h43 && !this.openDragLock) return;
             let { offset: x } = f;
             if (p && this.currentDirection === null) {
               this.currentDirection = Wm(x), this.currentDirection !== null && d && d(this.currentDirection);
@@ -7419,7 +7419,7 @@ function framerMotion() {
             if (!rn(u, o, this.currentDirection)) return;
             let m = l && l[u] || {};
             (i === true || i === u) && (m = { min: 0, max: 0 });
-            let f = n ? 200 : 1e6, h42 = n ? 40 : 1e7, p = { type: "inertia", velocity: r ? e[u] : 0, bounceStiffness: f, bounceDamping: h42, timeConstant: 750, restDelta: 1, restSpeed: 10, ...s, ...m };
+            let f = n ? 200 : 1e6, h43 = n ? 40 : 1e7, p = { type: "inertia", velocity: r ? e[u] : 0, bounceStiffness: f, bounceDamping: h43, timeConstant: 750, restDelta: 1, restSpeed: 10, ...s, ...m };
             return this.startAxisValueAnimation(u, p);
           });
           return Promise.all(c).then(a);
@@ -7470,8 +7470,8 @@ function framerMotion() {
           if (!this.visualElement.current) return;
           Nm.set(this.visualElement, this);
           let e = this.visualElement.current, o = _t(e, "pointerdown", (c) => {
-            let { drag: u, dragListener: m = true } = this.getProps(), f = c.target, h42 = f !== e && Zn(f);
-            u && m && !h42 && this.start(c);
+            let { drag: u, dragListener: m = true } = this.getProps(), f = c.target, h43 = f !== e && Zn(f);
+            u && m && !h43 && this.start(c);
           }), r, n = () => {
             let { dragConstraints: c } = this.getProps();
             $t(c) && c.current && (this.constraints = this.resolveRefConstraints(), r || (r = Gm(e, c.current, () => this.scalePositionWithinConstraints())));
@@ -7786,8 +7786,8 @@ function framerMotion() {
         });
         let f = (p) => {
           u.current = p, typeof i == "function" ? i(p) : i && (i.current = p);
-        }, h42 = { overflowAnchor: "none", ...s.style };
-        return j(a, { ...s, style: h42, ref: f, ignoreStrict: true, children: j(dn.Provider, { value: m, children: t2 }) });
+        }, h43 = { overflowAnchor: "none", ...s.style };
+        return j(a, { ...s, style: h43, ref: f, ignoreStrict: true, children: j(dn.Provider, { value: m, children: t2 }) });
       }
       var oc = (0, ve.forwardRef)(Ym);
       function Xm(t2, e) {
@@ -7855,10 +7855,10 @@ function framerMotion() {
       function Qm({ children: t2, style: e = {}, value: o, as: r = "li", onDrag: n, onDragEnd: s, layout: i = true, ...a }, l) {
         let c = K(() => ye[r]), u = (0, gn.useContext)(dn), m = { x: ic(e.x), y: ic(e.y) }, f = Gi([m.x, m.y], ([x, v]) => x || v ? 1 : "unset");
         H(!!u, "Reorder.Item must be a child of Reorder.Group", "reorder-item-child");
-        let { axis: h42, registerItem: p, updateOrder: d, groupRef: g } = u;
-        return j(c, { drag: h42, ...a, dragSnapToOrigin: true, style: { ...e, x: m.x, y: m.y, zIndex: f }, layout: i, onDrag: (x, v) => {
-          let { velocity: y, point: T } = v, b = m[h42].get();
-          d(o, b, y[h42]), nc(g.current, T[h42], h42, y[h42]), n && n(x, v);
+        let { axis: h43, registerItem: p, updateOrder: d, groupRef: g } = u;
+        return j(c, { drag: h43, ...a, dragSnapToOrigin: true, style: { ...e, x: m.x, y: m.y, zIndex: f }, layout: i, onDrag: (x, v) => {
+          let { velocity: y, point: T } = v, b = m[h43].get();
+          d(o, b, y[h43]), nc(g.current, T[h43], h43, y[h43]), n && n(x, v);
         }, onDragEnd: (x, v) => {
           rc(), s && s(x, v);
         }, onLayoutMeasure: (x) => {
@@ -20721,7 +20721,6 @@ li[data-files-entry]>ul .bt-frow-dl{right:6px}
 `;
 
 // src/client/starters.tsx
-var import_jsx_runtime = require("react/jsx-runtime");
 var import_react44 = require("react");
 var STARTERS = [
   ["Compare with a table…", "用表格对比一下 iPhone 和安卓旗舰的优缺点"],
@@ -20752,7 +20751,7 @@ function StarterChips({ sessionId, useRoster, useTurnClock, actions }) {
     setDone(true);
     void actions.send(sessionId, text);
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "bt-starters", role: "group", "aria-label": t("Try a card"), children: STARTERS.map(([label, text]) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", { type: "button", className: "bt-starter", title: text, onClick: () => pick2(text), children: t(label) }, label)) });
+  return /* @__PURE__ */ (0, import_react44.createElement)("div", { className: "bt-starters", role: "group", "aria-label": t("Try a card") }, STARTERS.map(([label, text]) => /* @__PURE__ */ (0, import_react44.createElement)("button", { key: label, type: "button", className: "bt-starter", title: text, onClick: () => pick2(text) }, t(label))));
 }
 var STARTERS_CSS = `
 .bt-starters{display:flex;flex-wrap:wrap;gap:8px;padding:0 23px 10px}

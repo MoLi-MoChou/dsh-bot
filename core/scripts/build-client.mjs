@@ -14,7 +14,7 @@ import { build } from 'esbuild'
 
 const PLUGIN = dirname(dirname(fileURLToPath(import.meta.url)))
 const OUTPUT = join(PLUGIN, 'client.js')
-const PLATFORM_MODULES = ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime', '@deepseek-ai/dsh-client-ui-primitives']
+const PLATFORM_MODULES = ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives']
 // The client entry, in the order the migration prefers: TSX/TS first so Phase 2 can rename
 // the entry without touching this script, the current JS entry otherwise.
 const ENTRIES = ['src/client/index.tsx', 'src/client/index.ts', 'src/client/index.jsx', 'src/client/index.js']
@@ -31,8 +31,13 @@ export async function bundleClient() {
     format: 'cjs',
     platform: 'browser',
     target: 'es2022',
-    // .ts/.tsx are loaded by esbuild's own loaders; the tsconfig supplies JSX settings.
+    // .ts/.tsx are loaded by esbuild's own loaders. The shell seeds only react,
+    // react-dom and the ui primitives, so JSX becomes h() calls: a runtime import of
+    // react/jsx-runtime would fail to resolve and the whole client would not register.
     tsconfig: join(PLUGIN, 'tsconfig.json'),
+    jsx: 'transform',
+    jsxFactory: 'h',
+    jsxFragment: 'Fragment',
     external: PLATFORM_MODULES,
     // Moon Bot patch: the app's version, for the settings line that names it.
     define: { __MOON_BOT_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(PLUGIN, 'package.json'), 'utf8')).version) },
