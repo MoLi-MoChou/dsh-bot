@@ -316,7 +316,6 @@ export interface HostRuntime {
   autoRoomName?(members: readonly string[]): string
   retitleRoom?(room: StoredRoom): Promise<unknown>
   capabilitiesStateSaved?(): void
-  canUseSecret?(name: string, botId: string): boolean
   capabilityEnsureTimeoutMs?: number
   secretsChanged?(): void
   cancelApprovals?(sessionId: string): void
