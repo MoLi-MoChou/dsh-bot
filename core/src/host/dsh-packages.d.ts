@@ -73,6 +73,8 @@ declare module '@deepseek-ai/dsh-llm' {
     push(chunk: LlmStreamChunk): void
     readonly finish: LlmStreamFinish
     blocks(): readonly LlmBlock[]
+    /** Token usage of the reply, once the stream finished. */
+    readonly usage?: unknown
   }
 
   export function createUserMessage(input: {

@@ -50,9 +50,6 @@ const LINE_EXEMPTIONS = [
   'src/client/bot-browsers.js',
   'src/client/model-menu.js',
   'src/client/secret-card.js',
-  // TODO(phase4 split): existing host JS still over 350 lines; Phase 4 moves it to TS
-  // and splits these modules. They are pending, not accepted new debt.
-  'src/host/parts.js',
 ]
 
 const DEFAULT_COMPILER_OPTIONS = {
