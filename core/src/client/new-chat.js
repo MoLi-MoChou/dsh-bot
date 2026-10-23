@@ -6,7 +6,7 @@ import { AdminStar, BotMark } from './mark.js'
 import { SearchIcon } from './icons.ts'
 import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
-import { CreateBot } from './create-bot.js'
+import { CreateBot } from './create-bot.ts'
 import { QUICK_EDGES, useFlip, useGlide, useMorph } from './motion.js'
 import { t } from './i18n.js'
 

@@ -180,6 +180,11 @@ function useContext(botId, isOpen, actions) {
 // The trigger shows the model name over its provider. A Thinking section lists the
 // levels of the shown model when it has them.
 // `onPick`/`onPickEffort` replace saving to the Bot, for a Bot that does not exist yet.
+/**
+ * The model and effort menu. A caller passes the Bot, or just a draft's fields, and the
+ * two pickers; the rest stays optional.
+ * @param {{ bot: unknown, roster: unknown, actions: unknown, run?: unknown, wide?: boolean, onPick?: (ref: string) => void, onPickEffort?: (effort: string) => void }} props
+ */
 export function ModelMenu({ bot, roster, actions, run, wide = false, onPick, onPickEffort }) {
   const { isOpen, shownPlace, leaving, button, menu, open, close } = useAnchoredMenu()
   const shown = modelOf(bot, roster)

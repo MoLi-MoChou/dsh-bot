@@ -10,10 +10,10 @@ export interface DraftRoster {
 export interface BotDraft {
   name: string
   look: { color: string; shape: string }
-  image?: string
-  model?: string
-  effort?: string
-  brief?: string
+  image?: string | undefined
+  model?: string | undefined
+  effort?: string | undefined
+  brief?: string | undefined
 }
 
 export function freshBotName(roster: DraftRoster, base = 'New Bot'): string {

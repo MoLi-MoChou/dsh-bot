@@ -14716,7 +14716,7 @@ function createPayload({ name, look, image, model, effort, brief }) {
   return payload;
 }
 
-// src/client/create-bot.js
+// src/client/create-bot.ts
 var import_react25 = require("react");
 var pick = (list) => list[Math.floor(Math.random() * list.length)];
 var randomLook = (avoid = {}) => {
@@ -14747,7 +14747,7 @@ function CreateBot({ roster, actions, start, brief = "", onBack, canGoBack, onCr
     setError("");
     setBusy(true);
     try {
-      const bot = await actions.createBot(createPayload({ name: finalName, look, image, model, effort, brief }));
+      const bot = await actions.createBot(createPayload({ name: finalName, look, image: image ?? void 0, model, effort, brief }));
       onCreated(bot);
     } catch (failure) {
       setError(failure?.message ?? String(failure));
@@ -14757,7 +14757,9 @@ function CreateBot({ roster, actions, start, brief = "", onBack, canGoBack, onCr
   const upload = (file) => {
     if (!file) return;
     setError("");
-    avatarImage(file).then(setImage, (failure) => setError(failure?.message ?? String(failure)));
+    avatarImage(file).then((value) => {
+      setImage(typeof value === "string" ? value : null);
+    }, (failure) => setError(failure?.message ?? String(failure)));
   };
   const previewLook = image ? { ...look, image } : look;
   const card = (0, import_react25.createElement)(
@@ -19291,14 +19293,14 @@ var BROWSER_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-ptabs,.bt-panel-view,.bt-bcard,.bt-ptab-name,.bt-browser-empty,.bt-browser-progress::after{animation:none}.bt-ptab,.bt-ptab-x,.bt-ptab-ind,.bt-browser-address,.bt-bcard,.bt-bcard-x{transition:none}}
 `;
 
-// src/client/overlays.js
+// src/client/overlays.ts
 var import_react41 = require("react");
 var import_react_dom10 = require("react-dom");
 function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity, useWork, useRegistry, useBrowserPages, useBrowserTabs, useUpdate, actions }) {
   const roster = useRoster((value) => value);
   const ui2 = useUi((value) => value);
   useRegistry((value) => value);
-  const current = useSessions((list) => Object.values(list.byId).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id ?? null);
+  const current = useSessions((list) => Object.values(list.byId ?? {}).find((session) => (session?.retainedBy?.mainView ?? 0) > 0)?.id ?? null);
   const previous = (0, import_react41.useRef)(current);
   (0, import_react41.useEffect)(() => {
     if (previous.current === current) return;
@@ -19318,9 +19320,9 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   const pane = open ?? kept;
   const [settings, settingsLeaving] = useLinger(ui2.settings, DIALOG_EXIT_MS);
   const memoryOwner = (id) => {
-    const bot = roster.byId[id];
+    const bot = roster.byId?.[id];
     if (bot) return { id: bot.id, name: bot.name };
-    const room2 = roster.roomsById[id];
+    const room2 = roster.roomsById?.[id];
     return room2 ? { id: room2.id, name: room2.name, group: true } : null;
   };
   const [memory, memoryLeaving] = useLinger(ui2.memory && memoryOwner(ui2.memory) ? ui2.memory : null, DIALOG_EXIT_MS);
