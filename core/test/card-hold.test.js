@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
 import { createSource, heldCardKey } from '../src/client/sources.ts'
-import { teamActions } from '../src/client/team-actions.js'
+import { teamActions } from '../src/client/team-actions.ts'
 
 // Keep each component's hook state across renders. The tool-cell tests cover where
 // these components appear; this harness checks their edits and async lifetimes.

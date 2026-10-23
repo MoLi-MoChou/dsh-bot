@@ -1,19 +1,66 @@
 import { createElement as h, useEffect, useState } from 'react'
 import { t } from './i18n.js'
 
-const blank = () => ({ name: '', kind: 'mcp', description: '', transport: 'stdio', command: '', argsText: '', envText: '{}', url: '', headersText: '{}', content: '', items: [] })
-const parseMap = (text, label) => {
+// A capability as the host reports it: an MCP server, a skill or a pack of them.
+export interface Capability {
+  name: string
+  kind: string
+  description?: string
+  transport?: string
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+  content?: string
+  items?: string[]
+  approved?: boolean
+}
+// The form's own shape: every field is a string in the inputs, and the JSON ones stay
+// text until the form is sent.
+interface CapabilityDraft {
+  name: string
+  kind: string
+  description: string
+  transport: string
+  command: string
+  argsText: string
+  envText: string
+  url: string
+  headersText: string
+  content: string
+  items: string[]
+  originalName?: string | undefined
+}
+interface CapabilityStatus { state: string; error?: string }
+export interface CapabilityActions {
+  saveCapability: (payload: Record<string, unknown>) => Promise<unknown>
+  deleteCapability: (name: string) => Promise<unknown>
+  approveCapability: (name: string) => Promise<unknown>
+  setBotCapability: (botId: string, name: string, attached: boolean) => Promise<unknown>
+}
+export type RunWork = (work: Promise<unknown>) => unknown
+
+const blank = (): CapabilityDraft => ({ name: '', kind: 'mcp', description: '', transport: 'stdio', command: '', argsText: '', envText: '{}', url: '', headersText: '{}', content: '', items: [] })
+const parseMap = (text: string, label: string): Record<string, unknown> => {
   let value
   try { value = JSON.parse(text || '{}') } catch { throw new Error(t('{label} must be valid JSON.', { label })) }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(t('{label} must be a JSON object.', { label }))
   return value
 }
-const statusText = status => !status ? undefined : status.state === 'ready' ? t('Ready')
+const statusText = (status: CapabilityStatus | undefined): string | undefined => !status ? undefined : status.state === 'ready' ? t('Ready')
   : status.state === 'needs-approval' ? t('Needs approval')
     : status.state === 'error' ? t('Could not connect: {error}', { error: status.error ?? '' })
       : t('Connecting…')
 
-function Field({ label, value, onChange, multiline = false, disabled = false, placeholder }) {
+function Field({ label, value, onChange, multiline = false, disabled = false, placeholder }: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  multiline?: boolean
+  disabled?: boolean
+  placeholder?: string
+}) {
   return h('label', { className: 'bt-set-row bt-bs-row bt-bs-stack' },
     h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t(label))),
     h(multiline ? 'textarea' : 'input', {
@@ -23,17 +70,25 @@ function Field({ label, value, onChange, multiline = false, disabled = false, pl
       maxLength: label === 'Name' ? 32 : undefined,
       placeholder,
       spellCheck: false,
-      onChange: event => onChange(event.target.value),
+      onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(event.target.value),
     }))
 }
 
-function CapabilityForm({ draft, setDraft, items, actions, onClose }) {
+function CapabilityForm({ draft, setDraft, items, actions, onClose }: {
+  draft: CapabilityDraft
+  setDraft: React.Dispatch<React.SetStateAction<CapabilityDraft | null>>
+  items: Capability[]
+  actions: CapabilityActions
+  onClose: () => void
+}) {
   const [error, setError] = useState('')
-  const set = (key, value) => setDraft(previous => ({ ...previous, [key]: value }))
-  const submit = async event => {
+  const set = <K extends keyof CapabilityDraft>(key: K, value: CapabilityDraft[K]): void => {
+    setDraft(previous => (previous === null ? null : ({ ...previous, [key]: value } as CapabilityDraft)))
+  }
+  const submit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
-    let payload
+    let payload: Record<string, unknown>
     try {
       payload = { name: draft.name.trim(), kind: draft.kind, description: draft.description }
       if (draft.kind === 'mcp' && draft.transport === 'stdio') {
@@ -48,14 +103,14 @@ function CapabilityForm({ draft, setDraft, items, actions, onClose }) {
       } else if (draft.kind === 'skill') payload.content = draft.content
       else payload.items = draft.items
     } catch (failure) {
-      setError(failure?.message ?? String(failure))
+      setError((failure as { message?: string } | null)?.message ?? String(failure))
       return
     }
     try {
       await actions.saveCapability(payload)
       onClose()
     } catch (failure) {
-      setError(failure?.message ?? String(failure))
+      setError((failure as { message?: string } | null)?.message ?? String(failure))
     }
   }
   const available = items.filter(item => item.name !== draft.name && ['mcp', 'skill'].includes(item.kind))
@@ -63,12 +118,12 @@ function CapabilityForm({ draft, setDraft, items, actions, onClose }) {
     h(Field, { label: 'Name', value: draft.name, disabled: draft.originalName !== undefined, onChange: value => set('name', value), placeholder: 'my-tool' }),
     h('label', { className: 'bt-set-row bt-bs-row bt-bs-stack' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Type'))),
-      h('select', { className: 'bt-input', value: draft.kind, disabled: draft.originalName !== undefined, onChange: event => set('kind', event.target.value) },
+      h('select', { className: 'bt-input', value: draft.kind, disabled: draft.originalName !== undefined, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => set('kind', event.target.value) },
         ['mcp', 'skill', 'pack'].map(kind => h('option', { key: kind, value: kind }, t(kind === 'mcp' ? 'MCP server' : kind === 'skill' ? 'Skill' : 'Pack'))))),
     h(Field, { label: 'Description', value: draft.description, onChange: value => set('description', value) }),
     draft.kind === 'mcp' ? h('label', { className: 'bt-set-row bt-bs-row bt-bs-stack' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Connection'))),
-      h('select', { className: 'bt-input', value: draft.transport, onChange: event => set('transport', event.target.value) },
+      h('select', { className: 'bt-input', value: draft.transport, onChange: (event: React.ChangeEvent<HTMLSelectElement>) => set('transport', event.target.value) },
         h('option', { value: 'stdio' }, t('Local command')),
         h('option', { value: 'streamable-http' }, t('HTTP server')))) : null,
     draft.kind === 'mcp' && draft.transport === 'stdio' ? h('div', null,
@@ -83,14 +138,20 @@ function CapabilityForm({ draft, setDraft, items, actions, onClose }) {
       available.length === 0 ? h('div', { className: 'bt-set-row' }, h('span', { className: 'bt-set-hint' }, t('Save an MCP server or skill first.')))
         : available.map(item => h('label', { key: item.name, className: 'bt-set-row bt-bs-row' },
           h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, item.name)),
-          h('input', { type: 'checkbox', checked: draft.items.includes(item.name), onChange: event => set('items', event.target.checked ? [...draft.items, item.name] : draft.items.filter(name => name !== item.name)) })))) : null,
+          h('input', { type: 'checkbox', checked: draft.items.includes(item.name), onChange: (event: React.ChangeEvent<HTMLInputElement>) => set('items', event.target.checked ? [...draft.items, item.name] : draft.items.filter(name => name !== item.name)) })))) : null,
     error ? h('div', { className: 'bt-connector-error', role: 'alert' }, error) : null,
     h('div', { className: 'bt-connector-form-row' },
       h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: onClose }, t('Cancel')),
       h('button', { type: 'submit', className: 'bt-soft bt-soft-sm' }, draft.originalName ? t('Save changes') : t('Add capability'))))
 }
 
-function CapabilityRow({ item, onEdit, onDelete, onApprove, confirming }) {
+function CapabilityRow({ item, onEdit, onDelete, onApprove, confirming }: {
+  item: Capability
+  onEdit: () => void
+  onDelete: () => void
+  onApprove: () => void
+  confirming: boolean
+}) {
   const detail = item.kind === 'pack' ? `${t('Pack')}: ${(item.items ?? []).join(', ') || t('No items')}`
     : item.kind === 'mcp' ? item.transport === 'stdio' ? t('Local command') : t('HTTP server')
       : t('Skill')
@@ -109,9 +170,13 @@ function CapabilityRow({ item, onEdit, onDelete, onApprove, confirming }) {
         h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: onDelete }, confirming ? t('Click again to delete.') : t('Delete')))))
 }
 
-export function CapabilitiesPage({ roster, actions, run }) {
+export function CapabilitiesPage({ roster, actions, run }: {
+  roster: { capabilities?: Capability[] }
+  actions: CapabilityActions
+  run: RunWork
+}) {
   const items = [...(roster.capabilities ?? [])].sort((a, b) => a.name.localeCompare(b.name))
-  const [draft, setDraft] = useState(null)
+  const [draft, setDraft] = useState<CapabilityDraft | null>(null)
   const [confirming, setConfirming] = useState('')
   useEffect(() => {
     if (!confirming) return undefined
@@ -119,16 +184,16 @@ export function CapabilitiesPage({ roster, actions, run }) {
     return () => clearTimeout(timer)
   }, [confirming])
   const startNew = () => setDraft(blank())
-  const edit = item => setDraft({
+  const edit = (item: Capability) => setDraft({
     ...blank(),
-    ...item,
+    ...(item as Partial<CapabilityDraft>),
     originalName: item.name,
     argsText: (item.args ?? []).join('\n'),
     envText: JSON.stringify(item.env ?? {}, null, 2),
     headersText: JSON.stringify(item.headers ?? {}, null, 2),
     items: [...(item.items ?? [])],
   })
-  const remove = item => {
+  const remove = (item: Capability) => {
     if (confirming !== item.name) { setConfirming(item.name); return }
     setConfirming('')
     void run(actions.deleteCapability(item.name))
@@ -150,7 +215,14 @@ export function CapabilitiesPage({ roster, actions, run }) {
         }))))
 }
 
-export function BotCapabilitiesCard({ bot, roster, actions, run, Card, SwitchRow }) {
+export function BotCapabilitiesCard({ bot, roster, actions, run, Card, SwitchRow }: {
+  bot: { id: string; capabilities?: string[] }
+  roster: { capabilities?: Capability[]; capabilityStatuses?: Record<string, Record<string, CapabilityStatus | undefined>> }
+  actions: CapabilityActions
+  run: RunWork
+  Card: React.ComponentType<Record<string, unknown>>
+  SwitchRow: React.ComponentType<Record<string, unknown>>
+}) {
   const items = [...(roster.capabilities ?? [])].sort((a, b) => Number(b.kind === 'pack') - Number(a.kind === 'pack') || a.name.localeCompare(b.name))
   const attached = new Set(bot.capabilities ?? [])
   const statuses = roster.capabilityStatuses?.[bot.id] ?? {}
@@ -161,6 +233,6 @@ export function BotCapabilitiesCard({ bot, roster, actions, run, Card, SwitchRow
       label: item.name,
       hint: attached.has(item.name) ? statusText(statuses[item.name]) : undefined,
       on: attached.has(item.name),
-      onChange: enabled => void run(actions.setBotCapability(bot.id, item.name, enabled)),
+      onChange: (enabled: boolean) => void run(actions.setBotCapability(bot.id, item.name, enabled)),
     })))
 }

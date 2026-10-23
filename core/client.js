@@ -1713,9 +1713,9 @@ function countCards(state, sessionId, callIds, delta) {
   return { ...state, [sessionId]: own };
 }
 
-// src/client/team-actions.js
+// src/client/team-actions.ts
 function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards, heldCards, turnClock }) {
-  const memoryOf = (id) => roster.getSnapshot().roomsById[id] ? { roomId: id } : { botId: id };
+  const memoryOf = (id) => roster.getSnapshot().roomsById?.[id] ? { roomId: id } : { botId: id };
   return {
     openNewChat: (mode) => {
       ui2.set((state) => ({ ...state, newChat: mode, menu: null, palette: null }));
@@ -1725,7 +1725,7 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
     },
     // The token keeps a late exit timer from closing a palette opened again since.
     closePalette: (token) => {
-      ui2.set((state) => state.palette && (token === void 0 || state.palette.token === token) ? { ...state, palette: null } : state);
+      ui2.set((state) => state.palette && (token === void 0 || state.palette?.token === token) ? { ...state, palette: null } : state);
     },
     openExchange: (a, b) => {
       if (a && b) ui2.set((state) => ({ ...state, exchange: [a, b] }));
@@ -1747,7 +1747,7 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
     followPanel: (id) => {
       ui2.set((state) => {
         if (!state.details || state.details === id) return state;
-        const view = state.view === "browser" && roster.getSnapshot().byId[id] === void 0 ? "details" : state.view;
+        const view = state.view === "browser" && roster.getSnapshot().byId?.[id] === void 0 ? "details" : state.view;
         return { ...state, details: id, view, renaming: false, tab: null };
       });
     },
@@ -1853,13 +1853,14 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
       noteClientError(where, error);
       ui2.set((state) => ({ ...state, toast: { text: error?.message ?? String(error), token: Date.now() } }));
     },
-    dismissToast: (token) => ui2.set((state) => state.toast && (token === void 0 || state.toast.token === token) ? { ...state, toast: null } : state),
+    dismissToast: (token) => ui2.set((state) => state.toast && (token === void 0 || state.toast?.token === token) ? { ...state, toast: null } : state),
     noteTurnTime: (sessionId, turn, key, time) => {
       if (sessionId === void 0 || !Number.isFinite(turn) || !Number.isFinite(time)) return;
       turnClock.set((state) => {
         const turns = state[sessionId] ?? {};
         const entry = turns[turn] ?? {};
-        const next = key === "first" && entry.first !== void 0 ? Math.min(entry.first, time) : time;
+        const first = entry.first;
+        const next = key === "first" && typeof first === "number" ? Math.min(first, time) : time;
         if (entry[key] === next) return state;
         return { ...state, [sessionId]: { ...turns, [turn]: { ...entry, [key]: next } } };
       });
@@ -13746,7 +13747,7 @@ var SCHEDULE_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-task-form{animation:none}}
 `;
 
-// src/client/capability-settings.js
+// src/client/capability-settings.ts
 var import_react22 = require("react");
 var blank = () => ({ name: "", kind: "mcp", description: "", transport: "stdio", command: "", argsText: "", envText: "{}", url: "", headersText: "{}", content: "", items: [] });
 var parseMap = (text, label) => {
@@ -13778,7 +13779,9 @@ function Field({ label, value, onChange, multiline = false, disabled = false, pl
 }
 function CapabilityForm({ draft, setDraft, items, actions, onClose }) {
   const [error, setError] = (0, import_react22.useState)("");
-  const set = (key, value) => setDraft((previous) => ({ ...previous, [key]: value }));
+  const set = (key, value) => {
+    setDraft((previous) => previous === null ? null : { ...previous, [key]: value });
+  };
   const submit = async (event) => {
     event.preventDefault();
     setError("");
