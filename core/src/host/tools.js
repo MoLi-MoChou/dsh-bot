@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import { LEAN_HIDDEN_TOOLS } from '../shared/lean.js'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { readAvatar } from './avatar.js'
+import { readAvatar } from './avatar.ts'
 import { COLORS, EXTRA_COLORS, MESSAGE_INLINE_MAX, ROOM_MODES, SOURCE_KIND } from './constants.ts'
 import { within } from './folders.js'
 import { absoluteLinks } from './links.ts'

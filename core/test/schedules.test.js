@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
 import { fakeContext } from './fake-ctx.js'
-import { reminderText } from '../src/host/schedules.js'
+import { reminderText } from '../src/host/schedules.ts'
 
 const TEAM = {
   version: 1,

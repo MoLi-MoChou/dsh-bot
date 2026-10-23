@@ -1,3 +1,73 @@
+import type { Disposer } from './dsh-types.ts'
+import type { HostRuntime } from './runtime.ts'
+
+interface ScheduleEntry {
+  readonly id: string
+  readonly sessionId: string
+  readonly title?: string
+  readonly prompt?: string
+  readonly [key: string]: unknown
+}
+
+interface ScheduleRecord {
+  readonly id: string
+  readonly title: string
+  readonly prompt: string
+  readonly kind: string
+  readonly scheduledAt?: string
+  readonly everySeconds?: number
+  readonly time?: string
+  readonly timeZone?: string
+  readonly weekdays?: readonly number[]
+  readonly expression?: string
+}
+
+interface ScheduleSelector {
+  readonly at?: string | undefined
+  readonly every_seconds?: number | undefined
+  readonly daily?: { readonly time: string | undefined; readonly time_zone: string | undefined } | undefined
+  readonly weekly?: { readonly time: string | undefined; readonly time_zone: string | undefined; readonly weekdays: readonly number[] | undefined } | undefined
+  readonly cron?: { readonly expression: string | undefined; readonly time_zone: string | undefined } | undefined
+}
+
+interface ScheduleRequest extends ScheduleSelector {
+  readonly title: string
+  readonly prompt: string
+}
+
+interface ScheduleService {
+  catalog(): Promise<readonly ScheduleEntry[]>
+  create(sessionId: string, request: ScheduleRequest | ScheduleSelector): Promise<unknown>
+  delete(query: { readonly sessionId: string; readonly id: string }): Promise<unknown>
+  list(query: { readonly sessionId: string }): Promise<readonly ScheduleRecord[]>
+}
+
+interface ScheduleHost {
+  readonly schedule?: ScheduleService | undefined
+  effect(execute: () => void | Disposer, label?: string): void
+}
+
+interface ScheduleOwner {
+  readonly botId?: string
+  readonly roomId?: string
+}
+
+type ScheduleBody = Readonly<Record<string, unknown>>
+
+interface SelectorInput {
+  readonly kind?: string
+  readonly at?: unknown
+  readonly time?: unknown
+  readonly timeZone?: unknown
+  readonly minutes?: unknown
+  readonly weekdays?: unknown
+}
+
+const bodyText = (body: ScheduleBody, key: string): string | undefined => {
+  const value = body[key]
+  return typeof value === 'string' ? value : undefined
+}
+
 // Scheduled tasks. DSH's schedule service stores each task with the Session it belongs
 // to and, when it is due, sends its prompt to that Session as a new message. This
 // module lists the team's tasks for Settings, creates and removes them there, and moves
@@ -9,27 +79,27 @@
 const MAX_TITLE = 120
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
-const invalid = message => Object.assign(new Error(message), { code: 'bot/invalid' })
+const invalid = (message: string): Error => Object.assign(new Error(message), { code: 'bot/invalid' })
 
 // What a group sees of a due reminder: DSH frames it for one Session's model
 // ("[SCHEDULE REMINDER]" with JSON fields); the group gets each prompt as one line.
-export function reminderText(text) {
-  const prompts = []
+export function reminderText(text: string): string {
+  const prompts: unknown[] = []
   const one = /^reminder_prompt_json: (.*)$/m.exec(text)
   const batch = /^reminders_json: (.*)$/m.exec(text)
   try {
-    if (one) prompts.push(JSON.parse(one[1]))
-    if (batch) for (const entry of JSON.parse(batch[1])) prompts.push(entry.reminder_prompt)
+    if (one) prompts.push(JSON.parse(one[1] ?? 'null'))
+    if (batch) for (const entry of JSON.parse(batch[1] ?? 'null') as readonly { readonly reminder_prompt?: unknown }[]) prompts.push(entry.reminder_prompt)
   } catch {
     // A framing this module cannot read goes to the group as it came.
     return text
   }
-  const lines = prompts.filter(prompt => typeof prompt === 'string' && prompt.trim() !== '')
+  const lines = prompts.filter((prompt): prompt is string => typeof prompt === 'string' && prompt.trim() !== '')
   return lines.length === 0 ? text : lines.map(prompt => `[Scheduled task] ${prompt}`).join('\n')
 }
 
 // The create request that gives a stored record its timing again, for a move.
-function requestOf(record) {
+function requestOf(record: ScheduleRecord): ScheduleRequest | null {
   const base = { title: record.title, prompt: record.prompt }
   if (record.kind === 'after' || record.kind === 'at') return { ...base, at: record.scheduledAt }
   if (record.kind === 'every') return { ...base, every_seconds: record.everySeconds }
@@ -40,7 +110,7 @@ function requestOf(record) {
 }
 
 // The settings form's timing as a create request selector.
-function selectorOf(when) {
+function selectorOf(when: SelectorInput | undefined): ScheduleSelector {
   const zone = typeof when?.timeZone === 'string' && when.timeZone !== '' ? when.timeZone : 'UTC'
   switch (when?.kind) {
     case 'at': {
@@ -68,31 +138,34 @@ function selectorOf(when) {
   }
 }
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx } = rt
-  let service = null
+  let service: ScheduleService | null = null
 
-  const attach = (sub) => {
+  const attach = (sub: ScheduleHost): void => {
     const own = sub.schedule
-    service = own
+    service = own ?? null
     sub.effect(() => () => { if (service === own) service = null }, 'ds-bot: schedule service')
   }
-  if (typeof ctx.inject === 'function') ctx.inject(['schedule'], attach)
-  else if (ctx.get?.('schedule') !== undefined) attach({ schedule: ctx.get('schedule'), effect: (execute, label) => ctx.effect(execute, label) })
+  if (typeof ctx.inject === 'function') ctx.inject(['schedule'], sub => attach(sub))
+  else {
+    const own = ctx.get<ScheduleService>('schedule')
+    if (own !== undefined) attach({ schedule: own, effect: (execute, label) => ctx.effect(execute, label) })
+  }
 
   // The Bot (and group chat) a task's Session speaks for, the group chat for a group's
   // own Session, or nothing for a Session outside the team.
-  const ownerOf = (sessionId) => {
+  const ownerOf = (sessionId: string): ScheduleOwner | undefined => {
     const chat = rt.chatOwners.get(sessionId)
     if (chat !== undefined) return { botId: chat }
     if (rt.roomOf(sessionId) !== undefined) return { roomId: sessionId }
     return rt.groupOwners.get(sessionId) ?? rt.pastOwners.get(sessionId)
   }
-  const known = owner => owner !== undefined && (owner.botId === undefined ? rt.roomOf(owner.roomId) !== undefined : rt.botOf(owner.botId) !== undefined)
+  const known = (owner: ScheduleOwner | undefined): boolean => owner !== undefined && (owner.botId === undefined ? rt.roomOf(owner.roomId) !== undefined : rt.botOf(owner.botId) !== undefined)
 
-  async function schedulesView() {
+  async function schedulesView(): Promise<{ readonly available: boolean; readonly tasks: readonly Record<string, unknown>[] }> {
     if (service === null) return { available: false, tasks: [] }
-    const tasks = []
+    const tasks: Record<string, unknown>[] = []
     for (const entry of await service.catalog()) {
       const owner = ownerOf(entry.sessionId)
       if (!known(owner)) continue
@@ -101,38 +174,42 @@ export function install(rt) {
     return { available: true, tasks }
   }
 
-  const endpoints = {
+  const endpoints: Record<string, (body: ScheduleBody) => Promise<unknown>> = {
     schedules: () => schedulesView(),
     async 'schedule-create'(body) {
       if (service === null) throw invalid('Automation tasks are off in DSH')
-      const bot = rt.botOf(body.target)
-      const room = rt.roomOf(body.target)
+      const target = bodyText(body, 'target')
+      const bot = rt.botOf(target)
+      const room = rt.roomOf(target)
       if (bot === undefined && room === undefined) throw invalid('No such Bot or group chat')
       const title = String(body.title ?? '').trim()
       const prompt = String(body.prompt ?? '').trim()
       if (title === '') throw invalid('Give the task a name')
       if (title.length > MAX_TITLE) throw invalid(`Keep the name under ${MAX_TITLE} characters`)
       if (prompt === '') throw invalid('Say what the Bot should do')
-      await service.create(bot ? rt.chatOf(bot.id) : room.id, { title, prompt, ...selectorOf(body.when) })
+      const targetId = bot !== undefined ? rt.chatOf(bot.id) : room?.id
+      if (targetId === undefined) throw invalid('No such Bot or group chat')
+      await service.create(targetId, { title, prompt, ...selectorOf(body.when as SelectorInput | undefined) })
       return schedulesView()
     },
     async 'schedule-delete'(body) {
       if (service === null) throw invalid('Automation tasks are off in DSH')
-      if (ownerOf(body.sessionId) === undefined) throw invalid('No such task')
-      await service.delete({ sessionId: body.sessionId, id: body.id })
+      const sessionId = bodyText(body, 'sessionId') ?? ''
+      if (ownerOf(sessionId) === undefined) throw invalid('No such task')
+      await service.delete({ sessionId, id: String(body.id ?? '') })
       return schedulesView()
     },
   }
 
   // A fresh part takes over the earlier part's active tasks: each is created again on
   // the fresh Session before the old one goes, so a failure leaves it where it was.
-  async function moveSchedules(fromId, toId) {
+  async function moveSchedules(fromId: string, toId: string): Promise<void> {
     if (service === null) return
-    let records
+    let records: readonly ScheduleRecord[]
     try {
       records = await service.list({ sessionId: fromId })
     } catch (error) {
-      rt.warn('ds-bot: tasks of %s not moved: %s', fromId, error?.message ?? error)
+      rt.warn('ds-bot: tasks of %s not moved: %s', fromId, error instanceof Error ? error.message : error)
       return
     }
     for (const record of records) {
@@ -142,10 +219,17 @@ export function install(rt) {
         await service.create(toId, request)
         await service.delete({ sessionId: fromId, id: record.id })
       } catch (error) {
-        rt.warn('ds-bot: task %s stayed with the earlier part: %s', record.title, error?.message ?? error)
+        rt.warn('ds-bot: task %s stayed with the earlier part: %s', record.title, error instanceof Error ? error.message : error)
       }
     }
   }
 
-  Object.assign(rt, { scheduleEndpoint: (endpoint, body) => endpoints[endpoint](body ?? {}), moveSchedules })
+  Object.assign(rt, {
+    scheduleEndpoint: (endpoint: string, body: ScheduleBody | undefined): Promise<unknown> => {
+      const handler = endpoints[endpoint]
+      if (handler === undefined) throw invalid(`No such schedules endpoint: ${endpoint}`)
+      return handler(body ?? {})
+    },
+    moveSchedules,
+  })
 }

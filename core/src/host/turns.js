@@ -5,7 +5,7 @@
 import { HANDOFF_ACK, MESSAGE_INLINE_MAX, REFERENCE_KIND, REPLY_KIND, SOURCE_KIND } from './constants.ts'
 import { absoluteLinks } from './links.ts'
 import { textOf } from './text.ts'
-import { reminderText } from './schedules.js'
+import { reminderText } from './schedules.ts'
 
 // A failed turn's `LlmFailure`, kept to what can be shown and logged. Like DSH's own
 // error row, an AUTH failure loses its message: providers may echo part of the key.

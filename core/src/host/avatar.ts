@@ -14,11 +14,15 @@ const MAX_BYTES = Math.floor((MAX_AVATAR_IMAGE - LONGEST_PREFIX.length) / 4) * 3
 const HINT = 'Use a square image; 256x256 is recommended.'
 const MIMES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
 
-const ascii = (bytes, start, end) => Buffer.from(bytes.subarray(start, end)).toString('latin1')
+const codeOf = (error: unknown): string | undefined =>
+  typeof error === 'object' && error !== null ? (error as { readonly code?: string }).code : undefined
+const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error))
+
+const ascii = (bytes: Buffer, start: number, end: number): string => Buffer.from(bytes.subarray(start, end)).toString('latin1')
 
 // The real format, from the bytes themselves: an extension, a Content-Type header, or
 // the mime in a data URL can all be wrong.
-function mimeOf(bytes) {
+function mimeOf(bytes: Buffer): string | undefined {
   if (bytes.length >= 8 && ascii(bytes, 0, 8) === '\x89PNG\r\n\x1a\n') return 'image/png'
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg'
   if (bytes.length >= 6 && /^GIF8[79]a$/.test(ascii(bytes, 0, 6))) return 'image/gif'
@@ -26,10 +30,10 @@ function mimeOf(bytes) {
   return undefined
 }
 
-const tooLarge = size => `The avatar image is too large: ${size} bytes, and the limit is ${MAX_BYTES} bytes (about 120 KB). ${HINT}`
+const tooLarge = (size: number): string => `The avatar image is too large: ${size} bytes, and the limit is ${MAX_BYTES} bytes (about 120 KB). ${HINT}`
 const NOT_IMAGE = `The avatar must be a PNG, JPEG, WebP, or GIF image. ${HINT}`
 
-function toDataUrl(bytes) {
+function toDataUrl(bytes: Buffer): string {
   if (bytes.length > MAX_BYTES) throw new Error(tooLarge(bytes.length))
   const mime = mimeOf(bytes)
   if (mime === undefined) throw new Error(NOT_IMAGE)
@@ -38,13 +42,18 @@ function toDataUrl(bytes) {
   return url
 }
 
-const expandHome = (text) => {
+const expandHome = (text: string): string => {
   if (text === '~') return homedir()
   if (/^~[\\/]/.test(text)) return join(homedir(), text.slice(2))
   return text
 }
 
-async function readLocal(path, baseDir, isData) {
+interface AvatarReadOptions {
+  readonly baseDir?: string
+  readonly isData?: (real: string) => Promise<boolean>
+}
+
+async function readLocal(path: string, baseDir: string | undefined, isData: AvatarReadOptions['isData']): Promise<string> {
   const full = resolve(baseDir ?? process.cwd(), expandHome(path))
   // Checked and read at the real path, where links lead, so a link cannot reach into
   // DSH's data, and one changed after the check is not followed.
@@ -54,23 +63,23 @@ async function readLocal(path, baseDir, isData) {
     real = await realpath(full)
     info = await stat(real)
   } catch (error) {
-    if (error?.code === 'ENOENT') throw new Error(`There is no image file at ${full}. Pass the path of an existing image file.`)
-    throw new Error(`Cannot read the image at ${full}: ${error?.code === 'EACCES' ? 'permission denied' : error.message}`)
+    if (codeOf(error) === 'ENOENT') throw new Error(`There is no image file at ${full}. Pass the path of an existing image file.`)
+    throw new Error(`Cannot read the image at ${full}: ${codeOf(error) === 'EACCES' ? 'permission denied' : messageOf(error)}`)
   }
   if (!info.isFile()) throw new Error(`${full} is not an image file. Pass the path of an image file.`)
   if (await isData?.(real)) throw new Error(`${full} is in DeepSeek Harness data, so it cannot be a Bot's photo. Pass an image from another folder.`)
   if (info.size > MAX_BYTES) throw new Error(tooLarge(info.size))
-  let bytes
+  let bytes: Buffer
   try {
     bytes = await readFile(real)
   } catch (error) {
-    throw new Error(`Cannot read the image at ${full}: ${error?.code === 'EACCES' ? 'permission denied' : error.message}`)
+    throw new Error(`Cannot read the image at ${full}: ${codeOf(error) === 'EACCES' ? 'permission denied' : messageOf(error)}`)
   }
   if (bytes.length > MAX_BYTES) throw new Error(tooLarge(bytes.length))
   return toDataUrl(bytes)
 }
 
-function readDataUrl(value) {
+function readDataUrl(value: string): string {
   const comma = value.indexOf(',')
   if (comma === -1) throw new Error(`The avatar data URL has no comma before its image data. ${HINT}`)
   const header = value.slice('data:'.length, comma)
@@ -88,7 +97,7 @@ function readDataUrl(value) {
 // `baseDir` is where a relative local path starts, and `isData` says whether a real path
 // lies in data a Bot may not read from. Links are not fetched: the host would reach
 // addresses, such as local services, that dsh's own web fetch refuses.
-export async function readAvatar(input, { baseDir, isData } = {}) {
+export async function readAvatar(input: unknown, { baseDir, isData }: AvatarReadOptions = {}): Promise<string> {
   const value = typeof input === 'string' ? input.trim() : ''
   if (value === '') throw new Error(`Give an image path or a data URL. ${HINT}`)
   if (/^data:/i.test(value)) return readDataUrl(value)

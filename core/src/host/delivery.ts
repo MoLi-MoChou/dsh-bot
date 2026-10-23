@@ -1,20 +1,65 @@
+import type { AttachmentRef, AttachmentsService } from './dsh-types.ts'
+import type { ExchangeEntry, HostRuntime } from './runtime.ts'
+
+/** What `deliver` puts into a Session. */
+export interface DeliveryInput {
+  readonly fromId: string
+  readonly toId: string
+  readonly sessionId?: string
+  readonly text: string
+  readonly role: string
+  readonly replyTo?: string
+  readonly roomId?: string
+  readonly audience?: string
+  readonly note?: string
+  readonly exchangeId?: string
+  readonly steer?: boolean
+  readonly deferred?: boolean
+  readonly resumed?: boolean
+  readonly retried?: boolean
+  readonly resent?: boolean
+  readonly merged?: boolean
+  readonly askedBy?: string
+  readonly fromRoomId?: string
+  readonly files?: readonly AttachmentRef[]
+  readonly length?: number
+  readonly work?: string
+}
+
+interface HeaderOptions {
+  readonly resumed?: boolean
+  readonly retried?: boolean
+  readonly asker?: string | undefined
+}
+
+interface MessageText {
+  readonly text: string
+  readonly whole: boolean
+}
+
+interface AttachResult {
+  readonly text: string
+  readonly files: readonly AttachmentRef[]
+  readonly length?: number
+}
+
 // Delivery: how one Bot, the user, or DS Bot itself puts a message into a Bot Session.
 import { randomUUID } from 'node:crypto'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { HISTORY_TIMEOUT_MS, LONG_HEAD, MESSAGE_INLINE_MAX, READ_LINE_MAX, SOURCE_KIND, TEXT_KEPT, TEXT_SHOW_MAX } from './constants.ts'
 import { headOf, textOf } from './text.ts'
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, state } = rt
 
-  const resolveAgent = async (sessionId) => {
+  const resolveAgent = async (sessionId: string) => {
     const resolved = await ctx.sessionController.resolveAgent(sessionId)
     if ('error' in resolved) throw Object.assign(new Error(resolved.error?.message ?? 'Session unavailable'), { code: resolved.error?.code })
     rt.hideBotUnusedTools(resolved.agent)
     return resolved.agent
   }
 
-  const headerFor = (role, fromName, roomName, audience, note = 'new message', deferred = false, { resumed = false, retried = false, asker } = {}) => {
+  const headerFor = (role: string, fromName: string, roomName: string | undefined, audience: string | undefined, note = 'new message', deferred = false, { resumed = false, retried = false, asker }: HeaderOptions = {}): string => {
     // What came back for work another Bot gave this one says where its answer goes.
     const goesOn = asker === undefined ? '' : ` · for the work ${asker} asked you for; your answer goes to ${asker} once everything you handed on is back`
     if (deferred && role === 'reply') return `[Reply from ${fromName} · you read it during your last task; go on with the work it is for now${goesOn}]`
@@ -34,7 +79,7 @@ export function install(rt) {
   }
 
   // Roles recorded as team exchanges.
-  const EXCHANGE_ROLES = new Set(['request', 'reply', 'stopped'])
+  const EXCHANGE_ROLES = new Set<string>(['request', 'reply', 'stopped'])
 
   // `sessionId` defaults to the recipient's own chat; group turns name its group Session.
   // `deferred`: a request the Bot already read mid-turn, handed back to answer in a
@@ -48,7 +93,12 @@ export function install(rt) {
   // `length`: the whole message's length when it went as a file (attachLong). `work`:
   // the work (handoffs.js) a result that came back goes on with. `merged`: a request
   // that takes in an earlier one its recipient had not read, under that one's exchange.
-  async function deliver({ fromId, toId, sessionId, text, role, replyTo, roomId, audience, note, exchangeId = randomUUID(), steer = false, deferred = false, resumed = false, retried = false, resent = false, merged = false, askedBy, fromRoomId, files = [], length, work }) {
+  async function deliver({
+    fromId, toId, sessionId, text, role, replyTo, roomId, audience, note,
+    exchangeId = randomUUID(), steer = false, deferred = false, resumed = false,
+    retried = false, resent = false, merged = false, askedBy, fromRoomId,
+    files = [], length, work,
+  }: DeliveryInput): Promise<string> {
     const from = rt.botOf(fromId)
     const to = rt.botOf(toId)
     if (to === undefined) throw new Error(`Unknown Bot ${toId}`)
@@ -56,7 +106,7 @@ export function install(rt) {
     const room = rt.roomOf(roomId)
     const asker = work === undefined ? undefined : rt.botOf(state.works?.[work]?.from)?.name
     // Session events reject `undefined` members, so optional fields are omitted instead.
-    const source = {
+    const source: Record<string, unknown> = {
       kind: SOURCE_KIND,
       form: 'relay',
       role,
@@ -79,7 +129,7 @@ export function install(rt) {
       // it back there.
       const kept = headOf(text, TEXT_KEPT)
       const whole = length !== undefined ? { length, files } : kept.length < text.length ? { length: text.length, sessionId: targetSessionId } : {}
-      const entry = { id: exchangeId, from: fromId, to: toId, text: kept, ...whole, role, time: Date.now(), ...(replyTo ? { replyTo } : {}), ...(audience === 'user' ? { audience } : {}) }
+      const entry: ExchangeEntry = { id: exchangeId, from: fromId, to: toId, text: kept, ...whole, role, time: Date.now(), ...(replyTo ? { replyTo } : {}), ...(audience === 'user' ? { audience } : {}) }
       const earlier = merged ? state.exchanges.findIndex(other => other.id === exchangeId) : -1
       if (earlier === -1) state.exchanges.push(entry)
       else state.exchanges[earlier] = entry
@@ -105,9 +155,10 @@ export function install(rt) {
   // A message between Bots, whole, from the Session it was delivered to: the message
   // there is its header line, then the text. `whole` is false when only the start could
   // be read (the Session is gone, or the message is past what the dialog shows).
-  async function exchangeText(entry) {
+  async function exchangeText(entry: ExchangeEntry): Promise<MessageText> {
     if (entry.length === undefined) return { text: entry.text, whole: true }
-    if (entry.files?.length > 0) return await fileText(entry.files[0]) ?? { text: entry.text, whole: false }
+    const firstFile = entry.files?.[0]
+    if (firstFile !== undefined) return (await fileText(firstFile)) ?? { text: entry.text, whole: false }
     try {
       for await (const event of rt.eventsBackwards(entry.sessionId ?? rt.chatOf(entry.to), AbortSignal.timeout(HISTORY_TIMEOUT_MS))) {
         if (event.type !== 'user/message' || event.data?.source?.exchangeId !== entry.id) continue
@@ -124,10 +175,10 @@ export function install(rt) {
   // A message a Bot sends past MESSAGE_INLINE_MAX goes as a DSH file: it is stored once,
   // not in every Session it reaches, and the model reads it with its file tools when it
   // needs it. Undefined when this DSH cannot store files.
-  async function attachLong(text, name) {
+  async function attachLong(text: string, name: string): Promise<AttachResult | undefined> {
     if (text.length <= MESSAGE_INLINE_MAX) return { text, files: [] }
     try {
-      const file = await ctx.get?.('attachments')?.saveFile({ data: new TextEncoder().encode(text), name })
+      const file = await ctx.get<AttachmentsService>('attachments')?.saveFile({ data: new TextEncoder().encode(text), name })
       if (file === undefined) return undefined
       // The file stays verbatim, so a line past what the read tool shows needs another way.
       const wide = text.split('\n').some(line => line.length > READ_LINE_MAX)
@@ -140,8 +191,8 @@ export function install(rt) {
   }
 
   // The text of a stored file, up to what the dialogs show.
-  async function fileText(file) {
-    const attachments = ctx.get?.('attachments')
+  async function fileText(file: AttachmentRef): Promise<MessageText | undefined> {
+    const attachments = ctx.get<AttachmentsService>('attachments')
     if (attachments === undefined) return undefined
     const decoder = new TextDecoder()
     let text = ''

@@ -4,7 +4,7 @@
 // `install(rt)`. A module both reads what earlier modules put on `rt` and adds its own
 // functions. This interface holds the slice today's TypeScript modules need; it grows a
 // batch at a time as the rest of `src/host` moves over. Nothing here runs: types only.
-import type { Agent, DshContext, SessionEvent } from './dsh-types.ts'
+import type { Agent, AttachmentRef, DshContext, SessionEvent } from './dsh-types.ts'
 
 export interface HostConfig {
   readonly home?: string
@@ -44,12 +44,35 @@ export interface StoredRoom {
   readonly [key: string]: unknown
 }
 
+/** One recorded exchange between two Bots, in `state.exchanges`. */
+export interface ExchangeEntry {
+  readonly id: string
+  readonly from: string
+  readonly to: string
+  readonly text: string
+  readonly role?: string
+  readonly time?: number
+  readonly length?: number
+  readonly sessionId?: string
+  readonly files?: readonly AttachmentRef[]
+  readonly replyTo?: string
+  readonly audience?: string
+}
+
+/** A work item another Bot handed on, in `state.works`. */
+export interface StoredWork {
+  readonly from?: string
+  readonly [key: string]: unknown
+}
+
 /** The team as `state.json` stores it. */
 export interface StoredState {
   revision: number
   bots: Record<string, StoredBot>
   rooms: Record<string, StoredRoom>
   exchangeTurns: Record<string, readonly number[]>
+  exchanges: ExchangeEntry[]
+  works?: Record<string, StoredWork>
   readonly [key: string]: unknown
 }
 
@@ -76,6 +99,7 @@ export interface HostRuntime {
   readonly state: StoredState
   readonly chatOwners: Map<string, string>
   readonly groupOwners: Map<string, { readonly botId: string; readonly roomId: string }>
+  readonly pastOwners: Map<string, { readonly botId: string; readonly roomId?: string }>
   load(): Promise<unknown>
   botOf(botId: string | undefined): StoredBot | undefined
   roomOf(roomId: string | undefined): StoredRoom | undefined
@@ -95,11 +119,16 @@ export interface HostRuntime {
   // --- provided by delivery.ts and diagnostics.ts
   resolveAgent(sessionId: string): Promise<Agent>
   warn(template: string, ...args: readonly unknown[]): void
+  save(): Promise<unknown>
 
   // --- provided by turns.ts, groups.ts and resume.ts
   callDetail?(sessionId: string | undefined, callId?: string): ApprovalDetail
   yieldRoomTurn?(sessionId: string | undefined): void
   noteApproval?(sessionId: string | undefined, note: ApprovalNote | undefined): void
+
+  // --- provided by capabilities.ts and tools.ts
+  ensureCapabilities(sessionId: string): Promise<unknown>
+  hideBotUnusedTools(agent: Agent): void
 
   // --- provided by parts.ts and folders.ts
   displayItems(sessionId: string, events: readonly SessionEvent[]): readonly unknown[]

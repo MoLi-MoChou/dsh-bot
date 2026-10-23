@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { readAvatar } from '../src/host/avatar.js'
+import { readAvatar } from '../src/host/avatar.ts'
 import { MAX_AVATAR_IMAGE } from '../src/host/constants.ts'
 
 // Only the magic bytes matter to the reader; the rest of a fixture need not decode.

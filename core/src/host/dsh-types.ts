@@ -112,7 +112,9 @@ export interface SessionPage {
 
 export interface SessionController {
   create(options: SessionCreateOptions): Promise<{ readonly sessionId: string }>
-  resolveAgent(sessionId: string): Promise<{ readonly agent: Agent } | { readonly error?: { readonly code?: string; readonly message?: string } }>
+  resolveAgent(sessionId: string): Promise<
+    { readonly agent: Agent } | { readonly error: { readonly code?: string; readonly message?: string } }
+  >
   page(options: {
     readonly address: { readonly kind: 'session'; readonly sessionId: string }
     readonly throughSeq?: number

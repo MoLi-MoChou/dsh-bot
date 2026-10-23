@@ -10,7 +10,7 @@
 // `expect` is compact, switch or either (a judgment call; the answer is only recorded).
 import { writeFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
-import { STEWARD_SYSTEM, parseDecision, stewardRequest } from '../src/host/steward.js'
+import { STEWARD_SYSTEM, parseDecision, stewardRequest } from '../src/host/steward.ts'
 
 const { values: args } = parseArgs({ options: {
   'base-url': { type: 'string' },

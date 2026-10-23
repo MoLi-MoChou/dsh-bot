@@ -17,9 +17,32 @@ const HARD_SHARE = 0.95
 const STEWARD_TOKENS = 6_000
 const STEWARD_LINE_MAX = 1_500
 
-export function linesFor({ window, reserve, checkRatio }) {
-  const declared = Number.isInteger(window) && window > 0 ? window : DEFAULT_WINDOW
-  const room = Number.isInteger(reserve) && reserve > 0 ? reserve : 0
+interface StewardLines {
+  readonly window?: unknown
+  readonly reserve?: unknown
+  readonly checkRatio?: unknown
+}
+
+interface StewardRequestInput {
+  readonly lines: readonly StewardLine[]
+  readonly midTurn: boolean
+  readonly checkpoints: number
+  readonly group: boolean
+}
+
+interface StewardLine {
+  readonly who?: string
+  readonly text: string
+}
+
+interface ChatMessage {
+  readonly role?: string
+  readonly content?: unknown
+}
+
+export function linesFor({ window, reserve, checkRatio }: StewardLines): { window: number; usable: number; hard: number; check: number } {
+  const declared = typeof window === 'number' && Number.isInteger(window) && window > 0 ? window : DEFAULT_WINDOW
+  const room = typeof reserve === 'number' && Number.isInteger(reserve) && reserve > 0 ? reserve : 0
   const usable = Math.max(declared - room, Math.floor(declared / 2))
   const hard = Math.floor(usable * HARD_SHARE)
   const ratio = typeof checkRatio === 'number' && checkRatio > 0 && checkRatio < 1 ? checkRatio : DEFAULT_CHECK_RATIO
@@ -43,7 +66,7 @@ export const STEWARD_SYSTEM = [
 // A long message keeps its start (what was asked) and its end (how the reply ended and
 // what it promised). The marker says the cut is this view's, so that a whole reply does
 // not read as one that stopped halfway.
-function shorten(text) {
+function shorten(text: string): string {
   if (text.length <= STEWARD_LINE_MAX) return text
   const head = Math.ceil((STEWARD_LINE_MAX * 2) / 3)
   return `${text.slice(0, head)}\n[… ${text.length - STEWARD_LINE_MAX} characters left out of this view …]\n${text.slice(head - STEWARD_LINE_MAX)}`
@@ -52,8 +75,8 @@ function shorten(text) {
 // The latest messages, newest first, as { who, text } with who 'user', 'bot' (another
 // Bot) or 'you' (the assistant itself); the request shows them oldest first, within
 // a budget.
-export function stewardRequest({ lines, midTurn, checkpoints, group }) {
-  const shown = []
+export function stewardRequest({ lines, midTurn, checkpoints, group }: StewardRequestInput): string {
+  const shown: string[] = []
   let used = 0
   for (const line of lines) {
     const label = line.who === 'you' ? 'Assistant' : line.who === 'user' ? 'User' : 'Another Bot'
@@ -75,12 +98,12 @@ export function stewardRequest({ lines, midTurn, checkpoints, group }) {
 
 // The last JSON object with an action is the answer: a model may first quote one
 // it saw in the messages.
-export function parseDecision(text) {
+export function parseDecision(text: unknown): 'switch' | 'compact' | undefined {
   const objects = String(text ?? '').match(/\{[^{}]*\}/g) ?? []
   for (const object of objects.reverse()) {
-    let action
+    let action: unknown
     try {
-      action = JSON.parse(object)?.action
+      action = (JSON.parse(object) as { readonly action?: unknown })?.action
     } catch {
       continue
     }
@@ -94,9 +117,9 @@ export function parseDecision(text) {
 const CHECKPOINT_MARK = /^\[Checkpoint (\d+)\]/
 const SUMMARY_TAG = '<compacted-summary>'
 
-export function checkpointCount(messages) {
+export function checkpointCount(messages: unknown): number {
   let count = 0
-  for (const message of messages ?? []) {
+  for (const message of (Array.isArray(messages) ? messages : []) as readonly ChatMessage[]) {
     if (message?.role !== 'user' || !Array.isArray(message.content)) continue
     const text = message.content.filter(block => block?.type === 'text').map(block => block.text).join('\n')
     const at = text.indexOf(SUMMARY_TAG)
@@ -135,12 +158,14 @@ export const CHECKPOINT_PROMPT = [
 // them too, and this note says which ones stay.
 // The kept messages follow the region on the surface, so they are the rest of the whole
 // history; when the region is not a prefix of it, nothing is added.
-export function checkpointTail(region, all) {
+export function checkpointTail(region: unknown, all: unknown): readonly ChatMessage[] {
   if (!Array.isArray(region) || !Array.isArray(all) || all.length <= region.length) return []
-  return region.every((message, index) => all[index]?.role === message?.role) ? all.slice(region.length) : []
+  const before = region as readonly ChatMessage[]
+  const whole = all as readonly ChatMessage[]
+  return before.every((message, index) => whole[index]?.role === message?.role) ? whole.slice(before.length) : []
 }
 
-export function checkpointTailNote(tail) {
+export function checkpointTailNote(tail: readonly ChatMessage[]): string {
   const first = tail[0]
   const text = (Array.isArray(first?.content) ? first.content : [])
     .filter(block => block?.type === 'text').map(block => block.text).join(' ').replace(/\s+/g, ' ').trim()
@@ -151,7 +176,14 @@ export function checkpointTailNote(tail) {
 // The checkpoint that replaces the older messages: its number, the summary, and the
 // messages to the Bot word for word (oldest first), newest kept first within a
 // budget, as Codex keeps the user's messages next to its summary.
-export function checkpointText({ number, summary, kept, more }) {
+interface CheckpointTextInput {
+  readonly number: number
+  readonly summary: string
+  readonly kept: readonly string[]
+  readonly more: boolean
+}
+
+export function checkpointText({ number, summary, kept, more }: CheckpointTextInput): string {
   return [
     `[Checkpoint ${number}]`,
     summary.trim(),
