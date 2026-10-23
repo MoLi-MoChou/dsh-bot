@@ -1,4 +1,4 @@
-import type { HostRuntime, StoredWork, TurnInfo } from './runtime.ts'
+import type { HostRuntime, StoredWork, TurnInfo } from './runtime.js'
 
 // Hand-offs: the work Bots give each other, and what each Bot is doing right now.
 //
@@ -157,7 +157,7 @@ export function install(rt: HostRuntime): void {
       if (asker !== undefined) return nameOf(asker) ? `, for ${nameOf(asker)}` : ''
       return info === undefined ? ', for the user' : ''
     }
-    const doing = (entry: import('./runtime.ts').LiveEntry): string => {
+    const doing = (entry: import('./runtime.js').LiveEntry): string => {
       const what = rt.doingOf?.(entry) ?? {}
       if (what.tool) return `: running ${what.tool}${what.target ? ` on ${what.target}` : ''}`
       return what.said ? `: "${what.said.slice(0, 100)}"` : ''

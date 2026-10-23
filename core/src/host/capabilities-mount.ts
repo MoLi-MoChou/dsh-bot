@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto'
 import type { Agent, DshContext, LoaderService, PluginFiber } from './dsh-types.js'
 import { configFor } from './capabilities-config.ts'
-import type { CapabilityItem, HostRuntime, StoredBot, StoredState } from './runtime.ts'
+import type { CapabilityItem, HostRuntime, StoredBot, StoredState } from './runtime.js'
 
 const MCP_CLIENT = '@deepseek-ai/dsh-mcp-client'
 const ENSURE_TIMEOUT_MS = 15_000

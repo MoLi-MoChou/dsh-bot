@@ -1,7 +1,7 @@
 // The Session index: which Bot or group chat a Session belongs to. A Bot speaks from its
 // own chat Session and from one hidden Session per group; a long conversation moves on to
 // a fresh Session, and the earlier ones stay readable as segments.
-import type { StoredBot, StoredRoom, StoredState } from './runtime.ts'
+import type { StoredBot, StoredRoom, StoredState } from './runtime.js'
 
 export interface SessionIndex {
   readonly chatOwners: Map<string, string>

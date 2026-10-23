@@ -1,6 +1,6 @@
 import { clearTimeout, setTimeout } from 'node:timers'
 import type { SessionEvent } from './dsh-types.js'
-import type { DeliveryInput, HostRuntime, TurnInfo } from './runtime.ts'
+import type { DeliveryInput, HostRuntime, TurnInfo } from './runtime.js'
 
 /** The trigger fields a resumed turn needs to answer the same sender. */
 interface ResumeTrigger {

@@ -1,7 +1,7 @@
 // The config a capability mounts with: an MCP server's command, arguments, environment,
 // URL and headers, or a skill's text. Secret references are resolved for this Bot only.
 import { encodeUrlComponent } from './secrets.ts'
-import type { CapabilityItem, HostRuntime } from './runtime.ts'
+import type { CapabilityItem, HostRuntime } from './runtime.js'
 
 const SECRET_REFERENCE = /\$DSH_SECRET_([A-Z][A-Z0-9_]*)/g
 

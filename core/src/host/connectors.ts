@@ -1,5 +1,5 @@
 import type { LoaderService, PluginFiber } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 type ConnectorStatus =
   | { readonly state: 'off' }

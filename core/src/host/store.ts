@@ -9,7 +9,7 @@ import { createSessionIndex } from './store-sessions.ts'
 import type { SessionIndex } from './store-sessions.ts'
 import { createStoreLock } from './store-lock.ts'
 import type { StoreLock } from './store-lock.ts'
-import type { HostRuntime, StoredBot, StoredRoom, StoredState } from './runtime.ts'
+import type { HostRuntime, StoredBot, StoredRoom, StoredState } from './runtime.js'
 
 // A table read that sees only the keys the table holds itself. Ids that come from
 // outside (a request body, a tool argument, a name a model gives) go through this, so

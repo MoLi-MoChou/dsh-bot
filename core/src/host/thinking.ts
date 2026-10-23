@@ -4,7 +4,7 @@
 // purpose — a failed or retried attempt's thinking never reached the reply.
 import { HISTORY_TIMEOUT_MS } from './constants.ts'
 import type { SessionEvent } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 /** One entry of a timed model stream. A reasoning-chunks record packs member times as
  *  the first time plus the gaps to each next member. */

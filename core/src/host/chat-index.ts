@@ -1,6 +1,6 @@
 import type { DatabaseSync, StatementSync } from 'node:sqlite'
 import type { SessionEvent } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 /** One line of a Bot's own chat, as the index stores it. */
 interface LineRow {

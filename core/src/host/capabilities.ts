@@ -3,7 +3,7 @@
 // capabilities-mount.ts.
 import { createCapabilityMounts } from './capabilities-mount.ts'
 import { own } from './store.ts'
-import type { CapabilityItem, HostRuntime, StoredBot } from './runtime.ts'
+import type { CapabilityItem, HostRuntime, StoredBot } from './runtime.js'
 
 const NAME = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/
 

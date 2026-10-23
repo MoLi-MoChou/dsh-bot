@@ -6,7 +6,7 @@
 import { readdir, readFile, realpath, stat } from 'node:fs/promises'
 import { basename, extname, join, relative, resolve, sep } from 'node:path'
 import { crc32, deflateRawSync } from 'node:zlib'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 // Larger files are refused rather than pushed through one JSON reply.
 export const DOWNLOAD_LIMIT = 64 * 1024 * 1024

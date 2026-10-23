@@ -48,6 +48,9 @@ export interface StoredBot {
   color?: string | undefined
   createdAt?: number
   lab?: string
+  kickoff?: { text: string; from?: string | null; main?: boolean }
+  pinned?: boolean
+  hidden?: boolean
   avatar?: { shape?: string; image?: string }
   readonly [key: string]: unknown
 }
@@ -58,12 +61,13 @@ export interface StoredRoom {
   name: string
   admin?: string | null | undefined
   permission?: string | null
-  members?: readonly string[]
+  members?: string[]
   mode?: string
   notice?: string
   named?: boolean
   log?: readonly ({ readonly text: string; readonly seq: number; readonly [key: string]: unknown } | Record<string, unknown>)[]
   botRounds?: number
+  seen?: Record<string, unknown>
   sessions?: Record<string, string>
   segments?: Record<string, readonly { readonly sessionId: string; readonly endedAt?: number }[]>
   workDir?: string
@@ -225,8 +229,8 @@ export interface StoredState {
   exchanges: ExchangeEntry[]
   connectors?: Record<string, { readonly login?: string | null; readonly connectedAt?: number }>
   works?: Record<string, StoredWork>
-  questions?: Record<string, unknown>
-  views?: Record<string, unknown>
+  questions: Record<string, unknown>
+  views: Record<string, unknown>
   /** The secret cards waiting for the user, keyed by Bot id. Values are never here. */
   secretRequests?: Record<string, SecretRequest[]>
   readonly [key: string]: unknown
@@ -318,8 +322,16 @@ export interface HostRuntime {
   autoRoomName?(members: readonly string[]): string
   retitleRoom?(room: StoredRoom): Promise<unknown>
   capabilitiesStateSaved?(): void
+  archiveGroupMemory?(room: StoredRoom): Promise<unknown>
+  archiveBotMemory?(botId: string): Promise<unknown>
+  readonly roomInbox: Map<string, unknown>
+  readonly roomProgress: ReadonlyMap<string, { readonly roomId?: string }>
+  dropGroupLines?(roomId: string): void
+  followFolder?(botId: string): void
+  uiLanguage?(): string | undefined
+  releaseBot?(botId: string, sessions: readonly string[]): Promise<unknown>
+  syncModels?(): Promise<unknown>
   capabilityEnsureTimeoutMs?: number
-  secretsChanged?(): void
   cancelApprovals?(sessionId: string): void
   ownRequest(options: { readonly sessionId?: string | undefined; readonly messages?: unknown }): boolean
   partsOf(botId: string): readonly { readonly sessionId: string; readonly number: number; readonly startedAt: number; readonly endedAt?: number | undefined }[]
@@ -337,8 +349,19 @@ export interface HostRuntime {
 
   // --- provided by parts.ts and folders.ts
   displayItems(sessionId: string, events: readonly SessionEvent[]): readonly unknown[]
-  teamFolder?(): string | undefined
-  defaultTeamFolder?(): string | undefined
+  isFolder(path: string): Promise<boolean>
+  resolveModel(text: unknown): Promise<string>
+  defaultModel(): Promise<string | undefined>
+  resolveEffort(ref: string, text: unknown): Promise<string>
+  applyModel(bot: StoredBot, options?: { readonly force?: boolean }): Promise<string | undefined>
+  waitForModel(bot: StoredBot, ms?: number): Promise<string | undefined>
+  setPermission(bot: StoredBot, name: unknown): Promise<void>
+  cleanRoomPermission(name: unknown): string | null
+  setRoomPermission(room: StoredRoom, name: string | null | undefined): Promise<boolean>
+  dropGroupSession(room: StoredRoom, botId: string): void
+  cleanWorkDir(input: unknown): Promise<string | undefined>
+  teamFolder(): string | undefined
+  defaultTeamFolder(): string
 
   // --- provided by thinking.ts and feed.ts
   thinkingOf?: (sessionId: string, turn: number) => Promise<number | undefined>

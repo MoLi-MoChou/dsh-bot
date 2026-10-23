@@ -1,5 +1,5 @@
 import type { AttachmentRef, AttachmentsService } from './dsh-types.js'
-import type { DeliveryInput, ExchangeEntry, HostRuntime } from './runtime.ts'
+import type { DeliveryInput, ExchangeEntry, HostRuntime } from './runtime.js'
 
 interface HeaderOptions {
   readonly resumed?: boolean

@@ -7,7 +7,7 @@
 import { clearInterval, setInterval, setTimeout } from 'node:timers'
 import { ROUTE } from './constants.ts'
 import type { AgentStatusEvent, AssistantStreamEvent, SessionEvent } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 export const FEED_ROUTE = `${ROUTE}/feed`
 // A comment line now and then keeps an idle connection open.

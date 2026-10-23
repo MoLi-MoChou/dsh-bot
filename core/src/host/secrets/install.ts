@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import { defineTool, type ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { Disposer, DshContext, LlmStreamOptions } from '../dsh-types.js'
-import type { HostRuntime } from '../runtime.ts'
+import type { HostRuntime } from '../runtime.js'
 import { output } from '../tools.ts'
 import {
   SECRET_NAME,

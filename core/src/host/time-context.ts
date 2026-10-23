@@ -1,7 +1,7 @@
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { LlmUserMessage } from '@deepseek-ai/dsh-llm'
 import type { Agent } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 const SOURCE = 'ds-bot-time-context'
 const isClock = (source: { readonly kind?: unknown } | undefined): boolean => source?.kind === SOURCE || source?.kind === 'time-context'

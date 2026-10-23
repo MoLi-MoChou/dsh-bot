@@ -1,4 +1,4 @@
-import type { HostRuntime, StoredBot, StoredRoom } from './runtime.ts'
+import type { HostRuntime, StoredBot, StoredRoom } from './runtime.js'
 
 // Permissions. A Bot's permission preset is its own: kept on the Bot and set on every
 // Session it speaks from, so a fresh part or a new group Session keeps it. A group may

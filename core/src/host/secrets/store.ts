@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { replaceFile } from '../files.ts'
-import type { HostRuntime } from '../runtime.ts'
+import type { HostRuntime } from '../runtime.js'
 import { MIN_VALUE, MAX_VALUE, SECRET_NAME, canUse, envName, type SecretScope } from './redact.ts'
 
 const MAX_REQUESTS = 20

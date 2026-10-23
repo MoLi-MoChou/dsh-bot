@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'node:child_process'
 import type { LoaderService, PluginManagerService } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 interface DshUpdateStatus {
   current: string | null

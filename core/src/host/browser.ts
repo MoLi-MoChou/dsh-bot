@@ -1,4 +1,4 @@
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 /** A page the Desktop window reports for one Bot's browser. */
 interface BrowserPage {

@@ -7,7 +7,7 @@
 // shared interface from growing without bound.
 import type { RpcEndpoint, RpcErrorCode, RpcResultBody, WorkBot } from '../../shared/rpc.ts'
 import type { SecretView } from '../secrets/store.ts'
-import type { ModelEntry, StoredAgent } from '../runtime.ts'
+import type { ModelEntry, StoredAgent } from '../runtime.js'
 
 /** A decoded `payload`; JSON has no schema, so every field is read as unknown. */
 export type ChannelBody = Readonly<Record<string, unknown>>

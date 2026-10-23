@@ -5,7 +5,7 @@
 // `src/shared/rpc.ts`, so a typo in the handler map fails to compile.
 import type { ChatPage, RpcEndpoint, WorkBot } from '../shared/rpc.ts'
 import type { AttachmentRef } from './dsh-types.ts'
-import type { ExchangeEntry, HostRuntime, ModelReasoning, StoredAgent, StoredBot, StoredRoom } from './runtime.ts'
+import type { ExchangeEntry, HostRuntime, ModelReasoning, StoredAgent, StoredBot, StoredRoom } from './runtime.js'
 import { ROUTE } from './constants.ts'
 import type {
   BrowserChannel,

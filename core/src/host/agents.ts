@@ -1,6 +1,6 @@
 import { clearInterval, setInterval } from 'node:timers'
 import type { Agent } from './dsh-types.js'
-import type { HostRuntime, StoredAgent } from './runtime.ts'
+import type { HostRuntime, StoredAgent } from './runtime.js'
 
 // The DSH Agent: a team's one plain dsh entry, listed beside the Bots but not one of
 // them. Its Sessions are ordinary root Sessions in the DS Bot workspace, so they get

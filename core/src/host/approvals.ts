@@ -3,7 +3,7 @@
 // the group chat. A Bot's own chat keeps DSH's card; its requests are only noted, so
 // the team view can say who is waiting.
 import { randomUUID } from 'node:crypto'
-import type { ApprovalDetail, ApprovalNote, HostRuntime } from './runtime.ts'
+import type { ApprovalDetail, ApprovalNote, HostRuntime } from './runtime.js'
 
 const OUTCOMES: Readonly<Record<string, string>> = { allow: 'allowed-once', reject: 'rejected' }
 

@@ -1,7 +1,7 @@
 import type {
   AgentSession, ApprovalService, DirectoryPicker, SandboxPolicy, ToolExecution, WorkingDirectoryService,
 } from './dsh-types.js'
-import type { HostRuntime } from './runtime.ts'
+import type { HostRuntime } from './runtime.js'
 
 interface FolderBody {
   readonly path?: unknown
