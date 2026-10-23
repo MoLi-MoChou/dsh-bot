@@ -15,16 +15,18 @@
 // word, and where the rest is. Input that arrives meanwhile waits and moves along.
 // read_own_chat searches every part, the condensed messages included.
 import { randomUUID } from 'node:crypto'
-import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { BlockAssembler } from '@deepseek-ai/dsh-llm'
 import { HANDOFF_ACK, HISTORY_TIMEOUT_MS, REPLY_KIND, SOURCE_KIND } from './constants.ts'
 import { CHECKPOINT_PROMPT, STEWARD_SYSTEM, checkpointCount, checkpointTail, checkpointTailNote, checkpointText, linesFor, parseDecision, stewardRequest } from './steward.ts'
-import { RESUME_DELAY_MS } from './resume.ts'
-import { clip, createClock, escapeRegExp, estimateTokens, splitRef, textOf } from './text.ts'
+import { clip, createClock, escapeRegExp, estimateTokens, textOf } from './text.ts'
 
 // An ask_user card as the user saw it. The user's reply is often just an option label,
 // which means nothing without the card. Arguments the tool would refuse (no question,
 // options that are not { label } objects) showed no card, so they give no text.
 import { canonicalHeadings, cardText, historyEntry, questionReply, readReply, replyText, viewCardText, viewReply } from './parts-text.ts'
+import { createPartSwitch } from './parts-switch.ts'
+
+export { createPartSwitch }
 
 export { canonicalHeadings, cardText, historyEntry, questionReply, readReply, replyText, viewCardText, viewReply }
 
@@ -42,16 +44,10 @@ export function install(rt) {
   // After a note fails below the hard line the part stays as it is, and tries again
   // only after a wait that grows with each failure in a row.
   const NOTE_COOLDOWN_MS = [60_000, 300_000, 900_000]
-  const SWITCH_ATTEMPTS = 5
-  const OVERFLOW = 'CONTEXT_WINDOW_EXCEEDED'
-  // A failed connection says nothing about the conversation, so it never moves a part on.
-  const STUCK_CODES = ['INVALID_REQUEST', 'IMAGE_OFFLOAD_REQUIRED']
   const ORIGINAL_COMPACT = Symbol.for('ds-bot/compaction')
   const STEWARD_MAX_TOKENS = 4_096
   const STEWARD_TIMEOUT_MS = 120_000
   const STEWARD_LINES = 40
-  const FOLDER_RETRY_MS = 300_000
-  const PAUSE_NOTE = 'DS Bot paused your turn for a context check. Go on with it now from where you stopped.'
 
   // A broken provider adapter must not crash every turn; estimate from the
   // derived messages instead, with one warning.
@@ -452,7 +448,7 @@ export function install(rt) {
     // The prefix cache starts over anyway, so the memory section catches up.
     rt.renewMemory(sessionId)
     const after = tokensOf(agent.session) ?? before
-    partBase.set(agent.id, after)
+    partSwitch.setPartBase(agent.id, after)
     ctx.logger.info('ds-bot: %s condensed from %d to %d tokens (check line %d, hard line %d)', agent.id, before ?? -1, after ?? -1, lines.check, lines.hard)
     return after < lines.check
   }
@@ -527,520 +523,33 @@ export function install(rt) {
     ...(resume && job.joined?.length ? { joined: job.joined } : {}),
   })
 
-  /** @type {Map<string, {botId:string, roomId?:string, carry:any[], info?:any, joined?:any[], resume:boolean, overflow:boolean, failed?:string, bare?:boolean, folder?:boolean, hard:boolean, started?:boolean, moved?:boolean, noteFailed?:boolean}>} */
-  const switches = new Map()
-  // Parts whose move to their working folder failed, and the time before which it is
-  // not tried again.
-  const folderRetry = new Map()
-  // Parts opened because requests kept failing, until one of their turns ends well:
-  // 'carried' brought the latest messages along, 'bare' left them out.
-  /** @type {Map<string, 'carried'|'bare'>} */
-  const rescued = new Map()
-  // Parts that have not started a turn yet, with their handoff package's size.
-  const freshParts = new Map()
-  // Context size where a part started, or where a checkpoint or a failed switch left
-  // it. A part makes room again only once it grew by a quarter of the check line past
-  // it, so a large system prompt or a broken switch cannot make it act every turn.
-  const partBase = new Map()
-  // Parts whose note failed below the hard line: failures in a row, and the time
-  // before which the check line does not try again.
-  const noteFailures = new Map()
-  // Parts the steward is deciding about at the end of a turn.
-  const checking = new Set()
-
   const placeOf = (sessionId) => {
     const botId = rt.chatOwners.get(sessionId)
     if (botId !== undefined) return { botId }
     const owner = rt.groupOwners.get(sessionId)
     return owner && { botId: owner.botId, roomId: owner.roomId }
   }
-  const currentOf = owner => (owner.roomId === undefined ? rt.chatOf(owner.botId) : rt.roomOf(owner.roomId)?.sessions?.[owner.botId])
-  const grown = (sessionId, tokens, lines) => tokens >= (partBase.get(sessionId) ?? 0) + lines.check / 4
-  // A read-only process (another dsh holds the team) neither condenses nor switches.
-  const readOnly = () => rt.readOnly() !== undefined
 
-  // Input for an earlier part goes on in the current one: a browser may still show the
-  // old part, and a turn stopped for a switch hands on what it claimed.
-  async function forward(owner, messages) {
-    const target = currentOf(owner)
-    if (target === undefined || messages.length === 0) return
-    await rt.ensureCapabilities(target)
-    const agent = await rt.resolveAgent(target)
-    // A retry after a forward that stopped halfway must not deliver the same input twice.
-    const pending = [...agent.inbox.nextStep, ...agent.inbox.nextTurn]
-    for (const message of messages) {
-      const kind = message.source?.kind
-      // DSH's notice of a folder change is about the Session it was queued in; the part
-      // that goes on has its own folder, which its handoff names.
-      if (kind === 'working-directory') continue
-      const exchangeId = message.source?.exchangeId
-      if (exchangeId !== undefined && pending.some(queued => queued.source?.exchangeId === exchangeId)) continue
-      const copy = createUserMessage({ content: message.content, ...(message.source ? { source: message.source } : {}) })
-      if (kind === 'user' || kind === SOURCE_KIND || kind === REPLY_KIND) agent.followup(copy)
-      else agent.inject(copy)
-      pending.push(copy)
-    }
-    await ctx.sessions.flush(agent.session)
-  }
-
-  // The plugin's own fiber is disposed (a reload, or DSH closing): every service
-  // lookup fails with the same inactive-context error, and logging through rt.warn
-  // would fail the same way, so an unloaded failure is noted once at info instead.
-  const unloaded = error => ctx.fiber?.uid === null || /in inactive context/.test(String(error?.message ?? error))
-  const noteInfo = (template, ...args) => { try { ctx.logger.info(template, ...args) } catch {} }
-
-  // A message's inbox boundary, the same one forward() delivers it to.
-  const inboxTargetOf = message => (message.source?.kind === 'user' || message.source?.kind === SOURCE_KIND || message.source?.kind === REPLY_KIND ? 'next-turn' : 'next-step')
-
-  // Input a switch could not hand on goes back into the part's own durable inbox, in
-  // order: input followup would deliver waits for the next turn, the rest waits for
-  // the next step. agent.inbox writes do not touch this plugin's context, so they
-  // still work while it is being unloaded.
-  const restore = (agent, messages) => {
-    for (const message of [...messages].reverse()) {
-      const exchangeId = message.source?.exchangeId
-      const pending = [...agent.inbox.nextStep, ...agent.inbox.nextTurn]
-      if (pending.some(queued => queued.id === message.id || (exchangeId !== undefined && queued.source?.exchangeId === exchangeId))) continue
-      agent.inbox.prepend(inboxTargetOf(message), message)
-    }
-  }
-
-  // Input in the inbox is durable but does not wake the driver; send() is what wakes
-  // it. Re-send what waits, in order, the first message with the wake, so a stopped
-  // turn goes on without waiting for the next input. Only while the plugin is live —
-  // a turn that starts during unload would run without DS Bot's hooks.
-  const wake = (agent) => {
-    const pending = [...agent.inbox.nextStep, ...agent.inbox.nextTurn]
-    for (const message of pending) agent.inbox.remove(message.id)
-    pending.forEach((message, index) => agent.send(message, inboxTargetOf(message), index === 0))
-  }
-
-  // A switch that lost its move or its input to a failure leaves its part marked in
-  // state.switching. Hand on what it kept: input an earlier part still holds goes to
-  // the part that replaced it and the earlier part is archived as the switch meant
-  // to; a part that stayed just wakes so its kept input goes on.
-  async function heldBack() {
-    await rt.load()
-    if (rt.readOnly() !== undefined) return
-    for (const [sessionId, owner] of Object.entries(state.switching ?? {})) {
-      try {
-        const agent = await rt.resolveAgent(sessionId)
-        const held = [...agent.inbox.nextStep, ...agent.inbox.nextTurn]
-        if (currentOf(owner) !== sessionId) {
-          await forward(owner, held)
-          for (const message of held) agent.inbox.remove(message.id)
-          await ctx.workspaceRegistry.archiveSession(sessionId)
-            .catch(error => rt.warn('ds-bot: earlier part %s not archived: %s', sessionId, error))
-        } else {
-          try { wake(agent) } catch (error) { rt.warn('ds-bot: part %s could not be woken for its kept input: %s', sessionId, error) }
-        }
-        delete state.switching[sessionId]
-        await rt.save()
-      } catch (error) {
-        rt.warn('ds-bot: input kept in part %s was not handed on: %s', sessionId, error)
-      }
-    }
-  }
-
-  // `hard`: past the hard line or the window, the part moves on even without a note
-  // from the model. `folder`: the part moves on because its working folder changed.
-  function startSwitch(agent, { resume = false, carry = [], info, joined, overflow = false, failed, bare = false, folder = false, hard = overflow || folder } = {}) {
-    const place = placeOf(agent.id)
-    if (place === undefined || switches.has(agent.id) || readOnly()) return
-    const job = { ...place, carry: [...carry], info, joined, resume, overflow, failed, bare, folder, hard, since: Date.now() }
-    switches.set(agent.id, job)
-    void runSwitch(agent, job)
-      .catch(error => {
-        if (unloaded(error)) return noteInfo('ds-bot: plugin unloaded while %s switched parts; input kept in part %s', rt.botOf(job.botId)?.name ?? agent.id, agent.id)
-        rt.warn('ds-bot: %s did not move on to a fresh part: %s', rt.botOf(job.botId)?.name ?? agent.id, error)
-      })
-      .finally(async () => {
-        switches.delete(agent.id)
-        if (job.moved) {
-          // A move that had to put input back keeps the part marked for the restart pass.
-          if (job.kept !== true) {
-            delete state.switching[agent.id]
-            await rt.save()
-          }
-          noteFailures.delete(agent.id)
-          folderRetry.delete(agent.id)
-          // The folder may have changed again while the switch ran.
-          if (job.roomId === undefined) void followFolder(job.botId)
-          return
-        }
-        if (folder) folderRetry.set(agent.id, Date.now() + FOLDER_RETRY_MS)
-        if (!job.noteFailed) partBase.set(agent.id, tokensOf(agent.session) ?? 0)
-        // The stopped turn goes on where it was. A retry finds the note among the
-        // input this part kept, so it is added once.
-        const back = job.carry.splice(0)
-        const noted = [...agent.inbox.nextStep, ...agent.inbox.nextTurn].some(message => textOf(message.content) === PAUSE_NOTE)
-        if (resume && !back.some(message => textOf(message.content) === PAUSE_NOTE) && !noted) {
-          const carried = job.joined?.length ? { joined: job.joined } : {}
-          back.unshift(createUserMessage({
-            content: [{ type: 'text', text: PAUSE_NOTE }],
-            source: job.info ? { ...job.info, ...carried } : { kind: SOURCE_KIND, form: 'relay', role: 'resume', exchangeId: randomUUID(), senderName: 'DS Bot', ...carried },
-          }))
-        }
-        await forward(job, back).then(() => {
-          delete state.switching[agent.id]
-        }).catch((error) => {
-          job.kept = true
-          try { restore(agent, back) } catch {}
-          if (unloaded(error)) return noteInfo('ds-bot: plugin unloaded during the switch of %s; input kept in part %s', agent.id, agent.id)
-          rt.warn('ds-bot: input for %s was not handed on: %s', agent.id, error)
-          // The input is back where it was; the turn that owns it goes on at once.
-          try { wake(agent) } catch {}
-        })
-        await rt.save()
-      })
-      // A state write that fails here (full disk, a file another program holds, a lost lock)
-      // must not end up as an unhandled rejection, which stops the whole host.
-      .catch(error => rt.warn('ds-bot: the switch of %s did not finish: %s', agent.id, error))
-  }
-
-  async function runSwitch(agent, job) {
-    // Marks the part while the switch runs; it stays marked whenever input was put
-    // back, so a restart knows where to look without resolving every earlier part.
-    state.switching[agent.id] = job.roomId === undefined ? { botId: job.botId } : { botId: job.botId, roomId: job.roomId }
-    await rt.save()
-    for (let attempt = 1; ; attempt += 1) {
-      await agent.whenIdle()
-      try {
-        // Input that arrives meanwhile waits in the old part's inbox.
-        await agent.runMaintenance(signal => moveOn(agent, job, signal))
-        break
-      } catch (error) {
-        // A turn that started first is turned away by the pre-step check below.
-        if (!job.started && attempt < SWITCH_ATTEMPTS) continue
-        throw error
-      }
-    }
-    if (job.moved) {
-      rt.renewMemory(agent.id)
-      await ctx.workspaceRegistry.archiveSession(agent.id)
-        .catch(error => rt.warn('ds-bot: earlier part %s not archived: %s', agent.id, error))
-    }
-  }
-
-  // A fresh part runs on the Bot's model. The earlier part's route is what its last
-  // request used, which misses a model the user picked since, so it counts only for a
-  // Bot without a model of its own.
-  async function freshRoute(bot, session) {
-    const ref = await rt.desiredModel(bot)
-    if (ref !== undefined) return { ref, effort: await rt.desiredEffort(bot, ref) }
-    const route = session.requestHeader()?.config
-    return route?.provider && route?.model ? { ref: `${route.provider}/${route.model}`, effort: route.reasoningEffort } : undefined
-  }
-  const selectRoute = (bot, sessionId, { ref, effort }) => rt.selectSessionModel(sessionId, { ...splitRef(ref), ...(effort === undefined ? {} : { reasoningEffort: effort }) })
-    .catch(error => rt.warn('ds-bot: model for the fresh part of %s not applied: %s', bot.name, error))
-
-  async function moveOn(agent, job, signal) {
-    job.started = true
-    const bot = rt.botOf(job.botId)
-    const room = rt.roomOf(job.roomId)
-    if (bot === undefined || (job.roomId !== undefined && room === undefined)) return
-    const session = agent.session
-    const tokens = tokensOf(session)
-    const lines = await contextLines(session).catch(() => undefined)
-    const parts = partsOf(bot.id, room?.id)
-    const number = parts.length
-    const budget = Math.min(RECENT_TOKENS, Math.floor((lines?.check ?? 4 * RECENT_TOKENS) / 4))
-    const readLines = () => (job.bare ? { recent: [], earlier: [], unlisted: 0, complete: true } : handoffLines(agent.id, { budget, group: room !== undefined, number }))
-    let carried = job.folder ? await readLines() : undefined
-    // A short part with no tool work goes over word for word, so it needs no note.
-    const whole = carried?.whole === true && !session.deriveMessages().some(message => message.role === 'tool')
-    let written
-    let failure
-    if (!job.overflow && job.failed === undefined && !whole) {
-      try {
-        written = await writeNote(agent, AbortSignal.any([signal, AbortSignal.timeout(NOTE_TIMEOUT_MS)]), { folder: job.folder })
-      } catch (error) {
-        if (signal.aborted) throw error
-        failure = error
-      }
-    }
-    // Below the hard line a part without a good note stays as it is: it still works,
-    // and a later try may write one.
-    if (written === undefined && !job.hard) {
-      const count = (noteFailures.get(agent.id)?.count ?? 0) + 1
-      const wait = NOTE_COOLDOWN_MS[Math.min(count, NOTE_COOLDOWN_MS.length) - 1]
-      noteFailures.set(agent.id, { count, until: Date.now() + wait })
-      job.noteFailed = true
-      rt.warn('ds-bot: handoff note for %s failed (%d in a row); part %d goes on, next try in %ds: %s', bot.name, count, number, wait / 1000, failure)
-      return
-    }
-    if (failure !== undefined) rt.warn('ds-bot: handoff note for %s failed past the hard line; moving on with the earlier note: %s', bot.name, failure)
-    const previous = parts.at(-2)
-    const noted = written !== undefined ? { note: written.note }
-      : { fallback: whole ? 'whole' : job.failed !== undefined ? 'failure' : job.overflow ? 'overflow' : 'failed', ...(previous?.note ? { note: previous.note, noteFrom: previous.noteFrom ?? previous.number } : {}) }
-    carried ??= await readLines()
-    if (signal.aborted) throw signal.reason
-    const dir = rt.workDirOf(job)
-    const intended = dir !== undefined && await rt.isFolder(dir) ? dir : rt.teamFolder()
-    const freshId = await rt.createSession(room ? `${bot.name} · ${room.name}` : bot.name, { dir })
-    const picked = await freshRoute(bot, session)
-    if (picked !== undefined) await selectRoute(bot, freshId, picked)
-    await rt.applyPermission(bot, freshId, room)
-      .catch(error => rt.warn('ds-bot: permission for the fresh part of %s not applied: %s', bot.name, error))
-    // The fresh part took several awaits: a Bot or group deleted meanwhile, a member that
-    // left, or a part that is no longer the current one gets no fresh part.
-    const current = room !== undefined ? room.sessions?.[bot.id] : rt.chatOf(bot.id)
-    const gone = rt.botOf(bot.id) === undefined || (room !== undefined && (rt.roomOf(room.id) !== room || !room.members.includes(bot.id)))
-    if (gone || current !== agent.id) {
-      await ctx.workspaceRegistry.archiveSession(freshId, { stopActivity: true })
-        .catch(error => rt.warn('ds-bot: unused fresh part of %s not archived: %s', bot.name, error))
-      return
-    }
-    const segment = { sessionId: agent.id, endedAt: Date.now(), ...(tokens !== undefined ? { tokens } : {}), ...noted }
-    if (room !== undefined) {
-      room.segments ??= {}
-      ;(room.segments[bot.id] ??= []).push(segment)
-      room.sessions[bot.id] = freshId
-    } else {
-      ;(bot.segments ??= []).push(segment)
-      bot.sessionId = freshId
-      // The card's call stays in the old part, so the fresh part shows it in the
-      // composer dock, which takes a card without a call.
-      if (state.questions[agent.id] !== undefined) {
-        const { callId: _call, ...question } = state.questions[agent.id]
-        state.questions[freshId] = question
-        delete state.questions[agent.id]
-      }
-      if (state.views?.[agent.id] !== undefined) {
-        const { callId: _call, ...pending } = state.views[agent.id]
-        state.views[freshId] = pending
-        delete state.views[agent.id]
-      }
-    }
-    await rt.save()
-    // A model the user picked until now went to the earlier part, which was still the
-    // Bot's; from here on a change goes to the fresh one.
-    const now = await freshRoute(bot, session)
-    if (now !== undefined && (now.ref !== picked?.ref || now.effort !== picked?.effort)) await selectRoute(bot, freshId, now)
-    if (job.failed !== undefined) rescued.set(freshId, job.bare ? 'bare' : 'carried')
-    void rt.moveSchedules(agent.id, freshId)
-    job.moved = true
-    const resume = job.resume || job.overflow
-    // Then what the old part held: the stopped turn's input, then whatever waited. It
-    // moves first; only after that does the old inbox give it up, so a failure keeps it.
-    const held = [...agent.inbox.nextStep, ...agent.inbox.nextTurn]
-    const carry = []
-    let folder
-    try {
-      await rt.ensureCapabilities(freshId)
-      const fresh = await rt.resolveAgent(freshId)
-      const cwd = fresh.session.header?.cwd
-      folder = cwd !== undefined && cwd !== session.header?.cwd ? cwd : undefined
-      // A fresh part that is not where it was made for would move on at every step.
-      if (intended !== undefined && cwd !== undefined && cwd !== intended) {
-        folderRetry.set(freshId, Date.now() + FOLDER_RETRY_MS)
-        rt.warn('ds-bot: the fresh part of %s did not start in %s; it works in %s', bot.name, intended, cwd)
-      }
-      const text = handoffPackage({ room, segment, lines: carried, number: number + 1, resume, overflow: job.overflow, failed: job.failed, bare: job.bare, folder })
-      freshParts.set(freshId, estimateTokens(text))
-      fresh.followup(createUserMessage({ content: [{ type: 'text', text }], source: handoffSource(job, resume) }))
-      await ctx.sessions.flush(fresh.session)
-      carry.push(...job.carry.splice(0))
-      await forward(job, [...carry, ...held])
-    } catch (error) {
-      job.kept = true
-      try { restore(agent, [...carry, ...job.carry.splice(0)]) } catch {}
-      throw error
-    }
-    for (const message of held) agent.inbox.remove(message.id)
-    // Input the old part claimed while the rest moved goes on after it.
-    for (let late = job.carry.splice(0); late.length > 0; late = job.carry.splice(0)) {
-      await forward(job, late).catch((error) => {
-        job.kept = true
-        try { restore(agent, late) } catch {}
-        throw error
-      })
-    }
-    ctx.logger.info('ds-bot: %s%s moved on to part %d at %d tokens (check line %d, hard line %d); %s; %d latest and %d earlier messages carried%s', bot.name, room ? ` in ${room.name}` : '', number + 1, tokens ?? -1, lines?.check ?? -1, lines?.hard ?? -1,
-      written !== undefined ? `note written in ${written.attempts} attempt(s)` : `note put together by DS Bot (${noted.fallback}${noted.note ? `, carries part ${noted.noteFrom}'s` : ', nothing to carry'})`,
-      carried.recent.length, carried.earlier.length, folder === undefined ? '' : `; now works in ${folder}`)
-  }
-
-  // Runs first: an earlier part hands its input on, a part past the hard line makes
-  // room before the step (condensed in place, or it stops and goes on in a fresh
-  // part), and the backend's own pre-step listener sees the wrapper.
-  ctx.on('agent/pre-step', async (payload, next) => {
-    await rt.load()
-    const { agent } = payload
-    const past = rt.pastOwners.get(agent.id)
-    if (past !== undefined && !rt.isBotSession(agent.id)) {
-      await forward(past, payload.messages).catch(error => rt.warn('ds-bot: input for %s was not handed on: %s', agent.id, error))
-      return { kind: 'reject' }
-    }
-    if (!rt.isBotSession(agent.id)) return next()
-    adoptCompaction(agent)
-    const job = switches.get(agent.id)
-    if (job !== undefined) {
-      job.carry.push(...payload.messages)
-      return { kind: 'reject' }
-    }
-    const fresh = freshParts.get(agent.id)
-    if (fresh !== undefined) {
-      freshParts.delete(agent.id)
-      partBase.set(agent.id, (tokensOf(agent.session) ?? 0) + fresh)
-    }
-    if (!readOnly() && await folderMove(agent, { midTurn: payload.step > 1 }) !== undefined) return switchBeforeStep(agent, payload, { folder: true })
-    const lines = await contextLines(agent.session).catch(() => undefined)
-    const tokens = tokensOf(agent.session)
-    if (lines === undefined || tokens === undefined || tokens < lines.hard || !grown(agent.id, tokens, lines) || readOnly()) return next()
-    if (await decide(agent, { midTurn: payload.step > 1 }) === 'compact' && await condense(agent, lines, { inTurn: true, signal: payload.signal })) return next()
-    return switchBeforeStep(agent, payload, { hard: true })
-  }, { prepend: true })
-
-  // `messages` left the inbox for this step, so the switch carries them along.
-  function switchBeforeStep(agent, payload, options) {
-    // A switch may have started while the checks above awaited.
-    const running = switches.get(agent.id)
-    if (running !== undefined) {
-      running.carry.push(...payload.messages)
-      return { kind: 'reject' }
-    }
-    const midTurn = payload.step > 1
-    const entry = rt.liveOf(agent.id)
-    entry.switched = true
-    startSwitch(agent, { resume: midTurn, carry: payload.messages, info: midTurn ? entry.info : undefined, joined: midTurn ? [...(entry.joined ?? [])] : undefined, ...options })
-    return { kind: 'reject' }
-  }
-
-  // The folder a part should move to, when it is not the one the part was made in. A
-  // working folder that is gone counts as the team workspace, where a fresh part would
-  // start. A group reply ends where it began; the group conversation moves at its next
-  // turn there.
-  async function folderMove(agent, { midTurn = false } = {}) {
-    const place = placeOf(agent.id)
-    const cwd = agent.session.header?.cwd
-    if (place === undefined || cwd === undefined || (midTurn && place.roomId !== undefined) || Date.now() < (folderRetry.get(agent.id) ?? 0)) return undefined
-    const wanted = rt.workDirOf(place)
-    const usable = wanted !== undefined && await rt.isFolder(wanted)
-    // A team copied from another DSH_HOME has no team workspace here until one is made, and its
-    // Sessions still work in the old one.
-    if (!usable && rt.teamFolder() === undefined) await rt.ensureWorkspace()
-    const target = usable ? wanted : rt.teamFolder()
-    return target === undefined || target === cwd ? undefined : target
-  }
-
-  // DSH 0.2.1 checks a Session's folder as it puts each model request together, before
-  // agent/pre-step, and fails the turn when both the folder and the one the Session was
-  // made in are gone. The team folder is DS Bot's own, so it is made again; a Bot whose
-  // own folder went away first changes to the folder it would move to, through DSH's
-  // documented way out (`workingDirectory.set`), and the pre-step then moves it to a
-  // fresh part there, as on DSH 0.2.0.
-  ctx.on('system-prompt/assemble', async (assembly, context, next) => {
-    const agent = context.agent
-    const folders = ctx.get?.('workingDirectory')
-    if (agent === undefined || typeof folders?.get !== 'function' || readOnly()) return next()
-    const current = folders.get(agent.session)
-    if (current === undefined || await rt.isFolder(current)) return next()
-    await rt.load()
-    const team = await rt.keepTeamFolder()
-    if (current === team || !rt.isBotSession(agent.id)) return next()
-    const place = placeOf(agent.id)
-    const wanted = rt.workDirOf(place)
-    const target = wanted !== undefined && await rt.isFolder(wanted) ? wanted : team
-    if (target !== undefined) {
-      await folders.set(agent, target, context.signal)
-        .catch(error => rt.warn('ds-bot: %s works in %s, which is gone, and could not change to %s: %s', rt.botOf(place?.botId)?.name ?? agent.id, current, target, error))
-    }
-    return next()
-  }, { prepend: true })
-
-  // A Bot's own chat moves to its new folder now when it is idle; a running turn
-  // moves at its next step, and each group conversation at its next turn there.
-  async function followFolder(botId) {
-    const sessionId = rt.chatOf(botId)
-    if (sessionId === undefined || switches.has(sessionId) || readOnly()) return
-    try {
-      const agent = await rt.resolveAgent(sessionId)
-      if (agent.status === 'idle' && await folderMove(agent) !== undefined) startSwitch(agent, { folder: true })
-    } catch (error) {
-      rt.warn('ds-bot: %s did not move to its working folder: %s', rt.botOf(botId)?.name ?? botId, error)
-    }
-  }
-
-  ctx.on('agent/request-error', async (payload, next) => {
-    const failure = payload.failure
-    if (!STUCK_CODES.includes(failure?.code)) return next()
-    const decided = await next()
-    if (decided !== undefined || payload.signal?.aborted) return decided
-    await rt.load()
-    const { agent } = payload
-    if (!rt.isBotSession(agent.id) || switches.has(agent.id) || readOnly() || rescued.get(agent.id) === 'bare') return decided
-    // A provider may turn down one request for reasons of its own; a history that
-    // breaks every request fails the next turn as well.
-    if (failure.code === 'INVALID_REQUEST' && !STUCK_CODES.includes(lastTurnEnd(agent)?.data?.reason?.error?.code)) return decided
-    const entry = rt.liveOf(agent.id)
-    entry.switched = true
-    // The latest messages carried into a rescued part may be what breaks the request.
-    startSwitch(agent, { resume: true, info: entry.info, joined: [...(entry.joined ?? [])], overflow: true, failed: failure.code, bare: rescued.has(agent.id) })
-    return undefined
-  }, { prepend: true })
-
-  ctx.on('agent/request-error', async (payload, next) => {
-    if (payload.failure?.code !== OVERFLOW || payload.signal?.aborted) return next()
-    await rt.load()
-    const { agent } = payload
-    if (!rt.isBotSession(agent.id) || switches.has(agent.id) || readOnly()) return next()
-    const entry = rt.liveOf(agent.id)
-    entry.switched = true
-    startSwitch(agent, { resume: true, info: entry.info, joined: [...(entry.joined ?? [])], overflow: true })
-    return undefined
-  }, { prepend: true })
-
-  // At the end of a turn past the check line, the steward decides once. Either way
-  // the part ends up below the line, and nothing is decided again until it grows
-  // past it.
-  async function checkContext(agent) {
-    if (switches.has(agent.id) || freshParts.has(agent.id) || checking.has(agent.id) || readOnly()) return
-    const lines = await contextLines(agent.session)
-    const tokens = tokensOf(agent.session)
-    if (lines === undefined || tokens === undefined || tokens < lines.check || !grown(agent.id, tokens, lines)) return
-    const hard = tokens >= lines.hard
-    if (!hard && Date.now() < (noteFailures.get(agent.id)?.until ?? 0)) return
-    checking.add(agent.id)
-    try {
-      if (await decide(agent, { midTurn: false }) === 'compact') {
-        const condensed = await condense(agent, lines, { inTurn: false })
-        if (condensed !== false) return
-      }
-      if (switches.has(agent.id)) return
-      startSwitch(agent, { hard: (tokensOf(agent.session) ?? tokens) >= lines.hard })
-    } finally {
-      checking.delete(agent.id)
-    }
-  }
-
-  // The newest turn/end among the Session's last events in memory.
-  function lastTurnEnd(agent) {
-    const latest = agent.session.seq - 1
-    for (let seq = latest; seq >= Math.max(0, latest - 199); seq -= 1) {
-      const event = agent.session.eventAt?.(seq)
-      if (event?.type === 'turn/end') return event
-    }
-    return undefined
-  }
-
-  function releaseRescued(agent) {
-    if (!rescued.has(agent.id)) return
-    const end = lastTurnEnd(agent)
-    if (end !== undefined && end.data?.reason?.kind !== 'error') rescued.delete(agent.id)
-  }
-
-  ctx.effect(() => {
-    const timer = setTimeout(() => void heldBack().catch(error => rt.warn('ds-bot: handing on input kept in earlier parts failed: %s', error)), RESUME_DELAY_MS)
-    timer.unref?.()
-    return () => clearTimeout(timer)
-  }, 'ds-bot: hand on input kept in earlier parts')
-
-  ctx.on('agent/status', ({ agent, status }) => {
-    if (status === 'idle' && rt.isBotSession(agent.id)) {
-      releaseRescued(agent)
-      void checkContext(agent).catch(error => rt.warn('ds-bot: context check for %s failed: %s', agent.id, error))
-    }
+  const partSwitch = createPartSwitch({
+    ctx,
+    rt,
+    state,
+    placeOf,
+    tokensOf,
+    contextLines,
+    condense,
+    decide,
+    adoptCompaction,
+    // A read-only process (another dsh holds the team) neither condenses nor switches.
+    readOnly: () => rt.readOnly() !== undefined,
+    writeNote,
+    handoffLines,
+    handoffPackage,
+    handoffSource,
+    partsOf,
+    recentTokens: RECENT_TOKENS,
+    noteTimeoutMs: NOTE_TIMEOUT_MS,
+    noteCooldownMs: NOTE_COOLDOWN_MS,
   })
 
   // The handoff package opens a part as a turn of its own, so it is the first message
@@ -1132,5 +641,5 @@ export function install(rt) {
     return { sessionId: parts.at(-1).sessionId, ...(await partPage(parts, index, cursor)) }
   }
 
-  Object.assign(rt, { clock, partsOf, historyEntry, partLines, noteText, earlierPage, chatPage, displayItems, followFolder, heldBack, switchJobs: () => switches.values() })
+  Object.assign(rt, { clock, partsOf, historyEntry, partLines, noteText, earlierPage, chatPage, displayItems, followFolder: partSwitch.followFolder, heldBack: partSwitch.heldBack, switchJobs: () => partSwitch.switchJobs() })
 }
