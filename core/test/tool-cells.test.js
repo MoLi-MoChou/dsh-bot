@@ -10,7 +10,7 @@ const { outputFiles } = await build({
   stdin: {
     contents: [
       "export { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines } from './src/client/cells.js'",
-      "export { QuestionDock } from './src/client/questions.js'",
+      "export { QuestionDock } from './src/client/questions.ts'",
       "export { SecretDock } from './src/client/secret-card.ts'",
       "export { countCards } from './src/client/sources.ts'",
     ].join('\n'),

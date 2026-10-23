@@ -9,19 +9,47 @@ import { heldCardKey } from './sources.ts'
 // typing in the composer instead answers them. The blocking ask_user_question tool
 // keeps the shell's composer takeover and gains an own-answer field.
 
-export const keyLetter = index => String.fromCharCode(65 + index)
-const optionsOf = question => (question?.options ?? []).map(option => (typeof option === 'string' ? { label: option } : option))
-const isTypingTarget = node => node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement
+// A question as the host asks it. An option may be a bare label or a labelled row.
+export interface QuestionOption { label: string; description?: string | undefined }
+export interface Question {
+  id: string
+  header?: string | undefined
+  question?: string | undefined
+  detail?: string | undefined
+  options?: readonly (string | QuestionOption)[] | undefined
+  multiSelect?: boolean | undefined
+  allowCustom?: boolean | undefined
+  callId?: string | undefined
+}
+export interface QuestionAnswer { selected?: readonly string[] | undefined; custom?: string | undefined }
+export interface QuestionActions {
+  answerQuestion: (sessionId: string, questionId: string, answer: { selected: readonly string[]; custom: string }) => Promise<unknown>
+  dismissQuestion: (sessionId: string) => Promise<unknown>
+  noteHeldCard?: (sessionId: string, kind: string, requestId: string, delta: number) => void
+}
+// The pending ask_user card the transcript hands over.
+interface PendingAsk {
+  question?: string
+  questions?: readonly Question[] | undefined
+  answer: (payload: { answers: readonly (QuestionAnswer & { id: string })[] }) => void
+  dismiss: () => void
+}
+// The card an answered question leaves in the transcript.
+export interface AnsweredNode { data?: { questions?: unknown; answers?: unknown; text?: string } }
+
+export const keyLetter = (index: number): string => String.fromCharCode(65 + index)
+const optionsOf = (question: Question | undefined): QuestionOption[] => (question?.options ?? []).map(option => (typeof option === 'string' ? { label: option } : option))
+const isTypingTarget = (node: unknown): boolean => node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement
   || node instanceof HTMLSelectElement || (node instanceof HTMLElement && node.isContentEditable)
 
 // A bare letter picks that option and the letter after the last one
 // jumps to the custom answer; never while typing or while a dialog is open.
-export function useOptionKeys(count, onPick, ownRef) {
+export function useOptionKeys(count: number, onPick: (index: number) => void, ownRef: React.RefObject<HTMLElement | null>): void {
   const pick = useRef(onPick)
   pick.current = onPick
   useEffect(() => {
     if (count === 0) return undefined
-    const onKey = (event) => {
+    const onKey = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || event.key.length !== 1) return
       if (isTypingTarget(event.target) || isTypingTarget(document.activeElement)) return
       if (document.querySelector('[role="dialog"], [aria-modal="true"]') !== null) return
@@ -41,16 +69,24 @@ export function useOptionKeys(count, onPick, ownRef) {
 
 // A question shows two ways: as a bubble in the transcript, and raised when it
 // sits in the dock above the composer.
-function QuestionView({ question, onAnswer, onDismiss, onInteract, busy = false, ownAnswer = false, raised = false }) {
+function QuestionView({ question, onAnswer, onDismiss, onInteract, busy = false, ownAnswer = false, raised = false }: {
+  question: Question
+  onAnswer: (answer: QuestionAnswer) => void
+  onDismiss?: (() => void) | undefined
+  onInteract?: (() => void) | undefined
+  busy?: boolean
+  ownAnswer?: boolean
+  raised?: boolean
+}) {
   const [own, setOwn] = useState('')
-  const [picked, setPicked] = useState([])
-  const ownRef = useRef(null)
+  const [picked, setPicked] = useState<string[]>([])
+  const ownRef = useRef<HTMLTextAreaElement | null>(null)
   const titleId = useId()
   const options = optionsOf(question)
   const multi = question.multiSelect === true
   const custom = own.trim()
   const canSubmit = multi ? picked.length > 0 || custom !== '' : custom !== ''
-  const choose = (label) => {
+  const choose = (label: string) => {
     if (busy) return
     onInteract?.()
     if (multi) {
@@ -64,20 +100,20 @@ function QuestionView({ question, onAnswer, onDismiss, onInteract, busy = false,
     onInteract?.()
     onAnswer({ selected: multi ? picked : [], ...(custom ? { custom } : {}) })
   }
-  useOptionKeys(busy ? 0 : options.length, index => choose(options[index].label), ownRef)
+  useOptionKeys(busy ? 0 : options.length, index => { const option = options[index]; if (option) choose(option.label) }, ownRef)
   const ownLetter = options.length > 0 ? keyLetter(options.length) : undefined
   const field = ownAnswer ? h('textarea', {
     ref: ownRef, rows: 1, value: own, readOnly: busy, autoComplete: 'off', spellCheck: false, className: 'bt-q-input',
     'aria-label': t('Your own answer'), placeholder: t('Type your own answer'),
     'aria-keyshortcuts': ownLetter?.toLowerCase(),
-    onChange: (event) => { if (!busy) { onInteract?.(); setOwn(event.target.value) } },
-    onKeyDown: (event) => {
+    onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => { if (!busy) { onInteract?.(); setOwn(event.target.value) } },
+    onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
       event.preventDefault()
       submit()
     },
   }) : null
-  const rows = options.map((option, optionIndex) => {
+  const rows: ReturnType<typeof h>[] = options.map((option, optionIndex) => {
     const selected = multi && picked.includes(option.label)
     return h('button', {
       key: option.label, type: 'button', className: 'bt-q-opt', disabled: busy,
@@ -109,8 +145,8 @@ function QuestionView({ question, onAnswer, onDismiss, onInteract, busy = false,
     className: raised ? 'bt-q bt-q-raised' : 'bt-q', 'aria-labelledby': titleId,
     'aria-busy': busy || undefined,
     onFocusCapture: onInteract, onPointerDownCapture: onInteract,
-    onKeyDown: (event) => { if (event.key === 'Escape' && !busy && onDismiss) { event.preventDefault(); event.stopPropagation(); onDismiss() } },
-    onSubmit: (event) => { event.preventDefault(); submit() },
+    onKeyDown: (event: React.KeyboardEvent<HTMLFormElement>) => { if (event.key === 'Escape' && !busy && onDismiss) { event.preventDefault(); event.stopPropagation(); onDismiss() } },
+    onSubmit: (event: React.FormEvent) => { event.preventDefault(); submit() },
   },
     h('div', { className: 'bt-q-head' },
       h('div', { className: 'bt-q-text' },
@@ -126,7 +162,7 @@ function QuestionView({ question, onAnswer, onDismiss, onInteract, busy = false,
 }
 
 // The answered card left in the transcript: the chosen rows, muted, with a check.
-export function SettledQuestion({ question, answer }) {
+export function SettledQuestion({ question, answer }: { question: Question; answer: QuestionAnswer }) {
   const options = optionsOf(question)
   const prompt = question?.question ?? ''
   const chosen = [...(answer.selected ?? []), ...(answer.custom ? [answer.custom] : [])]
@@ -147,14 +183,14 @@ export function SettledQuestion({ question, answer }) {
     })))
 }
 
-export function QuestionCard({ matched }) {
+export function QuestionCard({ matched }: { matched: PendingAsk }) {
   const pending = matched
   const questions = pending.questions ?? []
   const [index, setIndex] = useState(0)
-  const [answers, setAnswers] = useState([])
+  const [answers, setAnswers] = useState<(QuestionAnswer & { id: string })[]>([])
   const question = questions[index]
   if (question === undefined) return null
-  const onAnswer = (answer) => {
+  const onAnswer = (answer: QuestionAnswer) => {
     const next = [...answers, { id: question.id, ...answer }]
     if (index + 1 < questions.length) {
       setAnswers(next)
@@ -166,13 +202,18 @@ export function QuestionCard({ matched }) {
   return h(QuestionView, { key: index, question, onAnswer, onDismiss: () => pending.dismiss(), ownAnswer: true, raised: true })
 }
 
-export function PendingQuestion({ sessionId, question, actions, inline }) {
-  const [answered, setAnswered] = useState(null)
+export function PendingQuestion({ sessionId, question, actions, inline }: {
+  sessionId: string
+  question: Question
+  actions: QuestionActions
+  inline: boolean
+}) {
+  const [answered, setAnswered] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const busyRef = useRef(false)
   const hold = useDockHold(sessionId, 'question', question.id, actions, inline)
   if (answered === question.id) return null
-  const run = (make) => {
+  const run = (make: () => Promise<unknown>) => {
     if (busyRef.current) return
     hold()
     busyRef.current = true
@@ -184,7 +225,7 @@ export function PendingQuestion({ sessionId, question, actions, inline }) {
       setBusy(false)
     })
   }
-  const onAnswer = answer => run(() => actions.answerQuestion(sessionId, question.id, { selected: answer.selected ?? [], custom: answer.custom ?? '' }))
+  const onAnswer = (answer: QuestionAnswer) => run(() => actions.answerQuestion(sessionId, question.id, { selected: answer.selected ?? [], custom: answer.custom ?? '' }))
   const onDismiss = () => run(() => actions.dismissQuestion(sessionId))
   return h('div', { className: inline ? 'bt-q-inline' : 'bt-q-dock' },
     h(QuestionView, { key: question.id, question, onAnswer, onDismiss, onInteract: hold, busy, ownAnswer: question.allowCustom === true, raised: !inline }))
@@ -193,17 +234,25 @@ export function PendingQuestion({ sessionId, question, actions, inline }) {
 // Questions asked by a tool call render inline at that call (see ToolCell); the dock
 // carries the ones whose call the transcript does not draw, including while history
 // loads. A card the user starts editing stays in the dock until it closes.
-export function QuestionDock({ sessionId, useRoster, useCards, useHeldCards, actions }) {
+export function QuestionDock({ sessionId, useRoster, useCards, useHeldCards, actions }: {
+  sessionId: string
+  useRoster: <T>(select: (value: { questions?: Record<string, Question | undefined> }) => T) => T
+  useCards?: (<T>(select: (state: Record<string, Record<string, number> | undefined>) => T) => T) | undefined
+  useHeldCards?: (<T>(select: (state: Record<string, Record<string, number> | undefined>) => T) => T) | undefined
+  actions: QuestionActions
+}) {
   const question = useRoster(value => value.questions?.[sessionId])
-  const drawn = useCards?.(state => state[sessionId]?.[question?.callId] > 0) === true
-  const held = useHeldCards?.(state => state[sessionId]?.[heldCardKey('question', question?.id)] > 0) === true
+  const callId = question?.callId ?? ''
+  const heldKey = heldCardKey('question', question?.id ?? '')
+  const drawn = useCards?.(state => (state[sessionId]?.[callId] ?? 0) > 0) === true
+  const held = useHeldCards?.(state => (state[sessionId]?.[heldKey] ?? 0) > 0) === true
   if (question === undefined || (question.callId && drawn && !held)) return null
   return h(PendingQuestion, { key: JSON.stringify([sessionId, question.id]), sessionId, question, actions, inline: false })
 }
 
 // An answered card in the transcript: the question stays where it was asked, with the
 // answer marked.
-export function AnsweredCell({ node }) {
+export function AnsweredCell({ node }: { node: AnsweredNode }) {
   const data = node.data ?? {}
   const questions = Array.isArray(data.questions) ? data.questions : []
   if (questions.length === 0) {

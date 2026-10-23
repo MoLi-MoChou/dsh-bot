@@ -12,7 +12,7 @@ const { outputFiles } = await build({
   stdin: {
     contents: [
       "export { useDockHold } from './src/client/card-hold.ts'",
-      "export { PendingQuestion } from './src/client/questions.js'",
+      "export { PendingQuestion } from './src/client/questions.ts'",
       "export { SecretCard } from './src/client/secret-card.ts'",
     ].join('\n'),
     resolveDir: fileURLToPath(new URL('..', import.meta.url)),

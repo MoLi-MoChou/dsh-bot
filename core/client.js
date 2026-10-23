@@ -8076,7 +8076,7 @@ function useDockHold(sessionId, kind, requestId, actions, inline) {
   };
 }
 
-// src/client/questions.js
+// src/client/questions.ts
 var import_react5 = require("react");
 var keyLetter = (index) => String.fromCharCode(65 + index);
 var optionsOf = (question) => (question?.options ?? []).map((option) => typeof option === "string" ? { label: option } : option);
@@ -8126,7 +8126,10 @@ function QuestionView({ question, onAnswer, onDismiss, onInteract, busy = false,
     onInteract?.();
     onAnswer({ selected: multi ? picked : [], ...custom ? { custom } : {} });
   };
-  useOptionKeys(busy ? 0 : options.length, (index) => choose(options[index].label), ownRef);
+  useOptionKeys(busy ? 0 : options.length, (index) => {
+    const option = options[index];
+    if (option) choose(option.label);
+  }, ownRef);
   const ownLetter = options.length > 0 ? keyLetter(options.length) : void 0;
   const field = ownAnswer ? (0, import_react5.createElement)("textarea", {
     ref: ownRef,
@@ -8311,8 +8314,10 @@ function PendingQuestion({ sessionId, question, actions, inline }) {
 }
 function QuestionDock({ sessionId, useRoster, useCards, useHeldCards, actions }) {
   const question = useRoster((value) => value.questions?.[sessionId]);
-  const drawn = useCards?.((state) => state[sessionId]?.[question?.callId] > 0) === true;
-  const held = useHeldCards?.((state) => state[sessionId]?.[heldCardKey("question", question?.id)] > 0) === true;
+  const callId = question?.callId ?? "";
+  const heldKey = heldCardKey("question", question?.id ?? "");
+  const drawn = useCards?.((state) => (state[sessionId]?.[callId] ?? 0) > 0) === true;
+  const held = useHeldCards?.((state) => (state[sessionId]?.[heldKey] ?? 0) > 0) === true;
   if (question === void 0 || question.callId && drawn && !held) return null;
   return (0, import_react5.createElement)(PendingQuestion, { key: JSON.stringify([sessionId, question.id]), sessionId, question, actions, inline: false });
 }

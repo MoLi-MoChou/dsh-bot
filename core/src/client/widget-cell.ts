@@ -3,7 +3,8 @@ import type { ChangeEvent, KeyboardEvent, ReactElement } from 'react'
 import { MarkdownText } from './dsh-primitives.ts'
 import { CheckIcon, CloseIcon } from './icons.ts'
 import { t } from './i18n.ts'
-import { AnsweredCell, keyLetter, useOptionKeys } from './questions.js'
+import { AnsweredCell, keyLetter, useOptionKeys } from './questions.ts'
+import type { AnsweredNode } from './questions.ts'
 import { useDockHold } from './card-hold.ts'
 import type { DockHoldActions } from './card-hold.ts'
 import { heldCardKey } from './sources.ts'
@@ -309,7 +310,8 @@ export function AnsweredView({ node }: { node: ReplyNode }) {
 // A question reply node carries either questions (data.questions) or a view answer
 // (JSON text discriminated by kind); each shape gets its own renderer.
 export function AnsweredReply({ node }: { node?: ReplyNode | undefined }) {
-  if (node === undefined) return h(AnsweredCell, { node })
+  // The same call as before: a node the shell hands over without data draws nothing.
+  if (node === undefined) return h(AnsweredCell, { node: node as unknown as AnsweredNode })
   const data = node.data ?? {}
   if (Array.isArray(data.views) && data.views.length > 0) return h(AnsweredView, { node })
   if (!Array.isArray(data.questions) || data.questions.length === 0) {
@@ -317,7 +319,7 @@ export function AnsweredReply({ node }: { node?: ReplyNode | undefined }) {
     try { parsed = typeof data.text === 'string' ? JSON.parse(data.text) : null } catch { parsed = null }
     if (parsed?.kind === 'answer_to_pending_view') return h(AnsweredView, { node })
   }
-  return h(AnsweredCell, { node })
+  return h(AnsweredCell, { node: node as unknown as AnsweredNode })
 }
 
 export const WIDGET_CSS = `
