@@ -4,7 +4,7 @@
 import { useRef, useSyncExternalStore } from 'react'
 import { call } from '../../../core/src/client/api.js'
 import { workPhrase } from '../../../core/src/client/cells.js'
-import { language } from '../../../core/src/client/i18n.js'
+import { language, t } from '../../../core/src/client/i18n.js'
 import { toolState } from '../../../core/src/client/mark.js'
 import { noteLeft, setUnread, sharedMap, toggleReaction } from '../../../core/src/client/shared-map.js'
 import { createSource, EMPTY_ROSTER, indexRoster } from '../../../core/src/client/sources.js'
@@ -12,6 +12,7 @@ import { STORAGE, migrateStorage } from '../../../core/src/client/storage.js'
 import { teamActions } from '../../../core/src/client/team-actions.js'
 import { currentPart } from '../../../core/src/client/text.js'
 import { registry } from '../../../core/src/client/themes.js'
+import { retryNotice, showReconnectNotice } from '../../../core/src/client/reconnect.js'
 import { openFeed } from './api.js'
 
 // Memory news and connector states change without a notice on the feed.
@@ -113,10 +114,11 @@ export function createTeam() {
   // Reads can overlap (the feed and a finished action); an older answer never wins.
   let pulls = 0
   let applied = 0
-  const pull = async () => {
+  const pull = async (full = false) => {
     const order = ++pulls
     const known = roster.getSnapshot()
-    const value = await call('state', { since: known.revision, models: known.modelsKey ?? '', locale: language() })
+    // `full` asks for the whole team again, which is what a window does after its feed was lost.
+    const value = await call('state', { since: full ? -1 : known.revision, models: known.modelsKey ?? '', locale: language() })
     if (order < applied) return
     applied = order
     setChanged(activity, value.activity ?? {})
@@ -222,16 +224,32 @@ export function createTeam() {
 
   const start = () => {
     let stopped = false
-    const read = () => {
-      void pull().catch((error) => {
+    const read = (full = false) => {
+      void pull(full).catch((error) => {
         if (stopped) return
         console.warn('[ds-bot] state', error)
         if (!roster.getSnapshot().ready) actions.reportError(error, 'state')
       })
     }
     read()
+    // The window's only feed is this one: when it drops, the page is stale, so say so at
+    // the top and catch the team up as soon as the feed is back.
+    let feedFailures = 0
+    let hideNotice
     const closeFeed = openFeed((event, data) => {
-      if (READ_AGAIN.has(event)) read()
+      const recovered = feedFailures > 0
+      if (event === 'lost') {
+        feedFailures += 1
+        showReconnectNotice(retryNotice(feedFailures))
+      } else if (recovered) {
+        feedFailures = 0
+        // A lost feed leaves the page stale: the first read after it asks for the whole
+        // team, not just what changed since the revision this window last saw.
+        clearTimeout(hideNotice)
+        showReconnectNotice(t('Back online. Catching up…'))
+        hideNotice = setTimeout(() => showReconnectNotice(null), 1500)
+      }
+      if (READ_AGAIN.has(event)) read(recovered)
       onFeed(event, data)
     })
     const timer = setInterval(read, CATCH_UP_MS)
@@ -240,6 +258,8 @@ export function createTeam() {
     return () => {
       stopped = true
       closeFeed()
+      showReconnectNotice(null)
+      clearTimeout(hideNotice)
       clearInterval(timer)
       window.removeEventListener('pagehide', onPageHide)
     }

@@ -1528,6 +1528,33 @@ function maskOf(shape) {
 }
 var DEFAULT_MASK = maskOf(FALLBACK_SHAPE);
 
+// src/client/reconnect.js
+var RETRY_AFTER = 2;
+var NOTICE_ID = "bt-reconnect";
+function retryNotice(failures) {
+  if (failures < RETRY_AFTER) return null;
+  return `${t("Reconnecting…")} ${t("Chats stay saved; this window catches up when the connection is back.")}`;
+}
+function showReconnectNotice(text) {
+  if (typeof document === "undefined") return;
+  const existing = document.getElementById(NOTICE_ID);
+  if (text === null) {
+    existing?.remove();
+    return;
+  }
+  if (existing !== null) {
+    if (existing.textContent !== text) existing.textContent = text;
+    return;
+  }
+  const notice = document.createElement("div");
+  notice.id = NOTICE_ID;
+  notice.className = "bt-reconnect";
+  notice.setAttribute("role", "status");
+  notice.setAttribute("aria-live", "polite");
+  notice.textContent = text;
+  document.body.appendChild(notice);
+}
+
 // src/client/sources.js
 function createSource(initial) {
   let value = initial;
@@ -3301,6 +3328,9 @@ body[data-ds-dark-theme] .bt-theme-chip i{background:var(--da)}
 :is(.bt-icon-btn,.bt-settings-close,.bt-nc-send,.bt-shape,.bt-swatch,.bt-color,.bt-x,.bt-q-x,.bt-palette-clear):active:not(:disabled){scale:.9}
 :is(.bt-soft,.bt-send,.bt-mini,.bt-tab,.bt-avedit-tab,.bt-pick,.bt-q-submit,.bt-q-btn):active:not(:disabled){scale:.96}
 @media (prefers-reduced-motion:reduce){.bt-thumb{transition:none}.bt-panel-view>[data-move],.bt-drawer-name-input,.bt-veil,.bt-pop-in,.bt-token,.bt-drop,.bt-newchat,.bt-option-hint,.bt-connector-form,.bt-settings-head>*{animation:none}}
+/* The connection notice: a lost poll leaves the page stale, and the window says so at the
+   top until a poll succeeds again. */
+.bt-reconnect{position:fixed;top:12px;left:50%;translate:-50% 0;z-index:60;max-width:min(90vw,560px);padding:7px 14px;border-radius:999px;background:var(--bt-tag-bg);color:var(--bt-tag-ink);border:1px solid var(--bt-line);box-shadow:0 6px 18px color-mix(in srgb, var(--bt-ink) 16%, transparent);font-size:12.5px;line-height:18px;text-align:center}
 `;
 var CONVERSATION_CSS = `
 .bt-think{font-size:13px;line-height:18px;color:var(--bt-ink-2);margin:2px 0 4px;max-width:min(560px,78%)}
@@ -20297,10 +20327,10 @@ function apply(ctx) {
   const refreshed = /* @__PURE__ */ new Set();
   let pulls = 0;
   let applied = 0;
-  const pull = async () => {
+  const pull = async (full2 = false) => {
     const order = ++pulls;
     const known = roster.getSnapshot();
-    const value = await call("state", { since: known.revision, models: known.modelsKey ?? "", locale: language() });
+    const value = await call("state", { since: full2 ? -1 : known.revision, models: known.modelsKey ?? "", locale: language() });
     if (order < applied) return;
     applied = order;
     const nextActivity = JSON.stringify(value.activity ?? {});
@@ -20341,15 +20371,28 @@ function apply(ctx) {
   ctx.effect(() => {
     let stopped = false;
     let running = false;
+    let failures = 0;
+    let force = false;
+    let hideNotice;
     let timer;
     const loop = async () => {
       clearTimeout(timer);
       if (running || stopped) return;
       running = true;
       try {
-        await pull();
+        await pull(force);
+        force = false;
+        if (failures >= RETRY_AFTER) {
+          clearTimeout(hideNotice);
+          showReconnectNotice(t("Back online. Catching up…"));
+          hideNotice = setTimeout(() => showReconnectNotice(null), 1500);
+        }
+        failures = 0;
       } catch (error) {
         if (!stopped) console.warn("[ds-bot] state", error);
+        failures += 1;
+        showReconnectNotice(retryNotice(failures));
+        if (failures >= RETRY_AFTER) force = true;
       } finally {
         running = false;
       }
@@ -20364,6 +20407,8 @@ function apply(ctx) {
       stopped = true;
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", wake);
+      showReconnectNotice(null);
+      clearTimeout(hideNotice);
     };
   }, "ds-bot: roster poll");
   const update = createSource({ available: false, phase: "idle" });

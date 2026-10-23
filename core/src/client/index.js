@@ -2,6 +2,7 @@ import { quietShellOnboarding, noteSignInAsked, relabelShellVersion, relabelTitl
 import { call } from './api.js'
 import { isHex, inkText, paintCss } from './inks.js'
 import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.js'
+import { retryNotice, showReconnectNotice, RETRY_AFTER } from './reconnect.js'
 import { createSource, EMPTY_ROSTER, indexRoster, isAgentSession } from './sources.js'
 import { teamActions } from './team-actions.js'
 import { themeCss, shellTokens, registry, registerShape, registerTheme, allThemes, resolveThemeId } from './themes.js'
@@ -150,10 +151,10 @@ export function apply(ctx) {
   // Pulls can overlap (the poll and a navigation); an older answer never wins.
   let pulls = 0
   let applied = 0
-  const pull = async () => {
+  const pull = async (full = false) => {
     const order = ++pulls
     const known = roster.getSnapshot()
-    const value = await call('state', { since: known.revision, models: known.modelsKey ?? '', locale: language() })
+    const value = await call('state', { since: full ? -1 : known.revision, models: known.modelsKey ?? '', locale: language() })
     if (order < applied) return
     applied = order
     const nextActivity = JSON.stringify(value.activity ?? {})
@@ -191,18 +192,43 @@ export function apply(ctx) {
   ctx.effect(() => {
     let stopped = false
     let running = false
+    let failures = 0
+    let force = false
+    let hideNotice
     let timer
     const loop = async () => {
       clearTimeout(timer)
       if (running || stopped) return
       running = true
-      try { await pull() } catch (error) { if (!stopped) console.warn('[ds-bot] state', error) } finally { running = false }
+      try {
+        await pull(force)
+        force = false
+        if (failures >= RETRY_AFTER) {
+          clearTimeout(hideNotice)
+          showReconnectNotice(t('Back online. Catching up…'))
+          hideNotice = setTimeout(() => showReconnectNotice(null), 1500)
+        }
+        failures = 0
+      } catch (error) {
+        if (!stopped) console.warn('[ds-bot] state', error)
+        failures += 1
+        showReconnectNotice(retryNotice(failures))
+        // The next good poll asks for the whole team, so changes made while the window
+        // could not reach the host are not missed.
+        if (failures >= RETRY_AFTER) force = true
+      } finally { running = false }
       if (!stopped) timer = setTimeout(loop, document.hidden ? 10000 : 1500)
     }
     const wake = () => { if (!document.hidden) void loop() }
     document.addEventListener('visibilitychange', wake)
     void loop()
-    return () => { stopped = true; clearTimeout(timer); document.removeEventListener('visibilitychange', wake) }
+    return () => {
+      stopped = true
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', wake)
+      showReconnectNotice(null)
+      clearTimeout(hideNotice)
+    }
   }, 'ds-bot: roster poll')
 
   // Plugin updates: every window that opens asks the host once (the host keeps its
