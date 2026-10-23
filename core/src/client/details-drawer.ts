@@ -16,7 +16,8 @@ import { MemoryRow } from './memory-panel.ts'
 import { ScheduleSummary } from './schedules.js'
 import { LEAN } from './lean.ts'
 import { useGlide, useMorph } from './motion.ts'
-import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.js'
+import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.ts'
+import type { MemberEntry } from './member-status.ts'
 import { PermissionPicker, presetDanger, presetName } from './permission-picker.ts'
 import type {
   ActivityHook, DetailsDrawerActions, DetailsDrawerProps, DetailsDrawerRoster, DrawerBot, DrawerRoom, OutlineEntry, SessionList, SessionStatusHook, SessionsHook,
@@ -152,11 +153,11 @@ function MemberPile({ room, roster }: { room: DrawerRoom; roster: DetailsDrawerR
     more > 0 ? h('span', { key: 'more', className: 'bt-pile-face bt-pile-more', style: { animationDelay: `${shown.length * 40}ms` } }, `+${more}`) : null)
 }
 
-const markOf = (entry: { state?: string; doing?: string } | undefined): string => (entry?.state === 'ask' ? 'alert' : entry?.state === 'work' ? workState(entry.doing) : 'idle')
+const markOf = (entry: MemberEntry | undefined): string => (entry?.state === 'ask' ? 'alert' : entry?.state === 'work' ? workState(entry.doing) : 'idle')
 
 // One member: its mark, name and what it is doing on one surface that opens its chat;
 // Stop beside it while it works here, and the approvals it waits on below.
-function MemberRow({ member, entry, room, roster, actions }: { member: DrawerBot; entry: { state?: string; doing?: string } | undefined; room: DrawerRoom; roster: DetailsDrawerRoster; actions: DetailsDrawerActions }) {
+function MemberRow({ member, entry, room, roster, actions }: { member: DrawerBot; entry: MemberEntry | undefined; room: DrawerRoom; roster: DetailsDrawerRoster; actions: DetailsDrawerActions }) {
   return h('div', { role: 'listitem', className: 'bt-member' },
     h('div', { className: 'bt-member-row' },
       h('button', { type: 'button', className: 'bt-member-open', title: t("Open {name}'s chat", { name: member.name }), onClick: () => actions.openSession(member.id) },
@@ -183,7 +184,7 @@ interface GroupOverviewProps {
 // remembers. Changes are made in its settings.
 function GroupOverview({ room, roster, actions, usage, useWork, openSettings }: GroupOverviewProps) {
   const members = room.members.map(id => roster.byId[id]).filter((bot): bot is DrawerBot => bot !== undefined)
-  const { entries } = useMemberWork(room, useWork)
+  const { entries } = useMemberWork(room, useWork as never)
   return [
     room.notice
       ? h(About, { key: 'notice', title: 'Notice', text: room.notice })

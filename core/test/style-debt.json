@@ -52,7 +52,7 @@
       "#e3a008": 1,
       "#fff": 2
     },
-    "member-status.js": {
+    "member-status.ts": {
       "#b7791f": 2,
       "#e3a008": 1,
       "#f0b84a": 2
@@ -97,7 +97,7 @@
     "design/shell.ts": {
       "1px": 1
     },
-    "member-status.js": {
+    "member-status.ts": {
       "13px": 1
     },
     "secret-card.ts": {

@@ -3,6 +3,90 @@ import { BotMark, toolState } from './mark.ts'
 import { Elapsed, Shimmer, workPhrase } from './cells.js'
 import { SPRING_SHAPE, SPRING_TAP, spring, useLinger } from './motion.ts'
 import { t } from './i18n.ts'
+import type { ReactNode } from 'react'
+import type { MarkBot } from './mark.ts'
+
+/** What a Bot is doing, as the shell's work table keeps it. */
+interface WorkDoing {
+  readonly botId?: string | undefined
+  readonly roomId?: string | undefined
+  readonly since?: number | undefined
+  readonly speaking?: boolean | undefined
+  readonly switching?: boolean | undefined
+  readonly tool?: string | undefined
+}
+
+/** A tool call a group turn waits on before it goes on. */
+interface Approval {
+  readonly id: string
+  readonly botId: string
+  readonly at?: number | undefined
+  readonly tool?: string | undefined
+  readonly reason?: string | undefined
+  readonly answerable?: boolean | undefined
+  readonly detail?: { readonly text?: string | undefined; readonly code?: string | undefined } | undefined
+}
+
+/** The shell's work table: what each Bot and each group is busy with right now. */
+interface WorkTable {
+  readonly bots?: Record<string, WorkDoing | undefined> | undefined
+  readonly rooms?: Record<string, readonly WorkDoing[] | undefined> | undefined
+  readonly approvals?: readonly Approval[] | undefined
+}
+
+interface Room {
+  readonly id: string
+  readonly name: string
+  readonly members: readonly string[]
+}
+
+interface MemberBot extends MarkBot {
+  readonly id: string
+  name: string
+  role?: string | null | undefined
+}
+
+interface Roster {
+  readonly byId: Record<string, MemberBot | undefined>
+  readonly roomsById?: Record<string, Room | undefined> | undefined
+}
+
+type StoreHook<T> = <R>(select: (state: T) => R) => R
+
+/** One member of a group, with what it is doing and what it waits on. */
+export interface MemberEntry {
+  readonly id: string
+  readonly approvals: Approval[]
+  readonly doing: WorkDoing | undefined
+  readonly here: boolean
+  readonly state: 'ask' | 'work' | 'idle'
+}
+
+interface BusyEntry extends MemberEntry {
+  readonly bot: MemberBot
+}
+
+/** What the capsule outlives the work with, as plain data. */
+interface DockModel {
+  readonly open: { readonly details?: string | undefined; readonly session?: string | undefined }
+  readonly faces: readonly { readonly id: string; readonly ask: boolean; readonly state: string }[]
+  readonly waiting: string
+  readonly doing: string
+}
+
+interface ApprovalActions {
+  answerApproval: (id: string, choice: string) => Promise<unknown>
+  openSession: (id: string) => void
+  reportError: (error: unknown, where?: string) => void
+}
+
+interface MemberActions {
+  showDetails: (id: string) => void
+  openSession: (id: string) => void
+  answerApproval: (id: string, choice: string) => Promise<unknown>
+  stopMemberWork: (roomId: string, botId: string) => Promise<unknown>
+  reportError: (error: unknown, where?: string) => void
+}
 
 // -------------------------------------------------------------------------
 // What a group's members are doing: above the group's composer, one capsule for the
@@ -10,14 +94,14 @@ import { t } from './i18n.ts'
 // groups it is at work in; and per member in the details panel, where the approvals
 // their group turns wait on are answered.
 
-const NO_WORK = { bots: {}, rooms: {}, approvals: [] }
+const NO_WORK: WorkTable = { bots: {}, rooms: {}, approvals: [] }
 const FACES_MAX = 3
 const DOCK_EXIT_MS = 160
 
 // Work in this group wins over the Bot's own chat or another group.
-export function memberWork(room, work = NO_WORK) {
+export function memberWork(room: Room, work: WorkTable = NO_WORK): MemberEntry[] {
   const here = work.rooms?.[room.id] ?? []
-  return room.members.map((id) => {
+  return room.members.map((id): MemberEntry => {
     const approvals = (work.approvals ?? []).filter(entry => entry.botId === id)
     const local = here.find(entry => entry.botId === id)
     const doing = local ? { ...local, roomId: room.id } : work.bots?.[id]
@@ -26,27 +110,27 @@ export function memberWork(room, work = NO_WORK) {
 }
 
 // The busy members, those waiting for an approval first.
-export function busyMembers(room, work, roster) {
-  const busy = memberWork(room, work).filter(entry => entry.state !== 'idle' && roster.byId[entry.id])
+export function busyMembers(room: Room, work: WorkTable | undefined, roster: Roster): BusyEntry[] {
+  const busy = memberWork(room, work).filter(entry => entry.state !== 'idle' && roster.byId[entry.id] !== undefined)
   return [...busy.filter(entry => entry.state === 'ask'), ...busy.filter(entry => entry.state === 'work')]
-    .map(entry => ({ ...entry, bot: roster.byId[entry.id] }))
+    .map(entry => ({ ...entry, bot: roster.byId[entry.id] as MemberBot }))
 }
 
 // The capsule leaves out the round's current speaker, which its round shows.
-const dockMembers = busy => busy.filter(entry => !(entry.state === 'work' && entry.here && entry.doing.speaking === true))
+const dockMembers = (busy: readonly BusyEntry[]): BusyEntry[] => busy.filter(entry => !(entry.state === 'work' && entry.here && entry.doing?.speaking === true))
 
-export const workState = doing => (doing?.switching ? 'thinking' : toolState(doing?.tool ?? ''))
+export const workState = (doing: WorkDoing | undefined): string => (doing?.switching ? 'thinking' : toolState(doing?.tool ?? ''))
 
 // The groups a Bot is at work in.
-export function botGroupWork(botId, work, roster) {
+export function botGroupWork(botId: string, work: WorkTable, roster: Roster): { room: Room; doing: WorkDoing; since: number | undefined }[] {
   return Object.entries(work.rooms ?? {}).flatMap(([roomId, entries]) => {
-    const entry = entries.find(item => item.botId === botId)
-    const room = roster.roomsById[roomId]
+    const entry = entries?.find(item => item.botId === botId)
+    const room = roster.roomsById?.[roomId]
     return entry && room ? [{ room, doing: entry, since: entry.since }] : []
   })
 }
 
-export function summaryText(busy) {
+export function summaryText(busy: readonly BusyEntry[]): { waiting: string; doing: string } {
   const asks = busy.filter(entry => entry.state === 'ask')
   const workers = busy.filter(entry => entry.state === 'work')
   const names = asks.slice(0, 2).map(entry => entry.bot.name)
@@ -60,8 +144,8 @@ export function summaryText(busy) {
 }
 
 // What the capsule shows, as plain data: it outlives the work for its exit.
-function dockModel(sessionId, roster, work) {
-  const room = roster.roomsById[sessionId]
+function dockModel(sessionId: string, roster: Roster, work: WorkTable): DockModel | null {
+  const room = roster.roomsById?.[sessionId]
   if (room) {
     const busy = dockMembers(busyMembers(room, work, roster))
     if (busy.length === 0) return null
@@ -74,10 +158,11 @@ function dockModel(sessionId, roster, work) {
   }
   const bot = roster.byId[sessionId]
   // A running own chat has its activity row.
-  if (!bot || (work.bots?.[bot.id] !== undefined && work.bots[bot.id].roomId === undefined)) return null
+  const own = bot === undefined ? undefined : work.bots?.[bot.id]
+  if (!bot || (own !== undefined && own.roomId === undefined)) return null
   const groups = botGroupWork(bot.id, work, roster)
   if (groups.length === 0) return null
-  const [first] = groups
+  const first = groups[0] as { room: Room; doing: WorkDoing; since: number | undefined }
   return {
     open: { session: first.room.id },
     faces: [{ id: bot.id, ask: false, state: workState(first.doing) }],
@@ -86,33 +171,38 @@ function dockModel(sessionId, roster, work) {
   }
 }
 
-function Face({ bot, ask, state }) {
+function Face({ bot, ask, state }: { bot: MemberBot; ask: boolean; state: string }) {
   return h('span', { className: 'bt-mw-face', 'data-ask': ask || undefined },
     h(BotMark, { bot, size: 20, state: ask ? 'alert' : state }))
 }
 
 // The capsule springs to the width of what it says; it is measured, so the spring runs
 // between two real widths. A capsule that comes back starts from its own width.
-function useFitWidth(inner, key) {
-  const [width, setWidth] = useState(null)
+function useFitWidth(inner: React.RefObject<HTMLSpanElement | null>, key: string | null): number | null {
+  const [width, setWidth] = useState<number | null>(null)
   useLayoutEffect(() => { setWidth(key && inner.current ? inner.current.offsetWidth : null) }, [key])
   return width
 }
 
 // Above the composer, one capsule for everything at work: it opens the group's details,
 // or from a Bot's own chat the group it is at work in.
-export function MemberDock({ sessionId, useRoster, useWork, actions }) {
+export function MemberDock({ sessionId, useRoster, useWork, actions }: {
+  sessionId: string
+  useRoster: StoreHook<Roster>
+  useWork: StoreHook<WorkTable>
+  actions: Pick<MemberActions, 'showDetails' | 'openSession'>
+}) {
   const roster = useRoster(value => value)
   const work = useWork(value => value)
   const live = dockModel(sessionId, roster, work)
   const [kept, leaving] = useLinger(live ? JSON.stringify(live) : null, DOCK_EXIT_MS)
-  const model = kept ? JSON.parse(kept) : null
-  const inner = useRef(null)
+  const model = kept === null ? null : (JSON.parse(kept) as DockModel)
+  const inner = useRef<HTMLSpanElement | null>(null)
   const width = useFitWidth(inner, kept)
   if (!model) return null
-  const faces = model.faces.map(face => ({ ...face, bot: roster.byId[face.id] })).filter(face => face.bot)
+  const faces = model.faces.map(face => ({ ...face, bot: roster.byId[face.id] })).filter((face): face is { id: string; ask: boolean; state: string; bot: MemberBot } => face.bot !== undefined)
   const label = [model.waiting, model.doing].filter(Boolean).join(' · ')
-  const open = () => (model.open.details ? actions.showDetails(model.open.details) : actions.openSession(model.open.session))
+  const open = (): void => { if (model.open.details !== undefined) actions.showDetails(model.open.details); else if (model.open.session !== undefined) actions.openSession(model.open.session) }
   return h('div', { className: 'bt-mw-dock', 'data-leaving': leaving || undefined },
     h('button', { type: 'button', className: 'bt-mw-pill', 'aria-label': label, onClick: open, disabled: leaving, style: width ? { width } : undefined },
       h('span', { ref: inner, className: 'bt-mw-pill-in' },
@@ -124,13 +214,13 @@ export function MemberDock({ sessionId, useRoster, useWork, actions }) {
 }
 
 // The clock stays whole at the end; only what comes before it is cut.
-const stateLine = (className, at, ...what) => h('span', { className },
+const stateLine = (className: string, at: number | undefined, ...what: readonly ReactNode[]): ReactNode => h('span', { className },
   h('span', { className: 'bt-member-what' }, ...what),
   typeof at === 'number' ? h(Elapsed, { at, className: 'bt-member-time' }) : null)
 
-function ApprovalCard({ approval, bot, actions }) {
+function ApprovalCard({ approval, bot, actions }: { approval: Approval; bot: MemberBot; actions: ApprovalActions }) {
   const [busy, setBusy] = useState(false)
-  const answer = (choice) => {
+  const answer = (choice: string): void => {
     setBusy(true)
     void Promise.resolve(actions.answerApproval(approval.id, choice))
       .catch(error => actions.reportError(error, 'approval'))
@@ -159,18 +249,20 @@ function ApprovalCard({ approval, bot, actions }) {
 }
 
 // A member's second line in the group's details: what it is doing and where, or its role.
-export function MemberState({ entry, bot, room, roster }) {
-  if (entry?.state === 'ask') return stateLine('bt-member-state bt-mw-ask', entry.approvals[0].at, t('Waiting for your approval'))
+export function MemberState({ entry, bot, room, roster }: { entry: MemberEntry | undefined; bot: MemberBot; room: Room; roster: Roster }) {
+  if (entry?.state === 'ask') return stateLine('bt-member-state bt-mw-ask', entry.approvals[0]?.at, t('Waiting for your approval'))
   if (entry?.state !== 'work') return bot.role ? stateLine('bt-member-state', undefined, bot.role) : null
-  const where = entry.doing.roomId === room.id ? ''
-    : entry.doing.roomId ? t('in {name}', { name: roster.roomsById[entry.doing.roomId]?.name ?? t('a group chat') })
+  // A member that is at work always has the entry it works on; it is what set the state.
+  const doing = entry.doing as WorkDoing
+  const where = doing.roomId === room.id ? ''
+    : doing.roomId ? t('in {name}', { name: roster.roomsById?.[doing.roomId]?.name ?? t('a group chat') })
       : t('in its own chat')
-  return stateLine('bt-member-state', entry.doing.since, h(Shimmer, null, `${workPhrase(entry.doing)}…`), where ? ` ${where}` : '')
+  return stateLine('bt-member-state', doing.since, h(Shimmer, null, `${workPhrase(doing)}…`), where ? ` ${where}` : '')
 }
 
 // Work in this group can be stopped from its details, since the user cannot reach the
 // member's group Session otherwise; a turn waiting for an approval still holds its work.
-export function StopMemberWork({ entry, bot, room, actions }) {
+export function StopMemberWork({ entry, bot, room, actions }: { entry: MemberEntry | undefined; bot: MemberBot; room: Room; actions: Pick<MemberActions, 'stopMemberWork' | 'reportError'> }) {
   const [stopping, setStopping] = useState(false)
   if (!entry?.here || (entry.state !== 'work' && entry.state !== 'ask')) return null
   const stop = () => {
@@ -182,12 +274,12 @@ export function StopMemberWork({ entry, bot, room, actions }) {
   return h('button', { type: 'button', className: 'bt-member-stop', disabled: stopping, 'aria-label': `${t('Stop')} · ${bot.name}`, onClick: stop }, t('Stop'))
 }
 
-export function MemberApprovals({ entry, bot, actions }) {
+export function MemberApprovals({ entry, bot, actions }: { entry: MemberEntry | undefined; bot: MemberBot; actions: ApprovalActions }) {
   if (entry?.state !== 'ask') return null
   return h('div', { className: 'bt-member-cards' }, entry.approvals.map(approval => h(ApprovalCard, { key: approval.id, approval, bot, actions })))
 }
 
-export function useMemberWork(room, useWork) {
+export function useMemberWork(room: Room | undefined, useWork?: StoreHook<WorkTable> | undefined): { entries: MemberEntry[] } {
   const work = useWork?.(value => value) ?? NO_WORK
   return { entries: room ? memberWork(room, work) : [] }
 }

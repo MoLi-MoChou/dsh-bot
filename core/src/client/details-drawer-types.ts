@@ -48,6 +48,10 @@ export interface DetailsDrawerRoster extends Omit<PanelRoster, 'byId'> {
   mainBotIds?: readonly string[] | undefined
 }
 export interface DetailsDrawerActions extends PanelActions, FolderMenuActions, MemoryActions {
+  // The group member actions: a member turn stopped from here, and the approvals it waits on.
+  stopMemberWork: (roomId: string, botId: string) => Promise<unknown>
+  answerApproval: (id: string, choice: string) => Promise<unknown>
+  reportError: (error: unknown, where?: string) => void
   updateBot: (id: string, patch: Record<string, unknown>) => Promise<unknown>
   updateRoom: (id: string, patch: Record<string, unknown>) => Promise<unknown>
   openSession: (id: string) => void

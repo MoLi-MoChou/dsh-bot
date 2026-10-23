@@ -18219,7 +18219,7 @@ function AgentMenu({ menu, roster, actions, leaving }) {
   );
 }
 
-// src/client/member-status.js
+// src/client/member-status.ts
 var import_react39 = require("react");
 var NO_WORK = { bots: {}, rooms: {}, approvals: [] };
 var FACES_MAX = 3;
@@ -18234,15 +18234,15 @@ function memberWork(room2, work = NO_WORK) {
   });
 }
 function busyMembers(room2, work, roster) {
-  const busy = memberWork(room2, work).filter((entry) => entry.state !== "idle" && roster.byId[entry.id]);
+  const busy = memberWork(room2, work).filter((entry) => entry.state !== "idle" && roster.byId[entry.id] !== void 0);
   return [...busy.filter((entry) => entry.state === "ask"), ...busy.filter((entry) => entry.state === "work")].map((entry) => ({ ...entry, bot: roster.byId[entry.id] }));
 }
-var dockMembers = (busy) => busy.filter((entry) => !(entry.state === "work" && entry.here && entry.doing.speaking === true));
+var dockMembers = (busy) => busy.filter((entry) => !(entry.state === "work" && entry.here && entry.doing?.speaking === true));
 var workState = (doing) => doing?.switching ? "thinking" : toolState(doing?.tool ?? "");
 function botGroupWork(botId, work, roster) {
   return Object.entries(work.rooms ?? {}).flatMap(([roomId, entries2]) => {
-    const entry = entries2.find((item) => item.botId === botId);
-    const room2 = roster.roomsById[roomId];
+    const entry = entries2?.find((item) => item.botId === botId);
+    const room2 = roster.roomsById?.[roomId];
     return entry && room2 ? [{ room: room2, doing: entry, since: entry.since }] : [];
   });
 }
@@ -18256,7 +18256,7 @@ function summaryText(busy) {
   return { waiting, doing };
 }
 function dockModel(sessionId, roster, work) {
-  const room2 = roster.roomsById[sessionId];
+  const room2 = roster.roomsById?.[sessionId];
   if (room2) {
     const busy = dockMembers(busyMembers(room2, work, roster));
     if (busy.length === 0) return null;
@@ -18269,10 +18269,11 @@ function dockModel(sessionId, roster, work) {
     };
   }
   const bot = roster.byId[sessionId];
-  if (!bot || work.bots?.[bot.id] !== void 0 && work.bots[bot.id].roomId === void 0) return null;
+  const own = bot === void 0 ? void 0 : work.bots?.[bot.id];
+  if (!bot || own !== void 0 && own.roomId === void 0) return null;
   const groups = botGroupWork(bot.id, work, roster);
   if (groups.length === 0) return null;
-  const [first] = groups;
+  const first = groups[0];
   return {
     open: { session: first.room.id },
     faces: [{ id: bot.id, ask: false, state: workState(first.doing) }],
@@ -18299,13 +18300,16 @@ function MemberDock({ sessionId, useRoster, useWork, actions }) {
   const work = useWork((value) => value);
   const live = dockModel(sessionId, roster, work);
   const [kept, leaving] = useLinger(live ? JSON.stringify(live) : null, DOCK_EXIT_MS);
-  const model = kept ? JSON.parse(kept) : null;
+  const model = kept === null ? null : JSON.parse(kept);
   const inner = (0, import_react39.useRef)(null);
   const width = useFitWidth(inner, kept);
   if (!model) return null;
-  const faces = model.faces.map((face) => ({ ...face, bot: roster.byId[face.id] })).filter((face) => face.bot);
+  const faces = model.faces.map((face) => ({ ...face, bot: roster.byId[face.id] })).filter((face) => face.bot !== void 0);
   const label = [model.waiting, model.doing].filter(Boolean).join(" · ");
-  const open = () => model.open.details ? actions.showDetails(model.open.details) : actions.openSession(model.open.session);
+  const open = () => {
+    if (model.open.details !== void 0) actions.showDetails(model.open.details);
+    else if (model.open.session !== void 0) actions.openSession(model.open.session);
+  };
   return (0, import_react39.createElement)(
     "div",
     { className: "bt-mw-dock", "data-leaving": leaving || void 0 },
@@ -18370,10 +18374,11 @@ function ApprovalCard({ approval, bot, actions }) {
   );
 }
 function MemberState({ entry, bot, room: room2, roster }) {
-  if (entry?.state === "ask") return stateLine("bt-member-state bt-mw-ask", entry.approvals[0].at, t("Waiting for your approval"));
+  if (entry?.state === "ask") return stateLine("bt-member-state bt-mw-ask", entry.approvals[0]?.at, t("Waiting for your approval"));
   if (entry?.state !== "work") return bot.role ? stateLine("bt-member-state", void 0, bot.role) : null;
-  const where = entry.doing.roomId === room2.id ? "" : entry.doing.roomId ? t("in {name}", { name: roster.roomsById[entry.doing.roomId]?.name ?? t("a group chat") }) : t("in its own chat");
-  return stateLine("bt-member-state", entry.doing.since, (0, import_react39.createElement)(Shimmer, null, `${workPhrase(entry.doing)}…`), where ? ` ${where}` : "");
+  const doing = entry.doing;
+  const where = doing.roomId === room2.id ? "" : doing.roomId ? t("in {name}", { name: roster.roomsById?.[doing.roomId]?.name ?? t("a group chat") }) : t("in its own chat");
+  return stateLine("bt-member-state", doing.since, (0, import_react39.createElement)(Shimmer, null, `${workPhrase(doing)}…`), where ? ` ${where}` : "");
 }
 function StopMemberWork({ entry, bot, room: room2, actions }) {
   const [stopping, setStopping] = (0, import_react39.useState)(false);
