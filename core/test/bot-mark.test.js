@@ -55,3 +55,10 @@ test('a photo that does not load shows the Bot\'s character instead', () => {
   states.push(false, photo)
   assert.equal(BotMark({ bot: { ...bot, avatar: { ...bot.avatar, image: `${photo}AA` } } }).children[0].type, 'img')
 })
+
+test('Moon Bot working ring stays concentric with its face at both tile and row sizes', () => {
+  assert.match(SHELL_CSS, /\.bt-busy>\.bt-mark::after\{[^}]*box-sizing:border-box/)
+  assert.match(SHELL_CSS, /\.bt-mark\[data-shape=moonbot\] \.bt-b\{transform-origin:50% 60\.4%\}/)
+  assert.match(SHELL_CSS, /\.bt-busy>\.bt-mark:has\(> \.bt-mark\[data-shape=moonbot\]\)::after\{inset:auto;z-index:-1;left:calc\(var\(--bt-size,36px\) \* \.11 - 4px\);top:calc\(var\(--bt-size,36px\) \* \.214 - 4px\);width:calc\(var\(--bt-size,36px\) \* \.78 \+ 8px\);height:calc\(var\(--bt-size,36px\) \* \.78 \+ 8px\)\}/)
+  assert.match(SHELL_CSS, /\.bt-busy \.bt-mark\[data-shape=moonbot\]:not\(\[data-state=idle\]\):not\(\[data-state=done\]\) \.bt-b\{animation-name:bt-sway\}/)
+})

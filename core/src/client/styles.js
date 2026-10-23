@@ -28,6 +28,7 @@ ${Object.entries(INKS).map(([name, [, dark]]) => `body[data-ds-dark-theme]{--bt-
 .bt-mark-img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;box-shadow:inset 0 0 0 1px var(--bt-line)}
 .bt-mark .bt-b,.bt-mark .bt-eye,.bt-mark .bt-eyes,.bt-mark .bt-gaze{transform-box:fill-box}
 .bt-mark .bt-b{transform-origin:50% 100%}
+.bt-mark[data-shape=moonbot] .bt-b{transform-origin:50% 60.4%}
 .bt-mark .bt-eye,.bt-mark .bt-eyes{transform-origin:center}
 /* Motion levels (Settings → Bots → Animation) set body[data-bt-motion]: quiet moves a
    mark only for its state; normal, the default, adds petting, pokes and eyes that follow
@@ -147,14 +148,15 @@ body[data-ds-dark-theme] .bt-moon-mark{background-image:url("${LOGO_DARK}")}
 .bt-tile-busy .bt-dots i,.bt-row-busy .bt-dots i{background:currentColor}
 .bt-row-busy{display:inline-flex!important;align-items:center;gap:6px;color:var(--bt-accent)!important}
 .bt-busy>.bt-mark,.bt-busy>.bt-cluster{position:relative}
-.bt-busy>.bt-mark::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;border-top-color:var(--bt-accent);border-right-color:color-mix(in srgb,var(--bt-accent) 40%,transparent);animation:bt-busy-spin 1.1s linear infinite;pointer-events:none}
+.bt-busy>.bt-mark::after{content:"";position:absolute;inset:-4px;box-sizing:border-box;border-radius:50%;border:2px solid transparent;border-top-color:var(--bt-accent);border-right-color:color-mix(in srgb,var(--bt-accent) 40%,transparent);animation:bt-busy-spin 1.1s linear infinite;pointer-events:none}
 /* Moon Bot's sprite carries its face low and its horn high, so a ring on the square box
    sits above the face and its lower half hangs in the air. This ring rides the face, and
    the sprite's own silhouette in front of it lets the horn cross without a seam. */
 .bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot]){isolation:isolate}
-.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot])::after{inset:auto;z-index:-1;left:calc(var(--bt-size,36px) * .065);top:calc(var(--bt-size,36px) * .19);width:calc(var(--bt-size,36px) * .87);height:calc(var(--bt-size,36px) * .87)}
+.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot])::after{inset:auto;z-index:-1;left:calc(var(--bt-size,36px) * .11 - 4px);top:calc(var(--bt-size,36px) * .214 - 4px);width:calc(var(--bt-size,36px) * .78 + 8px);height:calc(var(--bt-size,36px) * .78 + 8px)}
+.bt-busy .bt-mark[data-shape=moonbot]:not([data-state=idle]):not([data-state=done]) .bt-b{animation-name:bt-sway}
 /* The working dot rides the face's lower-right edge, not the empty corner of the box. */
-.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot])>.bt-badge-working{right:calc(var(--bt-size,36px) * .15);bottom:calc(var(--bt-size,36px) * .05)}
+.bt-busy>.bt-mark:has(> .bt-mark[data-shape=moonbot])>.bt-badge-working{right:calc(var(--bt-size,36px) * .22 - 4px);bottom:calc(var(--bt-size,36px) * .12 - 4px)}
 @keyframes bt-busy-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.bt-busy>.bt-mark::after{animation:none}}
 .bt-tile-name{font-size:13px;line-height:18px;font-weight:400;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
