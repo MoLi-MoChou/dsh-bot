@@ -7,13 +7,17 @@
       {
         "ignoreRestSiblings": true
       }
-    ]
+    ],
+    "typescript/no-explicit-any": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-floating-promises": "error"
   },
   "globals": {
     "__MOON_BOT_VERSION__": "readonly"
   },
   "ignorePatterns": [
     "src/client/vendor/**",
-    "client.js"
+    "client.js",
+    "test/fixtures/gates/**"
   ]
 }
