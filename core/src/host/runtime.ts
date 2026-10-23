@@ -286,7 +286,6 @@ export interface HostRuntime {
   retitleRoom?(room: StoredRoom): Promise<unknown>
   capabilitiesStateSaved?(): void
   cancelApprovals?(sessionId: string): void
-  ownRequest(options: { readonly sessionId?: string }): boolean
   ownRequest(options: { readonly sessionId?: string | undefined; readonly messages?: unknown }): boolean
   partsOf(botId: string): readonly { readonly sessionId: string; readonly number: number; readonly startedAt: number; readonly endedAt?: number | undefined }[]
   historyEntry(event: SessionEvent, forDisplay: boolean): { readonly text: string; readonly who?: string; readonly answer?: boolean; readonly keepAnswers?: boolean } | undefined
