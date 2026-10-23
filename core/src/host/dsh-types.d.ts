@@ -427,6 +427,8 @@ export interface LlmStreamOptions {
   readonly model: string
   readonly sessionId?: string
   readonly messages: readonly unknown[]
+  /** The system prompt this request carries; the secrets listener redacts it in place. */
+  readonly system?: unknown
   readonly maxTokens?: number
   readonly signal?: AbortSignal
 }

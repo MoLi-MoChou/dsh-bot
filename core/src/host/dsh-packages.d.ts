@@ -12,8 +12,13 @@ declare module '@deepseek-ai/dsh-tools' {
   export interface ToolRunContext {
     readonly name?: string
     readonly callId?: string
-    readonly agent?: { readonly id?: string }
+    readonly agent?: {
+      readonly id?: string
+      readonly session?: { readonly header?: Readonly<Record<string, unknown>> }
+    }
     readonly signal?: AbortSignal
+    /** Ends the Bot's turn after a card is shown. */
+    concludeTurn?(): void
   }
 
   /** A tool definition, as this plugin writes it. */

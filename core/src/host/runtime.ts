@@ -5,7 +5,8 @@
 // functions. This interface holds the slice today's TypeScript modules need; it grows a
 // batch at a time as the rest of `src/host` moves over. Nothing here runs: types only.
 import type { Agent, AttachmentRef, DshContext, SessionEvent } from './dsh-types.js'
-import type { UsageView, UsageViewOptions } from './usage/view.js'
+import type { UsageView, UsageViewOptions } from './usage/view.ts'
+import type { SecretRequest, SecretView } from './secrets/store.ts'
 import type { ChildProcess } from 'node:child_process'
 
 export interface HostConfig {
@@ -224,6 +225,8 @@ export interface StoredState {
   works?: Record<string, StoredWork>
   questions?: Record<string, unknown>
   views?: Record<string, unknown>
+  /** The secret cards waiting for the user, keyed by Bot id. Values are never here. */
+  secretRequests?: Record<string, SecretRequest[]>
   readonly [key: string]: unknown
 }
 
@@ -286,10 +289,15 @@ export interface HostRuntime {
   ensureWorkspace(): Promise<string>
   indexAgents?(): void
   dshSpawn?(command: string, argv: readonly string[], options: { readonly windowsHide?: boolean }): ChildProcess
+  // --- provided by secrets/install.ts
   loadSecrets(): Promise<unknown>
+  secretsView(): readonly SecretView[]
   secretValue(name: string): string | undefined
+  canUseSecret(name: string, botId: string | undefined): boolean
   redactSecrets(text: string): string
   secretEndpoint(endpoint: string, body: Readonly<Record<string, unknown>>): Promise<unknown>
+  forgetBotSecrets(botId: string): Promise<void>
+  secretsChanged?(): void
 
   // --- provided by turns.ts, groups.ts and resume.ts
   callDetail?(sessionId: string | undefined, callId?: string): ApprovalDetail
