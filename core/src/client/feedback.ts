@@ -5,7 +5,7 @@ import { createElement as h, useEffect, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { clearClientErrors, clientErrors, clientFacts, failureLabel, issueUrl, WHAT_MAX } from './diagnostics.ts'
 import { dateLocale, t } from './i18n.js'
-import { CloseIcon } from './icons.js'
+import { CloseIcon } from './icons.ts'
 import { SPRING_SHAPE } from './motion.js'
 
 export const FeedbackIcon = () => h('svg', { width: 15, height: 15, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },

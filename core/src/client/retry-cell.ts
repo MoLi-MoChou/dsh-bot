@@ -4,35 +4,66 @@
 import { createElement as h, useEffect, useMemo, useState } from 'react'
 import { t } from './i18n.js'
 
-const retries = new Map()
-const listeners = new Set()
-const keyOf = (sessionId, turn) => `${sessionId}:${turn}`
+// One retry the model asked for, kept after the row leaves the chat so the turn's work
+// process can list it. `maximum` is the mode's own cap, or '∞' for the normal mode.
+export interface RetryEntry {
+  seq: number
+  retry?: number | undefined
+  maximum?: number | string | undefined
+  cancelled: boolean
+  delayMs?: number | undefined
+  failure: string
+}
+
+interface RetryFailure { code?: string; message?: string }
+interface RetryCurrent {
+  retry?: number
+  maximum?: number
+  retryState?: string
+  mode?: string
+  maxRetries?: number
+  delayMs?: number
+  seq?: number
+  time?: number
+  failure?: RetryFailure
+}
+export interface RetryNode {
+  data?: { current?: RetryCurrent; time?: number }
+  location?: { turn?: { turn?: number } }
+}
+
+const retries = new Map<string, RetryEntry[]>()
+const listeners = new Set<() => void>()
+const keyOf = (sessionId: string, turn: number | undefined): string => `${sessionId}:${turn}`
 
 /** The settled retries of one turn, oldest first. */
-export const turnRetries = (sessionId, turn) => retries.get(keyOf(sessionId, turn)) ?? []
+export const turnRetries = (sessionId: string, turn: number | undefined): RetryEntry[] => retries.get(keyOf(sessionId, turn)) ?? []
 
-function noteRetry(sessionId, turn, entry) {
+function noteRetry(sessionId: string, turn: number, entry: RetryEntry): void {
   const key = keyOf(sessionId, turn)
   const list = retries.get(key) ?? []
   if (list.some(item => item.seq === entry.seq)) return
-  if (retries.size > 500) retries.delete(retries.keys().next().value)
+  if (retries.size > 500) {
+    const oldest = retries.keys().next()
+    if (!oldest.done) retries.delete(oldest.value)
+  }
   retries.set(key, [...list, entry].sort((a, b) => a.seq - b.seq))
   for (const listener of listeners) listener()
 }
 
-export function useTurnRetries(sessionId, turn) {
+export function useTurnRetries(sessionId: string, turn: number | undefined): RetryEntry[] {
   const [, bump] = useState(0)
   useEffect(() => {
     const listener = () => bump(n => n + 1)
     listeners.add(listener)
-    return () => listeners.delete(listener)
+    return () => { listeners.delete(listener) }
   }, [])
   return turnRetries(sessionId, turn)
 }
 
 const RATE = /RATE_LIMIT|429|rate/i
 
-export function RetryCell({ node, sessionId }) {
+export function RetryCell({ node, sessionId }: { node: RetryNode | undefined; sessionId: string }) {
   const current = node?.data?.current ?? {}
   const turn = node?.location?.turn?.turn
   const waiting = current.retryState === 'scheduled'

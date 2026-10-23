@@ -5,9 +5,10 @@ import { colorOf, BotMark } from './mark.js'
 import { Bubbles } from './cells.js'
 import { stripLongNote } from './fold.ts'
 import { ChatsIcon } from './icons.js'
+import { stripLongNote } from './fold.js'
 import { SHEET_EXIT_MS, reducedMotion } from './motion.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.ts'
-import { EmptyState } from './empty-state.js'
+import { EmptyState } from './empty-state.ts'
 import { t } from './i18n.js'
 
 export function ExchangeDialog({ pair, roster, actions }) {

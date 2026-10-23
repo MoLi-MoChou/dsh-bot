@@ -1,11 +1,11 @@
 import { createElement as h, useEffect, useState } from 'react'
 import { isMainOf } from './sources.ts'
-import { PlusIcon, ChevronRightIcon } from './icons.js'
+import { PlusIcon, ChevronRightIcon } from './icons.ts'
 import { AdminStar, BotAvatar, BotMark, RoomAvatar } from './mark.js'
 import { Card, Row, InlineText, SwitchRow } from './bot-settings.js'
 import { Segmented } from './motion.js'
-import { FolderMenu } from './folder-menu.js'
-import { PermissionPicker } from './permission-picker.js'
+import { FolderMenu } from './folder-menu.ts'
+import { PermissionPicker } from './permission-picker.ts'
 import { t } from './i18n.js'
 
 export const ROOM_MODES = [

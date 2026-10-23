@@ -1,7 +1,7 @@
 import { createElement as h, Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { currentPart, formatTokens } from './text.ts'
-import { CheckIcon, SlidersIcon } from './icons.js'
+import { CheckIcon, SlidersIcon } from './icons.ts'
 import { BotMark } from './mark.js'
 import { KeyIcon, MaskedInput } from './secret-card.js'
 import { MENU_EXIT_MS, SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.js'

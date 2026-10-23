@@ -8,3 +8,10 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   export const FishLogo: (props: Record<string, unknown>) => ReactElement | null
   export const MarkdownText: (props: Record<string, unknown>) => ReactElement | null
 }
+
+// react-dom is a runtime dependency the shell supplies; only its types are missing here,
+// so declare the one function the client calls. A portal is a React child either way.
+declare module 'react-dom' {
+  import type { ReactNode } from 'react'
+  export function createPortal(children: ReactNode, container: Element | DocumentFragment, key?: string | null): ReactNode
+}

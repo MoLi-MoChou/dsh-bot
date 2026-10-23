@@ -163,6 +163,10 @@ export function useGlide(key, { axis = 'x', selector = CHOSEN, lead = SPRING_LEA
 }
 
 // Buttons side by side over one thumb that glides to the pressed one (aria-pressed).
+/**
+ * A segmented choice: one pill per value, with the thumb gliding between them.
+ * @param {{ label?: string, value?: string, className?: string, children?: import('react').ReactNode }} props
+ */
 export function Segmented({ label, value, className, children }) {
   const glide = useGlide(value)
   return h('div', { ref: glide.box, className: className ? `bt-seg ${className}` : 'bt-seg', role: 'group', 'aria-label': label },

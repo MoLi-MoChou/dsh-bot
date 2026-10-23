@@ -4,9 +4,9 @@ import { createElement as h, useEffect, useState } from 'react'
 import { GitHubMark } from './connectors.js'
 import { whenText } from './feedback.ts'
 import { dateLocale, hostText, t, productName } from './i18n.js'
-import { StarLineIcon } from './icons.js'
+import { StarLineIcon } from './icons.ts'
 import { SPRING_POP } from './motion.js'
-import { MoonBotMark } from './icons.js'
+import { MoonBotMark } from './icons.ts'
 import { showsDshRow } from './dsh-offer.ts'
 
 // The length of the mark's `done` hop (bt-done in styles.js).

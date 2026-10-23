@@ -2,9 +2,9 @@ import { createElement as h, startTransition, useEffect, useMemo, useRef, useSta
 import { colorOf, MAIN_LOOK } from './characters.js'
 import { GRADIENTS, paintCss } from './inks.ts'
 import { BotAvatar, BotMark, RoomAvatar } from './mark.js'
-import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.js'
+import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.ts'
 import { reducedMotion, useGlide } from './motion.js'
-import { EmptyState } from './empty-state.js'
+import { EmptyState } from './empty-state.ts'
 import { dateLocale, t } from './i18n.js'
 import { DAY_MS, HOUR, HOUR_MS, MODEL, OWNER, RANGES, compact, dayKey, hourMs, mondayOf, percent, spanRange, summarize, tokensOf } from './usage-data.ts'
 

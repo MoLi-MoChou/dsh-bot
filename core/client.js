@@ -1228,7 +1228,7 @@ function language() {
 var dateLocale = () => language().startsWith("zh") ? "zh-CN" : "en-US";
 var DICTIONARY = { zh: ZH };
 
-// src/client/brand-art.js
+// src/client/brand-art.ts
 var LOGO_LIGHT = "data:image/webp;base64,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";
 var LOGO_DARK = "data:image/webp;base64,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";
 var FAVICON = "data:image/png;base64,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";
@@ -7883,7 +7883,7 @@ var LEAN_HIDDEN_TOOLS = [...LEAN.groups ? [] : GROUP_TOOLS, ...LEAN.schedules ? 
 // src/client/dsh-primitives.ts
 var import_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 
-// src/client/icons.js
+// src/client/icons.ts
 var import_react3 = require("react");
 function PlusIcon() {
   return (0, import_react3.createElement)("svg", { width: 18, height: 18, viewBox: "0 0 20 20", "aria-hidden": true }, (0, import_react3.createElement)("path", { d: "M10 3.5v13M3.5 10h13", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round" }));
@@ -9492,7 +9492,7 @@ function useFold(text, { limit = FOLD_AT, whole, live = false, markdown = true }
   };
 }
 
-// src/client/retry-cell.js
+// src/client/retry-cell.ts
 var import_react10 = require("react");
 var retries = /* @__PURE__ */ new Map();
 var listeners = /* @__PURE__ */ new Set();
@@ -9502,7 +9502,10 @@ function noteRetry(sessionId, turn, entry) {
   const key = keyOf(sessionId, turn);
   const list = retries.get(key) ?? [];
   if (list.some((item) => item.seq === entry.seq)) return;
-  if (retries.size > 500) retries.delete(retries.keys().next().value);
+  if (retries.size > 500) {
+    const oldest = retries.keys().next();
+    if (!oldest.done) retries.delete(oldest.value);
+  }
   retries.set(key, [...list, entry].sort((a, b) => a.seq - b.seq));
   for (const listener of listeners) listener();
 }
@@ -9511,7 +9514,9 @@ function useTurnRetries(sessionId, turn) {
   (0, import_react10.useEffect)(() => {
     const listener = () => bump((n) => n + 1);
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
   return turnRetries(sessionId, turn);
 }
@@ -10697,7 +10702,7 @@ function ToolCell({ node, sessionId, useRoster, useUi, useWork, useHeldCards, ac
   return (0, import_react12.createElement)(import_react12.Fragment, null, drawn.map((call2, index) => (0, import_react12.createElement)(import_react12.Fragment, { key: call2.callId ?? index }, renderCall(call2, env))));
 }
 
-// src/client/empty-state.js
+// src/client/empty-state.ts
 var import_react13 = require("react");
 function EmptyState({ icon: icon3, art, title, hint, action, compact: compact2 = false }) {
   return (0, import_react13.createElement)(
@@ -12224,7 +12229,7 @@ function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
   );
 }
 
-// src/client/at-menu.js
+// src/client/at-menu.ts
 var BOTS_SOURCE = "ds-bot";
 var CHATS_SOURCE = "ds-bot-chats";
 var ROOM_ALL = ["all", "everyone", "所有人", "全体"];
@@ -12239,12 +12244,14 @@ var conversationOf = (roster, sessionId) => {
 function mentionRows(roster, sessionId, query = "") {
   const here = conversationOf(roster, sessionId);
   if (here === null) return null;
-  const bots = here.room ? here.room.members.map((id) => roster.byId[id]).filter(Boolean) : roster.bots.filter((bot) => bot.id !== here.self.id);
+  const room2 = "room" in here ? here.room : null;
+  const selfId = "self" in here ? here.self.id : void 0;
+  const bots = room2 !== null ? room2.members.map((id) => roster.byId[id]).filter((bot) => bot !== void 0) : roster.bots.filter((bot) => bot.id !== selfId);
   const needle = query.trim().toLowerCase();
   const rows = bots.filter((bot) => bot.name.toLowerCase().includes(needle)).map((bot) => ({ bot, text: `@${bot.name} ` }));
-  const everyone = t("Everyone");
-  if (here.room && bots.length > 1 && [everyone, ...ROOM_ALL].some((word) => word.toLowerCase().startsWith(needle))) {
-    rows.push({ room: here.room, text: `@${everyone} ` });
+  const everyone = String(t("Everyone"));
+  if (room2 !== null && bots.length > 1 && [everyone, ...ROOM_ALL].some((word) => word.toLowerCase().startsWith(needle))) {
+    rows.push({ room: room2, text: `@${everyone} ` });
   }
   return rows;
 }
@@ -12252,12 +12259,13 @@ function chatRows(roster, list, sessionId) {
   const here = conversationOf(roster, sessionId);
   if (here === null) return [];
   const byId = list?.byId ?? {};
-  const bots = roster.bots.filter((bot) => bot.id !== here.self?.id).map((bot) => {
-    const id = currentPart(bot);
-    return { sessionId: id, label: t("Chat with {name}", { name: bot.name }), bot, updatedAt: byId[id]?.updatedAt };
+  const selfId = "self" in here ? here.self.id : void 0;
+  const bots = roster.bots.filter((bot) => bot.id !== selfId).map((bot) => {
+    const id = String(currentPart(bot));
+    return { sessionId: id, label: String(t("Chat with {name}", { name: bot.name })), bot, updatedAt: byId[id]?.updatedAt };
   });
   const team = /* @__PURE__ */ new Set([
-    ...roster.bots.flatMap((bot) => [bot.id, currentPart(bot), ...bot.parts ?? []]),
+    ...roster.bots.flatMap((bot) => [bot.id, String(currentPart(bot)), ...bot.parts ?? []]),
     ...roster.rooms.flatMap((room2) => [room2.id, ...room2.parts ?? []])
   ]);
   const others = (list?.ids ?? []).map((id) => byId[id]).filter((row) => row !== void 0 && row.id !== sessionId && !team.has(row.id) && row.origin !== "subagent" && row.blank !== true).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0)).slice(0, OTHER_CHATS_MAX).map((row) => ({ sessionId: row.id, label: row.displayTitle || row.title || row.id, updatedAt: row.updatedAt }));
@@ -12277,11 +12285,11 @@ function atSources({ roster, sessions, launched, iconFor }) {
     showGroupTitle: false,
     async candidates(session, { query }) {
       return (mentionRows(roster.getSnapshot(), session.sessionId, query) ?? []).map((row) => ({
-        name: row.bot ? row.bot.name : t("Everyone"),
+        name: row.bot ? row.bot.name : String(t("Everyone")),
         ...row.bot?.role ? { description: row.bot.role } : {},
-        ...row.room ? { description: t("{count} members", { count: row.room.members.length }) } : {},
+        ...row.room ? { description: String(t("{count} members", { count: row.room.members.length })) } : {},
         icon: iconFor(row),
-        section: t("Bots"),
+        section: String(t("Bots")),
         value: row.text
       }));
     },
@@ -12296,9 +12304,9 @@ function atSources({ roster, sessions, launched, iconFor }) {
       if (!launched(session.sessionId)) return [];
       return chatRows(roster.getSnapshot(), sessions.list.getSnapshot(), session.sessionId).map((row) => ({
         name: row.bot ? row.bot.name : row.label,
-        ...row.updatedAt ? { description: relativeShort(row.updatedAt) } : {},
+        ...row.updatedAt ? { description: String(relativeShort(row.updatedAt)) } : {},
         icon: row.bot ? iconFor(row) : "session",
-        section: row.bot ? t("Bots") : t("Conversations"),
+        section: row.bot ? String(t("Bots")) : String(t("Conversations")),
         value: JSON.stringify({ sessionId: row.sessionId, label: row.label })
       }));
     },
@@ -13165,7 +13173,7 @@ var MODEL_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-model-dock{animation:none}.bt-model-spin{animation-duration:2s}.bt-model-caret{transition:none}.bt-model-tick svg{animation:none}}
 `;
 
-// src/client/folder-menu.js
+// src/client/folder-menu.ts
 var import_react20 = require("react");
 var import_react_dom8 = require("react-dom");
 var folderName = (path) => String(path).replace(/[\\/]+$/, "").split(/[\\/]/).pop() || String(path);
@@ -13183,7 +13191,7 @@ function FolderMenu({ value, group = false, team = false, actions, run, onPick, 
   const [draft, setDraft] = (0, import_react20.useState)("");
   const [listing, setListing] = (0, import_react20.useState)(null);
   const [problem, setProblem] = (0, import_react20.useState)("");
-  const fallback = group ? t("Each Bot's own folder") : t("Team workspace");
+  const fallback = group ? String(t("Each Bot's own folder")) : String(t("Team workspace"));
   const toggle = () => {
     if (isOpen) {
       close();
@@ -13191,7 +13199,7 @@ function FolderMenu({ value, group = false, team = false, actions, run, onPick, 
     }
     setView("list");
     setProblem("");
-    void Promise.resolve(actions.folders()).then(setInfo).catch(() => setInfo((last) => last ?? { team: null, picker: null, folders: [] }));
+    void Promise.resolve(actions.folders()).then((next) => setInfo(next ?? null)).catch(() => setInfo((last) => last ?? { team: null, picker: null, folders: [] }));
     open();
   };
   const choose = (path) => {
@@ -13233,7 +13241,7 @@ function FolderMenu({ value, group = false, team = false, actions, run, onPick, 
     )),
     (0, import_react20.createElement)("div", { className: "bt-menu-sep", role: "separator" }),
     info?.picker === "native" ? (0, import_react20.createElement)("button", { type: "button", role: "menuitem", onClick: pickNative }, (0, import_react20.createElement)(FolderIcon), (0, import_react20.createElement)("span", { className: "bt-menu-label" }, t("Choose a folder…"))) : null,
-    info?.picker === "browse" ? (0, import_react20.createElement)("button", { type: "button", role: "menuitem", onClick: () => browse(value) }, (0, import_react20.createElement)(FolderIcon), (0, import_react20.createElement)("span", { className: "bt-menu-label" }, t("Browse folders…"))) : null,
+    info?.picker === "browse" ? (0, import_react20.createElement)("button", { type: "button", role: "menuitem", onClick: () => browse(value ?? "") }, (0, import_react20.createElement)(FolderIcon), (0, import_react20.createElement)("span", { className: "bt-menu-label" }, t("Browse folders…"))) : null,
     (0, import_react20.createElement)("button", { type: "button", role: "menuitem", onClick: () => {
       setDraft(value ?? "");
       setView("type");
@@ -13257,7 +13265,8 @@ function FolderMenu({ value, group = false, team = false, actions, run, onPick, 
     }),
     (0, import_react20.createElement)("button", { type: "button", role: "menuitem", className: "bt-folder-use", disabled: draft.trim() === "", onClick: typed }, t("Use this folder"))
   );
-  const parent = listing?.crumbs?.length > 1 ? listing.crumbs.at(-2) : void 0;
+  const crumbs = listing?.crumbs ?? [];
+  const parent = crumbs.length > 1 ? crumbs.at(-2) : void 0;
   const inside = listing?.entries?.filter((entry) => !entry.hidden) ?? [];
   const browseView = listing ? (0, import_react20.createElement)(
     "div",
@@ -15450,12 +15459,16 @@ function VoiceMode({ sessionId, roster, actions, useSessions, useSessionStatus }
   );
 }
 
-// src/client/permission-picker.js
+// src/client/permission-picker.ts
 var import_react29 = require("react");
 var LABELS = { "read-only": "Read only", "workspace-write": "Workspace", "danger-full-access": "Full access" };
 var DANGER = /* @__PURE__ */ new Set(["danger-full-access"]);
 var presetDanger = (value) => DANGER.has(value);
-var presetName = (value, catalog) => LABELS[value] ? t(LABELS[value]) : catalog?.options?.find((option) => option.value === value)?.name ?? value;
+var presetName = (value, catalog) => {
+  const label = LABELS[value];
+  if (label !== void 0) return String(t(label));
+  return catalog?.options?.find((option) => option.value === value)?.name ?? value;
+};
 function PermissionPicker({ catalog, saved, onPick, repick = false }) {
   const [pending, setPending] = (0, import_react29.useState)(null);
   const flight = (0, import_react29.useRef)({ value: void 0, latest: void 0 });
@@ -17925,7 +17938,7 @@ function SettingsDialog({ page, id, roster, actions, useUpdate, leaving = false 
   );
 }
 
-// src/client/context-menu.js
+// src/client/context-menu.ts
 var import_react37 = require("react");
 function ContextMenu({ menu, roster, actions, leaving = false }) {
   useEscape(() => actions.closeMenu());
@@ -17969,15 +17982,15 @@ function ContextMenu({ menu, roster, actions, leaving = false }) {
       bot && !isMainBot ? [t("Make Main Bot"), StarLineIcon, () => actions.setMain(bot.id, true)] : null,
       bot && isMainBot && mainCount > 1 ? [t("Remove Main Bot role"), StarLineIcon, () => actions.setMain(bot.id, false)] : null
     ],
-    [[t("Copy conversation ID"), CopyIcon, () => navigator.clipboard?.writeText(bot ? currentPart(bot) : menu.id)]],
+    [[t("Copy conversation ID"), CopyIcon, () => navigator.clipboard?.writeText(bot ? String(currentPart(bot)) : menu.id)]],
     [
       isMainBot ? null : [t("Hide from sidebar"), HideIcon, () => actions.setFlags(menu.id, { hidden: true })],
       isMainBot ? null : [room2 ? t("Delete group") : t("Delete"), TrashIcon, () => bot ? actions.deleteBot(bot.id) : actions.deleteRoom(menu.id), true]
     ]
-  ].map((group) => group.filter(Boolean)).filter((group) => group.length > 0);
+  ].map((group) => group.filter((item) => item !== null)).filter((group) => group.length > 0);
   return (0, import_react37.createElement)(
     "div",
-    { ref, className: "bt-menu", role: "menu", "aria-label": t("{name} actions", { name: bot?.name ?? room2.name }), style: place, "data-leaving": leaving || void 0 },
+    { ref, className: "bt-menu", role: "menu", "aria-label": t("{name} actions", { name: entry.name }), style: place, "data-leaving": leaving || void 0 },
     groups.map((group, index) => (0, import_react37.createElement)(
       import_react37.Fragment,
       { key: index },
@@ -18004,7 +18017,7 @@ function AgentMenu({ menu, roster, actions, leaving }) {
     if (!box) return;
     setPlace({ left: Math.max(8, Math.min(menu.x, window.innerWidth - box.width - 8)), top: Math.max(8, Math.min(menu.y, window.innerHeight - box.height - 8)) });
   }, [menu.x, menu.y]);
-  const agent = roster.agentsById[menu.kind === "agent" ? menu.id : menu.agentId];
+  const agent = roster.agentsById[menu.kind === "agent" ? menu.id : menu.agentId ?? ""];
   if (agent === void 0) return null;
   const groups = menu.kind === "agent" ? [
     [

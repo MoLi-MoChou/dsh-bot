@@ -1,51 +1,83 @@
 import { createElement as h, Fragment, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, FolderIcon, PencilIcon } from './icons.js'
+import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, FolderIcon, PencilIcon } from './icons.ts'
 import { Caret, useAnchoredMenu } from './model-menu.js'
 import { t } from './i18n.js'
 
 // The last segment of a host path, Windows or POSIX; a root keeps its own spelling.
-export const folderName = path => String(path).replace(/[\\/]+$/, '').split(/[\\/]/).pop() || String(path)
+export const folderName = (path: string): string => String(path).replace(/[\\/]+$/, '').split(/[\\/]/).pop() || String(path)
 
-const Tick = ({ on }) => h('span', { className: 'bt-model-tick', 'aria-hidden': true }, on ? h(CheckIcon) : null)
+// A folder the host already knows about: a project, or the saved one.
+export interface FolderEntry { path: string; title?: string }
+// What the host offers for the picker: the team folder, which picker it can open, and
+// the folders a Bot can be pointed at.
+export interface FolderOffer {
+  team: string | null
+  picker: string | null
+  folders: FolderEntry[]
+}
+export interface BrowseEntry { path: string; name: string; hidden?: boolean }
+export interface FolderListing {
+  path: string
+  crumbs?: { path: string }[]
+  entries?: BrowseEntry[]
+  truncated?: boolean
+}
+export interface FolderMenuActions {
+  folders: () => Promise<FolderOffer | null | undefined>
+  folderList: (path: string) => Promise<FolderListing>
+  folderPick: () => Promise<string | undefined>
+}
+export interface FolderMenuProps {
+  value: string | undefined
+  group?: boolean
+  team?: boolean
+  actions: FolderMenuActions
+  run: (work: Promise<unknown>) => unknown
+  onPick: (path: string) => unknown
+  wide?: boolean
+  disabled?: boolean
+}
+
+const Tick = ({ on }: { on: boolean }) => h('span', { className: 'bt-model-tick', 'aria-hidden': true }, on ? h(CheckIcon) : null)
 
 // Where a Bot, or every member of a group, works. `value` is the saved folder; without
 // one a Bot works in the team workspace and a group member in its own folder. `onPick`
 // gets the chosen path, or '' for that default. `team` is the menu for the team workspace
 // itself, which has no default.
-export function FolderMenu({ value, group = false, team = false, actions, run, onPick, wide = false, disabled = false }) {
-  const [info, setInfo] = useState(null)
-  const [view, setView] = useState('list')
+export function FolderMenu({ value, group = false, team = false, actions, run, onPick, wide = false, disabled = false }: FolderMenuProps) {
+  const [info, setInfo] = useState<FolderOffer | null>(null)
+  const [view, setView] = useState<'list' | 'type' | 'browse'>('list')
   const { isOpen, shownPlace, leaving, button, menu, open, close } = useAnchoredMenu(() => {
     if (view !== 'list') { setView('list'); return true }
     return false
   })
   const [draft, setDraft] = useState('')
-  const [listing, setListing] = useState(null)
+  const [listing, setListing] = useState<FolderListing | null>(null)
   const [problem, setProblem] = useState('')
-  const fallback = group ? t("Each Bot's own folder") : t('Team workspace')
-  const toggle = () => {
+  const fallback = group ? String(t("Each Bot's own folder")) : String(t('Team workspace'))
+  const toggle = (): void => {
     if (isOpen) { close(); return }
     setView('list')
     setProblem('')
     // Projects added in DSH meanwhile show up, so opening asks again.
-    void Promise.resolve(actions.folders()).then(setInfo).catch(() => setInfo(last => last ?? { team: null, picker: null, folders: [] }))
+    void Promise.resolve(actions.folders()).then(next => setInfo(next ?? null)).catch(() => setInfo(last => last ?? { team: null, picker: null, folders: [] }))
     open()
   }
-  const choose = (path) => {
+  const choose = (path: string): void => {
     close()
     if (path !== (value ?? '')) void onPick(path)
   }
-  const browse = (path) => {
+  const browse = (path: string): void => {
     setProblem('')
     void Promise.resolve(actions.folderList(path)).then((next) => { setListing(next); setView('browse') })
       .catch(failure => setProblem(failure?.message ?? String(failure)))
   }
-  const pickNative = () => {
+  const pickNative = (): void => {
     close()
     void run(Promise.resolve(actions.folderPick()).then(path => (path ? onPick(path) : undefined)))
   }
-  const typed = () => {
+  const typed = (): void => {
     const path = draft.trim()
     if (path !== '') choose(path)
   }
@@ -60,17 +92,18 @@ export function FolderMenu({ value, group = false, team = false, actions, run, o
       h(Tick, { on: folder.path === value }))),
     h('div', { className: 'bt-menu-sep', role: 'separator' }),
     info?.picker === 'native' ? h('button', { type: 'button', role: 'menuitem', onClick: pickNative }, h(FolderIcon), h('span', { className: 'bt-menu-label' }, t('Choose a folder…'))) : null,
-    info?.picker === 'browse' ? h('button', { type: 'button', role: 'menuitem', onClick: () => browse(value) }, h(FolderIcon), h('span', { className: 'bt-menu-label' }, t('Browse folders…'))) : null,
+    info?.picker === 'browse' ? h('button', { type: 'button', role: 'menuitem', onClick: () => browse(value ?? '') }, h(FolderIcon), h('span', { className: 'bt-menu-label' }, t('Browse folders…'))) : null,
     h('button', { type: 'button', role: 'menuitem', onClick: () => { setDraft(value ?? ''); setView('type') } }, h(PencilIcon), h('span', { className: 'bt-menu-label' }, t('Enter a path…'))))
   const typeView = h('div', { key: 'type', className: 'bt-folder-view' },
     h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-back', onClick: () => setView('list') }, h(ChevronLeftIcon), h('span', { className: 'bt-menu-label' }, t('Back'))),
     h('input', {
       className: 'bt-folder-input', autoFocus: true, value: draft, spellCheck: false, 'aria-label': t('Folder path'), placeholder: t('Full path of a folder'),
-      onChange: event => setDraft(event.target.value),
+      onChange: (event: React.ChangeEvent<HTMLInputElement>) => setDraft(event.target.value),
       onKeyDown: (event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) typed() },
     }),
     h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-use', disabled: draft.trim() === '', onClick: typed }, t('Use this folder')))
-  const parent = listing?.crumbs?.length > 1 ? listing.crumbs.at(-2) : undefined
+  const crumbs = listing?.crumbs ?? []
+  const parent = crumbs.length > 1 ? crumbs.at(-2) : undefined
   const inside = listing?.entries?.filter(entry => !entry.hidden) ?? []
   const browseView = listing ? h('div', { key: `browse:${listing.path}`, className: 'bt-folder-view' },
     h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-back', onClick: () => setView('list') }, h(ChevronLeftIcon), h('span', { className: 'bt-menu-label' }, t('Back'))),

@@ -33,7 +33,7 @@ const LAYERS = new Set(['shared', 'client', 'host'])
 // Exempt by design. The globs are relative to the root (normally core/).
 const LINE_EXEMPTIONS = [
   // Static/brand art is generated image data, not hand-written logic.
-  'src/client/brand-art.js', // TODO(phase2 split): static brand art (generated data URLs)
+  'src/client/brand-art.ts', // TODO(phase2 split): static brand art (generated data URLs)
   // Third-party code is reviewed by its upstream, not reshaped by our size gate.
   'src/client/vendor/**',
   // Declaration files describe types; they carry no runtime statements to split.

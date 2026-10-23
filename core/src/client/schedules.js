@@ -3,9 +3,9 @@
 // sends its prompt to the Bot's chat when it is due.
 import { createElement as h, Fragment, useEffect, useState } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.js'
-import { ClockIcon, PlusIcon, TrashIcon } from './icons.js'
+import { ClockIcon, PlusIcon, TrashIcon } from './icons.ts'
 import { Segmented } from './motion.js'
-import { EmptyState } from './empty-state.js'
+import { EmptyState } from './empty-state.ts'
 import { dateLocale, hostText, t } from './i18n.js'
 
 const POLL_MS = 30_000

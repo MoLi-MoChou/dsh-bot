@@ -2,26 +2,45 @@ import { createElement as h, useEffect, useRef, useState } from 'react'
 import { Segmented } from './motion.js'
 import { t } from './i18n.js'
 
-const LABELS = { 'read-only': 'Read only', 'workspace-write': 'Workspace', 'danger-full-access': 'Full access' }
-const DANGER = new Set(['danger-full-access'])
+// One preset of the permission catalog the host offers.
+export interface PresetOption {
+  value: string
+  name: string
+  description?: string
+}
+export interface PresetCatalog { options: PresetOption[] }
 
-export const presetDanger = value => DANGER.has(value)
-export const presetName = (value, catalog) => (LABELS[value] ? t(LABELS[value]) : catalog?.options?.find(option => option.value === value)?.name ?? value)
+export interface PermissionPickerProps {
+  catalog: PresetCatalog
+  saved: string
+  onPick: (value: string) => boolean | void | Promise<boolean | void>
+  repick?: boolean
+}
+
+const LABELS: Record<string, string> = { 'read-only': 'Read only', 'workspace-write': 'Workspace', 'danger-full-access': 'Full access' }
+const DANGER = new Set<string>(['danger-full-access'])
+
+export const presetDanger = (value: string): boolean => DANGER.has(value)
+export const presetName = (value: string, catalog?: PresetCatalog): string => {
+  const label = LABELS[value]
+  if (label !== undefined) return String(t(label))
+  return catalog?.options?.find(option => option.value === value)?.name ?? value
+}
 
 // The presets DeepSeek Harness offers, as one segmented choice. A pick shows at once
 // and holds until the saved value catches up, or falls back when `onPick` resolves
 // false. `repick` lets the shown preset be picked again.
-export function PermissionPicker({ catalog, saved, onPick, repick = false }) {
-  const [pending, setPending] = useState(null)
+export function PermissionPicker({ catalog, saved, onPick, repick = false }: PermissionPickerProps) {
+  const [pending, setPending] = useState<string | null>(null)
   // One save runs at a time. A pick made while one is in flight waits as `latest`
   // (newer ones overwrite it), so a request that settles cannot clear or reorder a
   // pick made after it; two saves never land out of order on the server.
-  const flight = useRef({ value: undefined, latest: undefined })
+  const flight = useRef<{ value: string | undefined; latest: string | undefined }>({ value: undefined, latest: undefined })
   useEffect(() => {
     const flying = flight.current.value
     if (pending === saved && (flying === undefined || flying === pending)) setPending(null)
   }, [pending, saved])
-  const send = (value) => {
+  const send = (value: string): void => {
     flight.current.value = value
     void Promise.resolve(onPick(value)).then(done => done !== false, () => false).then((ok) => {
       const wanted = flight.current.latest
@@ -32,7 +51,7 @@ export function PermissionPicker({ catalog, saved, onPick, repick = false }) {
     })
   }
   const current = pending ?? saved
-  const pick = (value) => {
+  const pick = (value: string): void => {
     if (value === current && !repick) return
     setPending(value)
     if (flight.current.value !== undefined) { flight.current.latest = value; return }

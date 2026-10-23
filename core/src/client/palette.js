@@ -2,10 +2,10 @@ import { createElement as h, Fragment, useEffect, useRef, useState } from 'react
 import { FishLogo } from './dsh-primitives.ts'
 import { isMainOf } from './sources.ts'
 import { currentPart, stripHeader } from './text.ts'
-import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.js'
+import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.ts'
 import { BotAvatar, RoomAvatar } from './mark.js'
 import { useEscape } from './overlay-hooks.ts'
-import { EmptyState } from './empty-state.js'
+import { EmptyState } from './empty-state.ts'
 import { DIALOG_EXIT_MS, QUICK_EDGES, reducedMotion, useFlip, useGlide } from './motion.js'
 import { t } from './i18n.js'
 

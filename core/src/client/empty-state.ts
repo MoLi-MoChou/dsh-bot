@@ -1,10 +1,27 @@
 import { createElement as h } from 'react'
+import type { ReactNode } from 'react'
+
+// The one action an empty state may offer: it must really do something here.
+export interface EmptyStateAction {
+  label: string
+  icon?: ReactNode
+  onClick: () => void
+}
+
+export interface EmptyStateProps {
+  icon?: ReactNode
+  art?: ReactNode
+  title?: ReactNode
+  hint?: ReactNode
+  action?: EmptyStateAction
+  compact?: boolean
+}
 
 // One look for every list, panel and search that has nothing to show yet: a mark on
 // a soft accent disc, a title, a hint and at most one action. The action is only
 // passed when it really does something here; there is no inert button. `art` takes
 // the disc's place when the empty thing already has a face (a Bot's mark).
-export function EmptyState({ icon, art, title, hint, action, compact = false }) {
+export function EmptyState({ icon, art, title, hint, action, compact = false }: EmptyStateProps) {
   return h('div', { className: 'bt-es', 'data-compact': compact || undefined, role: 'status' },
     art ? h('span', { className: 'bt-es-art', 'aria-hidden': true }, art)
       : icon ? h('span', { className: 'bt-es-mark', 'aria-hidden': true }, icon) : null,

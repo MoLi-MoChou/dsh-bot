@@ -1,5 +1,5 @@
 import { INKS, GRADIENTS, isHex, inkFill } from './inks.ts'
-import { SPRITE } from './brand-art.js'
+import { SPRITE } from './brand-art.ts'
 
 // -------------------------------------------------------------------------
 // Characters: DS Bot's own avatars, small 3D models seen from a

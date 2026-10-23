@@ -1,18 +1,58 @@
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ReactElement } from 'react'
 import { isMainOf } from './sources.ts'
 import { currentPart } from './text.ts'
-import { GearIcon, PinIcon, UnreadIcon, PencilIcon, StarLineIcon, CopyIcon, HideIcon, TrashIcon, DuplicateIcon } from './icons.js'
+import { GearIcon, PinIcon, UnreadIcon, PencilIcon, StarLineIcon, CopyIcon, HideIcon, TrashIcon, DuplicateIcon } from './icons.ts'
 import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { t } from './i18n.js'
 
-export function ContextMenu({ menu, roster, actions, leaving = false }) {
+// The thing a menu was opened on: a Bot or room by id, or a DSH Agent row (whose
+// Session menus carry the Agent id beside the Session id).
+export interface ContextMenuTarget {
+  kind?: string
+  id: string
+  x: number
+  y: number
+  agentId?: string
+}
+interface MenuBot { id: string; name: string; pinned?: boolean }
+interface MenuRoom { id: string; name: string; pinned?: boolean }
+interface MenuAgent { id: string; pinned?: boolean }
+export interface ContextRoster {
+  byId: Record<string, MenuBot | undefined>
+  roomsById: Record<string, MenuRoom | undefined>
+  agentsById: Record<string, MenuAgent | undefined>
+  mainBotId?: string | null
+  mainBotIds?: readonly string[]
+}
+export interface ContextMenuActions {
+  closeMenu: () => void
+  setFlags: (id: string, flags: { pinned?: boolean; hidden?: boolean }) => void
+  markUnread: (id: string) => void
+  renameBot: (id: string) => void
+  openSettings: (page: string, id: string) => void
+  duplicateBot: (id: string) => Promise<{ id: string }>
+  openSession: (id: string) => void
+  setMain: (id: string, main: boolean) => void
+  deleteBot: (id: string) => void
+  deleteRoom: (id: string) => void
+  reportError: (error: unknown, where: string) => void
+  removeAgent: (id: string) => void
+  beginAgentRename: (id: string) => void
+  archiveAgentSession: (agentId: string, sessionId: string) => void
+}
+
+// label, glyph, what it does, and whether it is the destructive entry.
+type MenuItem = readonly [label: string, Icon: () => ReactElement, run: () => unknown, danger?: boolean]
+
+export function ContextMenu({ menu, roster, actions, leaving = false }: { menu: ContextMenuTarget; roster: ContextRoster; actions: ContextMenuActions; leaving?: boolean }) {
   useEscape(() => actions.closeMenu())
   useEffect(() => {
-    const onDown = (event) => { if (!(event.target instanceof Element) || !event.target.closest('.bt-menu')) actions.closeMenu() }
+    const onDown = (event: MouseEvent): void => { if (!(event.target instanceof Element) || !event.target.closest('.bt-menu')) actions.closeMenu() }
     window.addEventListener('mousedown', onDown)
     return () => window.removeEventListener('mousedown', onDown)
   }, [])
-  const ref = useRef(null)
+  const ref = useRef<HTMLDivElement | null>(null)
   useMenuKeys(ref, !leaving)
   const [place, setPlace] = useState({ left: menu.x, top: menu.y })
   useLayoutEffect(() => {
@@ -28,7 +68,7 @@ export function ContextMenu({ menu, roster, actions, leaving = false }) {
   const isMainBot = isMainOf(roster, menu.id)
   const isTile = roster.mainBotId === menu.id
   const mainCount = (roster.mainBotIds ?? []).length
-  const groups = [
+  const groups = ([
     [
       isTile ? null : [entry.pinned ? t('Unpin') : t('Pin'), PinIcon, () => actions.setFlags(menu.id, { pinned: !entry.pinned })],
       [t('Mark as Unread'), UnreadIcon, () => actions.markUnread(menu.id)],
@@ -42,13 +82,13 @@ export function ContextMenu({ menu, roster, actions, leaving = false }) {
       bot && !isMainBot ? [t('Make Main Bot'), StarLineIcon, () => actions.setMain(bot.id, true)] : null,
       bot && isMainBot && mainCount > 1 ? [t('Remove Main Bot role'), StarLineIcon, () => actions.setMain(bot.id, false)] : null,
     ],
-    [[t('Copy conversation ID'), CopyIcon, () => navigator.clipboard?.writeText(bot ? currentPart(bot) : menu.id)]],
+    [[t('Copy conversation ID'), CopyIcon, () => navigator.clipboard?.writeText(bot ? String(currentPart(bot)) : menu.id)]],
     [
       isMainBot ? null : [t('Hide from sidebar'), HideIcon, () => actions.setFlags(menu.id, { hidden: true })],
       isMainBot ? null : [room ? t('Delete group') : t('Delete'), TrashIcon, () => (bot ? actions.deleteBot(bot.id) : actions.deleteRoom(menu.id)), true],
     ],
-  ].map(group => group.filter(Boolean)).filter(group => group.length > 0)
-  return h('div', { ref, className: 'bt-menu', role: 'menu', 'aria-label': t('{name} actions', { name: bot?.name ?? room.name }), style: place, 'data-leaving': leaving || undefined },
+  ] as (MenuItem | null)[][]).map(group => group.filter((item): item is MenuItem => item !== null)).filter(group => group.length > 0)
+  return h('div', { ref, className: 'bt-menu', role: 'menu', 'aria-label': t('{name} actions', { name: entry.name }), style: place, 'data-leaving': leaving || undefined },
     groups.map((group, index) => h(Fragment, { key: index },
       index > 0 ? h('div', { className: 'bt-menu-sep', role: 'separator' }) : null,
       group.map(([label, Icon, run, danger]) => h('button', {
@@ -58,8 +98,8 @@ export function ContextMenu({ menu, roster, actions, leaving = false }) {
 }
 
 // Menus for the DSH Agent row and its Sessions; none of the Bot entries apply.
-function AgentMenu({ menu, roster, actions, leaving }) {
-  const ref = useRef(null)
+function AgentMenu({ menu, roster, actions, leaving }: { menu: ContextMenuTarget; roster: ContextRoster; actions: ContextMenuActions; leaving: boolean }) {
+  const ref = useRef<HTMLDivElement | null>(null)
   useMenuKeys(ref, !leaving)
   const [place, setPlace] = useState({ left: menu.x, top: menu.y })
   useLayoutEffect(() => {
@@ -67,9 +107,9 @@ function AgentMenu({ menu, roster, actions, leaving }) {
     if (!box) return
     setPlace({ left: Math.max(8, Math.min(menu.x, window.innerWidth - box.width - 8)), top: Math.max(8, Math.min(menu.y, window.innerHeight - box.height - 8)) })
   }, [menu.x, menu.y])
-  const agent = roster.agentsById[menu.kind === 'agent' ? menu.id : menu.agentId]
+  const agent = roster.agentsById[menu.kind === 'agent' ? menu.id : menu.agentId ?? '']
   if (agent === undefined) return null
-  const groups = menu.kind === 'agent'
+  const groups: MenuItem[][] = menu.kind === 'agent'
     ? [
         [
           [agent.pinned ? t('Unpin') : t('Pin'), PinIcon, () => actions.setFlags(agent.id, { pinned: !agent.pinned })],

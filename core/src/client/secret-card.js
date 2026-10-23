@@ -3,7 +3,7 @@
 // lists the saved keys and who may use them. Values only ever travel from these
 // inputs to the host; nothing here reads one back.
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
-import { CheckIcon, CloseIcon, TrashIcon } from './icons.js'
+import { CheckIcon, CloseIcon, TrashIcon } from './icons.ts'
 import { BotAvatar, BotMark } from './mark.js'
 import { contentText, currentPart } from './text.ts'
 import { dateLocale, t } from './i18n.js'

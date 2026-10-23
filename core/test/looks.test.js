@@ -31,7 +31,7 @@ test('the whale is only a stored look: the browser gives no Bot a look by its pl
 
 test('Bot settings is the only settings entry; nothing is called Team settings', () => {
   const dir = new URL('../src/client/', import.meta.url)
-  const sources = readdirSync(dir).filter(name => name.endsWith('.js')).map(name => [name, readFileSync(new URL(name, dir), 'utf8')])
+  const sources = readdirSync(dir).filter(name => /\.(js|ts|tsx)$/.test(name) && !name.endsWith('.d.ts')).map(name => [name, readFileSync(new URL(name, dir), 'utf8')])
   for (const [name, text] of [...sources, ['client.js', readFileSync(new URL('../client.js', import.meta.url), 'utf8')]]) {
     assert.ok(!text.includes('Team settings'), `${name} still names Team settings`)
   }
@@ -39,9 +39,9 @@ test('Bot settings is the only settings entry; nothing is called Team settings',
   assert.match(text('sidebar.js'), /\[t\('Bot settings'\), GearIcon, \(\) => actions\.openSettings\('general'\)\]/)
   assert.match(text('palette.js'), /title: t\('Bot settings'\), run: \(\) => actions\.openSettings\('general'\)/)
   // One Bot's own entries open that Bot, so they read Edit Bot instead.
-  assert.match(text('context-menu.js'), /\[t\('Edit Bot'\), GearIcon, \(\) => actions\.openSettings\('bots', bot\.id\)\]/)
+  assert.match(text('context-menu.ts'), /\[t\('Edit Bot'\), GearIcon, \(\) => actions\.openSettings\('bots', bot\.id\)\]/)
   assert.match(text('details-drawer.js'), /'aria-label': bot \? t\('Edit Bot'\) : t\('Group settings'\), title: bot \? t\('Edit Bot'\) : t\('Group settings'\)/)
   // A group chat's entries open its own settings the same way.
-  assert.match(text('context-menu.js'), /\[t\('Group settings'\), GearIcon, \(\) => actions\.openSettings\('groups', room\.id\)\]/)
+  assert.match(text('context-menu.ts'), /\[t\('Group settings'\), GearIcon, \(\) => actions\.openSettings\('groups', room\.id\)\]/)
   assert.ok(!text('mark.js').includes('WhaleLogo'))
 })

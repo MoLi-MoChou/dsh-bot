@@ -1,5 +1,5 @@
 import { INKS } from './inks.ts'
-import { LOGO_LIGHT, LOGO_DARK } from './brand-art.js'
+import { LOGO_LIGHT, LOGO_DARK } from './brand-art.ts'
 import { DEFAULT_MASK } from './characters.js'
 import { MENTION_ORIGIN } from './text.ts'
 import { DIALOG_EXIT_MS, EASE_IN, EASE_OUT, EASE_PANEL, MENU_EXIT_MS, MOTION_PRESETS, PANEL_LINGER_MS, SHEET_EXIT_MS, SPRING_SHAPE, SPRING_TAP, SPRING_STRETCH, SPRING_POP, spring } from './motion.js'
