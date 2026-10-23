@@ -4,7 +4,7 @@ import { MemoryIcon, SidePanelIcon } from './icons.ts'
 import { botState, BotAvatar, RoomAvatar } from './mark.ts'
 import type { BotAvatarProps } from './mark.ts'
 import { ActivityIndicator } from './activity-row.ts'
-import { clockLabel, openingTurn, unseenSince } from './cells.js'
+import { clockLabel, openingTurn, unseenSince } from './cells.ts'
 import { NewMessagePills } from './header-pills.ts'
 import type { SessionsState, StoreHook, TurnClockState, UiState } from './header-pills.ts'
 

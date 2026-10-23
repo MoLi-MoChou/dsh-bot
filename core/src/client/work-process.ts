@@ -5,7 +5,7 @@
 import { createElement as h, Fragment, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { contentText, toolName, elapsedLabel } from './text.ts'
-import { callTree } from './cells.js'
+import { callTree } from './cells.ts'
 import { t } from './i18n.ts'
 import { EASE_PANEL, PANEL_LINGER_MS, SPRING_SHAPE } from './motion.ts'
 import { useTurnRetries } from './retry-cell.ts'

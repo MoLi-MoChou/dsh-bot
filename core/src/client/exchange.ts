@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useSt
 import { inkText } from './inks.ts'
 import { dayLabel } from './text.ts'
 import { colorOf, BotMark } from './mark.ts'
-import { Bubbles } from './cells.js'
+import { Bubbles } from './cells.ts'
 import { stripLongNote } from './fold.ts'
 import { ChatsIcon } from './icons.ts'
 import { SHEET_EXIT_MS, reducedMotion } from './motion.ts'
@@ -83,11 +83,14 @@ export function ExchangeDialog({ pair, roster, actions }: {
               lastDay = entry.time
               // A long message comes with its start only; the rest is read on request.
               const whole = entry.length === undefined ? undefined : { length: entry.length, load: () => actions.exchangeText(entry.id) }
+              // The dialog reads only its own fields of the roster and actions it is handed;
+              // Bubbles takes the same full ones the rest of the client passes.
+              const bubbles = { texts: [stripLongNote(entry.text)], roster, selfId: bot.id, actions, whole, lead: h('span', { className: 'bt-lead' }, h(BotMark, { bot: bot, size: 22 })) } as unknown as Parameters<typeof Bubbles>[0]
               return h(Fragment, { key: entry.id },
                 showDay ? h('time', { className: 'bt-time' }, dayLabel(entry.time)) : null,
                 h('div', { className: 'bt-group-msg' },
                   h('span', { className: 'bt-group-name', style: { color: inkText(colorOf(bot)) } }, bot.name),
-                  h(Bubbles, { texts: [stripLongNote(entry.text)], roster, selfId: bot.id, actions, whole, lead: h('span', { className: 'bt-lead' }, h(BotMark, { bot: bot, size: 22 })) })))
+                  h(Bubbles, bubbles)))
             })),
       h('div', { className: 'bt-dialog-foot' }, h('button', { type: 'button', className: 'bt-soft', onClick: close }, t('Close Chat')))))
 }

@@ -9,7 +9,7 @@ import { build } from 'esbuild'
 const { outputFiles } = await build({
   stdin: {
     contents: [
-      "export { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines } from './src/client/cells.js'",
+      "export { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines } from './src/client/cells.ts'",
       "export { QuestionDock } from './src/client/questions.ts'",
       "export { SecretDock } from './src/client/secret-card.ts'",
       "export { countCards } from './src/client/sources.ts'",

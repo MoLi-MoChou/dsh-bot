@@ -5,7 +5,7 @@ import { createElement as h, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom'
 import { BotMark, RoomAvatar } from './mark.ts'
 import type { BotMarkProps, RoomAvatarProps } from './mark.ts'
-import { Elapsed, Shimmer, PHRASES } from './cells.js'
+import { Elapsed, Shimmer, PHRASES } from './cells.ts'
 import { reducedMotion } from './motion.ts'
 import { t } from './i18n.ts'
 
