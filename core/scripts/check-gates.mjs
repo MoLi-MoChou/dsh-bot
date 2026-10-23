@@ -56,7 +56,6 @@ const LINE_EXEMPTIONS = [
   'src/host/memory.js',
   'src/host/parts.js',
   'src/host/groups.js',
-  'src/host/tools.js',
   'src/host/turns.js',
   'src/host/roster.js',
   'src/host/secrets.js',

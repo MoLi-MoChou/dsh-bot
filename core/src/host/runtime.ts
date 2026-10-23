@@ -125,6 +125,8 @@ export interface LiveEntry {
   readonly since?: number
   readonly turn?: unknown
   readonly info?: TurnInfo
+  /** Requests that joined the turn in progress, kept with the info they came with. */
+  readonly joined?: readonly { readonly info: TurnInfo; readonly text?: string }[]
 }
 
 export interface ModelReasoningEffort {

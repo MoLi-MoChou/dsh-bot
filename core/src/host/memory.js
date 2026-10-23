@@ -32,7 +32,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { replaceFile } from './files.ts'
 import { splitRef, unquote } from './text.ts'
 import { speakerOf } from '../shared/mentions.js'
-import { output } from './tools.js'
+import { output } from './tools.ts'
 
 // Fixed sizes, in characters. Both MEMORY.md files ride in every request of every
 // part, so together they stay near 8,000 characters, a few thousand tokens. A topic is

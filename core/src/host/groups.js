@@ -23,7 +23,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { GROUP_LINE_READ, ROOM_LATE_ROUNDS, ROOM_REPLY_TIMEOUT_MS, ROOM_STEP_GAP_MS, ROOM_WORK_GRACE_MS, SOURCE_KIND, TEAM_TOOLS, TEXT_KEPT } from './constants.ts'
 import { escapeRegExp, headOf, splitRef, textOf } from './text.ts'
 import { mentionSpans, speakerOf } from '../shared/mentions.js'
-import { GROUP_REF, output } from './tools.js'
+import { GROUP_REF, output } from './tools.ts'
 import { failureLine, failureSay } from './turns.js'
 
 const ROOM_LOG_MAX = 60

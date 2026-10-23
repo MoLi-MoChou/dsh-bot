@@ -43,7 +43,7 @@ change is listed here (Apache-2.0 section 4(b)); code changes carry a
      a v* tag builds Windows + Linux, runs check-packed, and publishes a
      pre-release with latest.yml, the .blockmap and latest-linux.yml.
   9. Lean tools: under the slim product the Bots' own chats also lose the group
-     and schedule tools (core/src/shared/lean.js, host/tools.js guard) and
+     and schedule tools (core/src/shared/lean.js, host/tools.ts guard) and
      the prompt rules about them (host/prompt.js). DSH's Automation tasks panel,
      scheduler, schedule tool and product-telemetry export are switched off in
      core/cordis.patch.yml.

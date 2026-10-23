@@ -74,7 +74,7 @@ interface PageTextOptions {
 // carries read requests back; the client answers with `browser-result`.
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
-import { output } from './tools.js'
+import { output } from './tools.ts'
 
 // A waiting client counts as present; one that has not polled for this long is gone.
 const CLIENT_STALE_MS = 30_000

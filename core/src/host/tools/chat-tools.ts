@@ -1,0 +1,334 @@
+// Group chat tools and the question and view cards. Group rounds and reading chats are
+// in groups.js; the cards land in the Bot's own chat.
+import { randomUUID } from 'node:crypto'
+import { defineTool, type ToolRunContext } from '@deepseek-ai/dsh-tools'
+import type { HostRuntime, StoredBot } from '../runtime.ts'
+import { absoluteLinks } from '../links.ts'
+import { mentionSpans } from '../../shared/mentions.ts'
+import { checkShownView, normalizeView } from './views-bridge.js'
+import {
+  BLOCKING_QUESTION_TOOL, GROUP_REF, MODE_PARAM, WORK_DIR_PARAM,
+  errorMessage, isRecord, output, type ToolShared,
+} from './shared.ts'
+
+interface GroupArgs {
+  readonly group?: string
+}
+
+interface CreateGroupArgs {
+  readonly members?: unknown
+  readonly name?: string
+  readonly notice?: string
+  readonly admin?: string
+  readonly mode?: string
+}
+
+interface UpdateGroupArgs {
+  readonly group?: string
+  readonly name?: string
+  readonly notice?: string
+  readonly add_members?: unknown
+  readonly remove_members?: unknown
+  readonly admin?: string
+  readonly mode?: string
+  readonly work_dir?: unknown
+}
+
+interface PostToGroupArgs {
+  readonly group?: string
+  readonly message?: unknown
+  readonly report_back?: unknown
+}
+
+interface AskUserArgs {
+  readonly question?: unknown
+  readonly options?: unknown
+  readonly detail?: unknown
+  readonly multiSelect?: unknown
+  readonly allowCustom?: unknown
+}
+
+interface ShowViewArgs {
+  readonly title?: unknown
+  readonly view?: unknown
+  readonly await_reply?: unknown
+}
+
+/** `checkShownView`'s answer: the error, or the trimmed title and whether it waits. */
+type ViewCheck =
+  | { readonly error: string; readonly title?: undefined; readonly interactive?: undefined }
+  | { readonly title: string; readonly interactive: boolean; readonly error?: undefined }
+
+const botName = (rt: HostRuntime, id: string): string => rt.botOf(id)?.name ?? id
+
+export function installChatTools(rt: HostRuntime, shared: ToolShared): void {
+  const { ctx, state } = rt
+  const t = shared.rt
+
+  ctx.tools.register(defineTool({
+    name: 'create_group',
+    description: 'Main Bot only. Create a group chat with the user and some Bots. You join it as its admin unless you name another member.',
+    parameters: {
+      members: { type: 'array', required: true, items: { type: 'string' }, description: 'Exact names of the other Bots to add; you are added automatically' },
+      name: { type: 'string', description: 'Group name; defaults to the member names' },
+      notice: { type: 'string', description: 'Shared instructions every member reads before speaking in this group' },
+      admin: { type: 'string', description: 'Member who leads the group; defaults to you' },
+      mode: MODE_PARAM,
+    },
+    output,
+    async execute(args: CreateGroupArgs, exec: ToolRunContext): Promise<string> {
+      await t.load()
+      const self = t.selfOf(exec.agent?.id)
+      if (!t.isMain(self)) return 'Only a Main Bot can create group chats. Ask a Main Bot instead.'
+      const { bots, unknown } = shared.resolveBots(args.members)
+      if (unknown.length > 0) return `No Bot named ${unknown.join(', ')}. Team: ${shared.teamNames()}`
+      const admin = args.admin ? t.findBot(args.admin) : t.botOf(self)
+      if (admin === undefined) return `No Bot named ${args.admin}. Team: ${shared.teamNames()}`
+      const members = [...new Set([self, ...bots.map(bot => bot.id), admin.id])]
+      try {
+        const room = await t.createRoom({ members, name: args.name, notice: args.notice, mode: args.mode, admin: admin.id, createdBy: self })
+        return `Created group "${room.name}" with ${(room.members ?? []).map(id => botName(rt, id)).join(', ')}. ${admin.id === self ? 'You are' : `${admin.name} is`} its admin. It is in the user's sidebar; use post_to_group to start a discussion there.`
+      } catch (error) {
+        return `Could not create the group: ${errorMessage(error)}`
+      }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'update_group',
+    description: 'Change a group chat: rename it, set its notice, add or remove members, change its admin or reply mode. Main Bots may change any group; a group\'s admin may change its own group.',
+    parameters: {
+      group: GROUP_REF,
+      name: { type: 'string', description: 'New group name; an empty string names it after its members again' },
+      notice: { type: 'string', description: 'Replacement notice, the shared instructions every member reads; an empty string clears it' },
+      add_members: { type: 'array', items: { type: 'string' }, description: 'Exact names of Bots to add' },
+      remove_members: { type: 'array', items: { type: 'string' }, description: 'Exact names of Bots to remove' },
+      admin: { type: 'string', description: 'Member to make the admin; "none" leaves the group without one (Main Bots only)' },
+      mode: MODE_PARAM,
+      work_dir: { ...WORK_DIR_PARAM, description: `${WORK_DIR_PARAM.description}. Every member works there in this group; an empty string lets each member work in its own folder again (Main Bots only)` },
+    },
+    output,
+    async execute(args: UpdateGroupArgs, exec: ToolRunContext): Promise<string> {
+      await t.load()
+      const self = t.selfOf(exec.agent?.id)
+      if (t.botOf(self) === undefined) return 'Only Bots on the team can use update_group.'
+      const { room, error } = shared.pickRoom(args.group, self)
+      if (error !== undefined) return error
+      const moving = typeof args.work_dir === 'string'
+      if (moving && !t.isMain(self)) return `Only a Main Bot can set the folder of "${room.name}".`
+      const add = shared.resolveBots(args.add_members)
+      const remove = shared.resolveBots(args.remove_members)
+      const unknown = [...add.unknown, ...remove.unknown]
+      if (unknown.length > 0) return `No Bot named ${unknown.join(', ')}. Team: ${shared.teamNames()}`
+      let admin: string | null | undefined
+      if (args.admin !== undefined && args.admin !== '') {
+        if (/^(none|nobody|null|无|没有)$/i.test(String(args.admin).trim())) admin = null
+        else {
+          admin = t.findBot(args.admin)?.id
+          if (admin === undefined) return `No Bot named ${args.admin}. Team: ${shared.teamNames()}`
+        }
+      }
+      try {
+        const workDir = moving ? await t.cleanWorkDir(args.work_dir) : undefined
+        // A Bot that joins a group with a folder works there from its first turn.
+        const joining = add.bots.filter(bot => !(room.members ?? []).includes(bot.id))
+        if (moving && workDir !== room.workDir) {
+          const members = [...(room.members ?? []), ...joining.map(bot => bot.id)]
+          await t.approveFolder(exec, { path: workDir, sessions: members.map(id => room.sessions?.[id]).filter((id): id is string => id !== undefined), who: { en: `every member of "${room.name}"`, zh: `群聊「${room.name}」的成员` } })
+        } else if (joining.length > 0) {
+          const names = joining.map(bot => bot.name)
+          await t.approveFolder(exec, { path: room.workDir, sessions: joining.map(bot => room.sessions?.[bot.id]).filter((id): id is string => id !== undefined), who: { en: names.join(', '), zh: ` ${names.join('、')} ` } })
+        }
+        const { room: next, changes } = await t.updateRoom(room.id, {
+          name: args.name,
+          notice: args.notice,
+          mode: args.mode,
+          admin,
+          add: add.bots.map(bot => bot.id),
+          remove: remove.bots.map(bot => bot.id),
+          ...(moving ? { workDir: workDir ?? '' } : {}),
+        }, self)
+        return changes.length === 0 ? `Nothing changed in "${next.name}".` : `Updated "${next.name}": ${changes.join('; ')}.`
+      } catch (failure) {
+        return `Could not update "${room.name}": ${errorMessage(failure)}`
+      }
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'delete_group',
+    description: 'Main Bot only. Delete a group chat; its history is archived. Only when the user asks.',
+    parameters: { group: GROUP_REF },
+    output,
+    async execute(args: GroupArgs, exec: ToolRunContext): Promise<string> {
+      await t.load()
+      const self = t.selfOf(exec.agent?.id)
+      if (!t.isMain(self)) return 'Only a Main Bot can delete group chats.'
+      const { room, error } = shared.pickRoom(args.group, self)
+      if (error !== undefined) return error
+      if (t.roomBusy(room.id)) return `"${room.name}" is in the middle of a round. Delete it after the round ends.`
+      await t.deleteRoom(room.id)
+      return `Deleted "${room.name}". Its history is archived.`
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'post_to_group',
+    description: 'Post a message into a group chat as yourself. A Main Bot may post into any group, any other Bot into a group it is in. A Main Bot\'s or the group admin\'s post starts a round: members reply in the group, where the user reads them. Another member\'s post calls only the members it names with "@Name"; without one it is only written into the group.',
+    parameters: {
+      group: GROUP_REF,
+      message: { type: 'string', required: true, description: 'What to say; write "@Name" to choose who answers, and a name without "@" to only mention a member' },
+      report_back: { type: 'boolean', description: 'Also send the members\' replies back to you as a new message when the round ends' },
+    },
+    output,
+    async execute(args: PostToGroupArgs, exec: ToolRunContext): Promise<string> {
+      await t.load()
+      const self = t.selfOf(exec.agent?.id)
+      const sender = t.botOf(self)
+      if (self === undefined || sender === undefined) return 'Only Bots on the team can use post_to_group.'
+      const { room, error } = shared.pickRoom(args.group, self)
+      if (error !== undefined) return error
+      // An ordinary member's post calls only the members it names (openingSpeakers).
+      const member = !t.isMain(self) && !t.isAdminOf(room, self)
+      const info = shared.liveEntry(exec.agent?.id)?.info
+      if (info?.role === 'room' && info.roomId === room.id) return `You are speaking in "${room.name}" right now. Write your message as your reply instead.`
+      const text = absoluteLinks(String(args.message ?? '').trim(), t.sessionFolder(exec.agent?.session ?? exec.agent))
+      if (text === '') return 'Write a message to post.'
+      const named = mentionSpans(text, (room.members ?? []).map(id => t.botOf(id)).filter((bot): bot is StoredBot => bot !== undefined))
+        .flatMap(span => ('bot' in span && span.bot.id !== self ? [span.bot.id] : []))
+      const reportBack = args.report_back === true
+      if (member && reportBack && named.length === 0) {
+        return 'Nobody would answer: your post only calls the members you name. Write "@Name" for each member who should answer, or post without report_back.'
+      }
+      const long = await t.attachLong(text, `Post from ${sender.name}.txt`)
+      if (long === undefined) return shared.tooLong(text)
+      // Replies the poster waits for, while it works on what a Bot asked it for, are
+      // work handed on for that request (handoffs.ts).
+      const work = reportBack ? shared.worksOf(exec).find(id => t.ownsWork(self, id)) : undefined
+      const sub = work === undefined ? undefined : randomUUID()
+      if (sub !== undefined) t.openWork(sub, { from: self, room: room.id, parent: work })
+      try {
+        await t.postToRoom(room, sender, long.text, { ...(reportBack ? { reportBack: true } : {}), ...(member ? { member: true } : {}), ...(sub ? { sub } : {}), ...(long.length ? { length: long.length } : {}) }, long.files)
+      } catch (failure) {
+        if (sub !== undefined) t.dropWork(sub)
+        return `Could not post in "${room.name}": ${errorMessage(failure)}`
+      }
+      if (member && named.length === 0) return `Posted in "${room.name}", where the user and its members read it. Nobody answers it: your post only calls the members you name with @Name.`
+      if (named.length > 0) {
+        const turn = shared.turnOf(exec)
+        const earlier = shared.calledInPosts.get(exec.agent?.id)
+        const calls = new Map(earlier !== undefined && earlier.turn === turn ? earlier.calls : [])
+        for (const id of named) calls.set(id, room.name)
+        shared.calledInPosts.set(exec.agent?.id, { turn, calls })
+      }
+      const asker = sub === undefined ? undefined : t.botOf(shared.workFrom(work))?.name
+      const waits = asker ? ` End your turn when you have handed on everything: the replies bring you back to this work, and your answer goes to ${asker} once all of it is back.` : ''
+      return `Posted in "${room.name}". Members reply there, where the user reads them${reportBack ? '; their replies also come back to you as a new message when the round ends' : ', and nothing comes back to you'}.${waits}`
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'ask_user',
+    description: 'Show the user a short multiple-choice question card in the chat (the user can also type their own answer). Calling it ends your turn; the chosen answer arrives later as the user\'s next message.',
+    parameters: {
+      question: { type: 'string', required: true, description: 'One short question' },
+      options: {
+        type: 'array',
+        required: true,
+        description: 'Two to four answers',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            label: { type: 'string', required: true, description: 'Short answer shown on the option' },
+            description: { type: 'string', description: 'Optional one-line explanation under the label' },
+          },
+        },
+      },
+      detail: { type: 'string', description: 'Optional one-line context shown under the question' },
+      multiSelect: { type: 'boolean', description: 'Allow choosing several options' },
+      allowCustom: { type: 'boolean', description: 'Also offer a field for an answer in the user\'s own words' },
+    },
+    output,
+    async execute(args: AskUserArgs, exec: ToolRunContext): Promise<string> {
+      await t.load()
+      const id = exec.agent?.id
+      if (id === undefined) return `Only Bots on the team can use ask_user. Use ${BLOCKING_QUESTION_TOOL} if it is available in this session, or ask the user in your reply.`
+      if (t.groupOwners.has(id)) return 'Question cards only work in your own chat. In a group, ask in your message instead.'
+      if (!t.chatOwners.has(id)) return `Only Bots on the team can use ask_user. Use ${BLOCKING_QUESTION_TOOL} if it is available in this session, or ask the user in your reply.`
+      const options = (Array.isArray(args.options) ? args.options : [])
+        .map(option => (typeof option === 'string'
+          ? { label: option, description: undefined }
+          : isRecord(option) ? { label: option.label, description: option.description } : { label: undefined, description: undefined }))
+        .map(option => ({
+          label: String(option.label ?? '').trim(),
+          ...(option.description ? { description: String(option.description).trim() } : {}),
+        }))
+        .filter(option => option.label !== '')
+        .slice(0, 6)
+      if (options.length === 0) return 'Give at least one option.'
+      // A hidden Bot-to-Bot turn shows none of its calls, so its card goes to the
+      // composer dock, which takes questions without a call.
+      const hidden = shared.hiddenTurn(id)
+      const questions = state.questions ?? (state.questions = {})
+      questions[id] = {
+        id: randomUUID(),
+        ...(exec.callId && !hidden ? { callId: exec.callId } : {}),
+        question: String(args.question ?? '').trim(),
+        ...(args.detail ? { detail: String(args.detail).trim() } : {}),
+        options,
+        multiSelect: args.multiSelect === true,
+        ...(args.allowCustom === true ? { allowCustom: true } : {}),
+        askedAt: Date.now(),
+      }
+      await t.save()
+      exec.concludeTurn?.()
+      return 'The card is on screen; the user\'s answer arrives as their next message.'
+    },
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'show_view',
+    description: 'Show the user a view card in your own chat: text, metrics, a table, progress, choices, a confirmation, or a short form. An interactive card (options, confirm, or form) ends your turn; the answer arrives as the user\'s next message. Keep the view under 8 KB. Never collect a key, token, or password in a form.',
+    parameters: {
+      title: { type: 'string', required: true, description: 'One short title for the card' },
+      view: {
+        type: 'object',
+        required: true,
+        additionalProperties: true,
+        description: 'One component { type, ...props, children? }. type is stack (children, 1 to 16), text ({ text }), metric ({ label, value, tone? }), table ({ columns: [{ key, label }], rows }), options ({ id, options: [{ label, description? }], multi? }), confirm ({ id, confirmLabel?, cancelLabel? }), form ({ id, fields: [{ id, label, placeholder? }], submitLabel? }), or progress ({ label?, percent }).',
+      },
+      await_reply: { type: 'boolean', description: 'Wait for the user to submit the card. A view with options, confirm, or form always waits; a display-only view cannot.' },
+    },
+    output,
+    async execute(args: ShowViewArgs, exec: ToolRunContext): Promise<string> {
+      await t.load()
+      const id = exec.agent?.id
+      if (id === undefined) return `Only Bots on the team can use show_view. Use ${BLOCKING_QUESTION_TOOL} if it is available in this session, or ask the user in your reply.`
+      if (t.groupOwners.has(id)) return 'View cards only work in your own chat. In a group, ask in your message instead.'
+      if (!t.chatOwners.has(id)) return `Only Bots on the team can use show_view. Use ${BLOCKING_QUESTION_TOOL} if it is available in this session, or ask the user in your reply.`
+      const view: unknown = normalizeView(args.view)
+      const checked = checkShownView(args.title, view) as ViewCheck
+      if (checked.error !== undefined) return checked.error
+      const title = checked.title
+      if (!checked.interactive && args.await_reply === true) return 'This view has nothing to submit; call show_view with await_reply: false.'
+      if (checked.interactive && args.await_reply === false) return 'This view has controls to submit, so it waits for the user\'s answer; call show_view without await_reply: false.'
+      const awaitReply = args.await_reply ?? checked.interactive
+      if (!awaitReply) return 'The view is on screen.'
+      // A hidden Bot-to-Bot turn shows none of its calls, so its card goes to the
+      // composer dock, which takes a card without a call.
+      const hidden = shared.hiddenTurn(id)
+      const views = state.views ?? (state.views = {})
+      views[id] = {
+        id: randomUUID(),
+        ...(exec.callId && !hidden ? { callId: exec.callId } : {}),
+        title,
+        view,
+        askedAt: Date.now(),
+      }
+      await t.save()
+      exec.concludeTurn?.()
+      return 'The view is on screen; the user\'s answer arrives as their next message.'
+    },
+  }))
+}
