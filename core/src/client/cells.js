@@ -6,7 +6,7 @@ import { linkMentions, mentionTarget, dayLabel, contentText, stripHeader, isHidd
 import { SmileIcon, ReplyIcon, DotsIcon, CheckIcon, DownloadIcon, CopyIcon, MemoryIcon } from './icons.ts'
 import { colorOf, toolState, BotMark, RoomAvatar } from './mark.ts'
 import { SettledQuestion, PendingQuestion } from './questions.js'
-import { AnsweredReply, WidgetCell } from './widget-cell.js'
+import { AnsweredReply, WidgetCell } from './widget-cell.ts'
 import { SecretToolCell } from './secret-card.js'
 import { t } from './i18n.ts'
 import { call } from './api.ts'

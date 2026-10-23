@@ -1,9 +1,11 @@
 import { createElement as h, Fragment, useId, useRef, useState } from 'react'
+import type { ChangeEvent, KeyboardEvent, ReactElement } from 'react'
 import { MarkdownText } from './dsh-primitives.ts'
 import { CheckIcon, CloseIcon } from './icons.ts'
 import { t } from './i18n.ts'
 import { AnsweredCell, keyLetter, useOptionKeys } from './questions.js'
 import { useDockHold } from './card-hold.ts'
+import type { DockHoldActions } from './card-hold.ts'
 import { heldCardKey } from './sources.ts'
 import { checkShownView, normalizeView } from '../shared/views.ts'
 
@@ -14,38 +16,76 @@ import { checkShownView, normalizeView } from '../shared/views.ts'
 // components below. A card that awaits a reply lives in state.views like an
 // ask_user question; a display-only blueprint renders from the call's arguments.
 
+interface WidgetOption { label: string; description?: string | undefined }
+interface WidgetField { id: string; label: string; placeholder?: string | undefined }
+interface WidgetColumn { key?: string | undefined; label?: string | undefined }
+interface WidgetNode {
+  type?: string | undefined
+  id: string
+  children?: readonly WidgetNode[] | undefined
+  options?: readonly (string | WidgetOption)[] | undefined
+  fields?: readonly WidgetField[] | undefined
+  columns?: readonly WidgetColumn[] | undefined
+  rows?: readonly unknown[] | undefined
+  label?: string | undefined
+  value?: string | number | undefined
+  text?: string | undefined
+  tone?: string | undefined
+  percent?: number | undefined
+  multi?: boolean | undefined
+  cancelLabel?: string | undefined
+  confirmLabel?: string | undefined
+  submitLabel?: string | undefined
+  placeholder?: string | undefined
+  description?: string | undefined
+}
+interface AnswerValues { selected?: readonly string[] | undefined; confirmed?: boolean | undefined; fields?: Record<string, string> | undefined }
+interface AnswerValue { action?: string | undefined; id?: string | undefined; values?: AnswerValues | undefined }
+type SubmitHandler = (action: string | undefined, values: AnswerValues) => void
+interface WidgetContext { onSubmit?: SubmitHandler | undefined; settled: boolean; answer: AnswerValue | null; keys: boolean }
+interface ShownLike { id: string; title?: string | undefined; callId?: string | undefined; view: WidgetNode }
+interface ReplyData { kind?: string | undefined; views?: ShownLike[] | undefined; answers?: readonly AnswerValue[] | undefined; text?: unknown; questions?: readonly unknown[] | undefined }
+interface ReplyNode { data?: ReplyData | undefined }
+type WidgetCallArgs = { text?: ((name: string) => string) | undefined; value?: ((name: string) => unknown) | undefined }
+type RosterHook = <T>(select: (value: { views?: Record<string, ShownLike | undefined> | undefined }) => T) => T
+type CardsHook = <T>(select: (value: Record<string, Record<string, number> | undefined>) => T) => T
+export interface WidgetActions extends DockHoldActions {
+  answerView: (sessionId: string, viewId: string, action: string | undefined, values: AnswerValues) => Promise<unknown>
+  dismissView: (sessionId: string) => Promise<unknown>
+}
+
 const mdLabels = () => ({ code: { copyLabel: t('Copy'), copiedLabel: t('Copied') }, footnotes: t('Footnotes') })
 
-const optionsOf = node => (Array.isArray(node?.options) ? node.options : [])
+const optionsOf = (node: WidgetNode): WidgetOption[] => (Array.isArray(node.options) ? node.options : [])
   .map(option => (typeof option === 'string' ? { label: option } : option))
   .filter(option => option !== null && typeof option === 'object' && option.label !== undefined)
-const fieldsOf = node => (Array.isArray(node?.fields) ? node.fields : [])
+const fieldsOf = (node: WidgetNode): WidgetField[] => (Array.isArray(node.fields) ? node.fields : [])
   .filter(field => field !== null && typeof field === 'object' && field.id !== undefined)
-const cellText = value => (value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value))
+const cellText = (value: unknown): string => (value === null || value === undefined ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value))
 
-const countType = (node, type) => {
+const countType = (node: WidgetNode, type: string): number => {
   if (node === null || typeof node !== 'object') return 0
   const children = Array.isArray(node.children) ? node.children : []
   return (node.type === type ? 1 : 0) + children.reduce((sum, child) => sum + countType(child, type), 0)
 }
 
 // The values an answer carries belong to the component whose id is its action.
-const answerValues = (answer, node) => (answer?.action === node.id ? answer.values : undefined)
+const answerValues = (answer: AnswerValue | null, node: WidgetNode): AnswerValues | undefined => (answer?.action === node.id ? answer.values : undefined)
 
-function OptionsInput({ node, onSubmit, keys }) {
-  const [picked, setPicked] = useState([])
+function OptionsInput({ node, onSubmit, keys }: { node: WidgetNode; onSubmit?: SubmitHandler | undefined; keys: boolean }) {
+  const [picked, setPicked] = useState<string[]>([])
   const options = optionsOf(node)
   const multi = node.multi === true
-  const choose = (label) => {
+  const choose = (label: string): void => {
     if (multi) {
       setPicked(current => (current.includes(label) ? current.filter(item => item !== label) : [...current, label]))
       return
     }
     onSubmit?.(node.id, { selected: [label] })
   }
-  const submit = () => { if (picked.length > 0) onSubmit?.(node.id, { selected: picked }) }
-  const ownRef = useRef(null)
-  useOptionKeys(keys ? options.length : 0, index => choose(options[index].label), ownRef)
+  const submit = (): void => { if (picked.length > 0) onSubmit?.(node.id, { selected: picked }) }
+  const ownRef = useRef<HTMLButtonElement | null>(null)
+  useOptionKeys(keys ? options.length : 0, (index: number) => choose(options[index]?.label ?? ''), ownRef)
   return h(Fragment, null,
     h('div', { className: 'bt-q-list', role: 'group' }, options.map((option, index) => {
       const selected = multi && picked.includes(option.label)
@@ -65,7 +105,7 @@ function OptionsInput({ node, onSubmit, keys }) {
       h('button', { type: 'button', className: 'bt-q-submit', disabled: picked.length === 0, onClick: submit }, t('Submit'))) : null)
 }
 
-function SettledOptions({ node, answer }) {
+function SettledOptions({ node, answer }: { node: WidgetNode; answer: AnswerValue | null }) {
   const selected = answerValues(answer, node)?.selected
   const chosen = Array.isArray(selected) ? selected : []
   return h('div', { className: 'bt-q-list', role: 'group', 'aria-label': t('Your answer') },
@@ -76,13 +116,13 @@ function SettledOptions({ node, answer }) {
       chosen.includes(option.label) ? h('span', { className: 'bt-q-check', title: t('Selected') }, h(CheckIcon)) : null)))
 }
 
-function ConfirmInput({ node, onSubmit }) {
+function ConfirmInput({ node, onSubmit }: { node: WidgetNode; onSubmit?: SubmitHandler | undefined }) {
   return h('div', { className: 'bt-q-foot' },
     h('button', { type: 'button', className: 'bt-q-btn', onClick: () => onSubmit?.(node.id, { confirmed: false }) }, node.cancelLabel ?? t('Cancel')),
     h('button', { type: 'button', className: 'bt-q-submit', onClick: () => onSubmit?.(node.id, { confirmed: true }) }, node.confirmLabel ?? t('Confirm')))
 }
 
-function SettledConfirm({ node, answer }) {
+function SettledConfirm({ node, answer }: { node: WidgetNode; answer: AnswerValue | null }) {
   const confirmed = answerValues(answer, node)?.confirmed
   if (confirmed !== true && confirmed !== false) {
     return h('div', { className: 'bt-q-foot' },
@@ -93,10 +133,10 @@ function SettledConfirm({ node, answer }) {
   return h('span', { className: 'bt-q-badge' }, label)
 }
 
-function FormInput({ node, onSubmit }) {
+function FormInput({ node, onSubmit }: { node: WidgetNode; onSubmit?: SubmitHandler | undefined }) {
   const fields = fieldsOf(node)
-  const [draft, setDraft] = useState({})
-  const submit = () => onSubmit?.(node.id, { fields: Object.fromEntries(fields.map(field => [field.id, draft[field.id] ?? ''])) })
+  const [draft, setDraft] = useState<Record<string, string>>({})
+  const submit = (): void => onSubmit?.(node.id, { fields: Object.fromEntries(fields.map(field => [field.id, draft[field.id] ?? ''])) })
   return h('form', {
     className: 'bt-widget-form',
     onSubmit: (event) => { event.preventDefault(); submit() },
@@ -108,8 +148,8 @@ function FormInput({ node, onSubmit }) {
         className: 'bt-q-input', type: 'text', value: draft[field.id] ?? '',
         autoComplete: 'off', spellCheck: false,
         'aria-label': field.label, placeholder: field.placeholder ?? undefined,
-        onChange: event => setDraft(current => ({ ...current, [field.id]: event.target.value })),
-        onKeyDown: (event) => {
+        onChange: (event: ChangeEvent<HTMLInputElement>) => setDraft(current => ({ ...current, [field.id]: event.target.value })),
+        onKeyDown: (event: KeyboardEvent<HTMLInputElement>) => {
           if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
           event.preventDefault()
           submit()
@@ -118,9 +158,9 @@ function FormInput({ node, onSubmit }) {
   h('div', { className: 'bt-q-foot' }, h('button', { type: 'submit', className: 'bt-q-submit' }, node.submitLabel ?? t('Submit'))))
 }
 
-function SettledForm({ node, answer }) {
+function SettledForm({ node, answer }: { node: WidgetNode; answer: AnswerValue | null }) {
   const fields = answerValues(answer, node)?.fields
-  const values = fields !== null && typeof fields === 'object' ? fields : {}
+  const values = fields ?? {}
   return h('div', { className: 'bt-widget-form' },
     fieldsOf(node).map(field => h('label', { key: field.id, className: 'bt-widget-field' },
       h('span', { className: 'bt-widget-field-label' }, field.label),
@@ -128,9 +168,9 @@ function SettledForm({ node, answer }) {
         h('input', { className: 'bt-q-input', type: 'text', value: values[field.id] ?? '', disabled: true, readOnly: true, 'aria-label': field.label })))))
 }
 
-function WidgetTable({ node }) {
-  const columns = (Array.isArray(node.columns) ? node.columns : []).filter(column => column !== null && typeof column === 'object')
-  const rows = Array.isArray(node.rows) ? node.rows : []
+function WidgetTable({ node }: { node: WidgetNode }) {
+  const columns: WidgetColumn[] = (Array.isArray(node.columns) ? node.columns : []).filter(column => column !== null && typeof column === 'object')
+  const rows: readonly unknown[] = Array.isArray(node.rows) ? node.rows : []
   return h('div', { className: 'bt-widget-table' },
     h('table', null,
       h('thead', null, h('tr', null, columns.map((column, index) => h('th', { key: column.key ?? index, scope: 'col' }, column.label)))),
@@ -138,7 +178,7 @@ function WidgetTable({ node }) {
         columns.map((column, columnIndex) => h('td', { key: column.key ?? columnIndex }, cellText(Array.isArray(row) ? row[columnIndex] : undefined))))))))
 }
 
-function WidgetProgress({ node }) {
+function WidgetProgress({ node }: { node: WidgetNode }) {
   const percent = Math.max(0, Math.min(100, Number(node.percent) || 0))
   return h('div', { className: 'bt-widget-progress' },
     h('span', { className: 'bt-widget-progress-label' }, h('span', null, node.label), h('span', null, `${Math.round(percent)}%`)),
@@ -150,18 +190,18 @@ function WidgetProgress({ node }) {
 
 // One blueprint node. Unknown types render nothing: the host validates the
 // blueprint, so what arrives here is known or safely ignored.
-function WidgetNode({ node, ctx }) {
+function WidgetNode({ node, ctx }: { node: WidgetNode; ctx: WidgetContext }): ReactElement | null {
   if (node === null || typeof node !== 'object') return null
   switch (node.type) {
     case 'stack': {
-      const children = Array.isArray(node.children) ? node.children : []
+      const children: readonly WidgetNode[] = Array.isArray(node.children) ? node.children : []
       return h('div', { className: 'bt-widget-stack' },
-        children.map((child, index) => h(WidgetNode, { key: child?.id ?? index, node: child, ctx })))
+        children.map((child, index) => h(WidgetNode, { key: child.id ?? index, node: child, ctx })))
     }
     case 'text':
       return h(MarkdownText, { text: String(node.text ?? ''), labels: mdLabels(), variant: 'compact' })
     case 'metric': {
-      const tone = ['good', 'warn', 'bad'].includes(node.tone) ? node.tone : undefined
+      const tone = node.tone !== undefined && ['good', 'warn', 'bad'].includes(node.tone) ? node.tone : undefined
       return h('div', { className: 'bt-widget-metric', 'data-tone': tone },
         h('span', { className: 'bt-widget-metric-label' }, node.label),
         h('span', { className: 'bt-widget-metric-value' }, node.value))
@@ -177,14 +217,14 @@ function WidgetNode({ node, ctx }) {
 
 // A whole blueprint. Letter keys answer a lone options block from the keyboard;
 // with more than one in a card the same letter would hit both.
-export function WidgetView({ view, onSubmit, settled = false, answer = null }) {
+export function WidgetView({ view, onSubmit, settled = false, answer = null }: { view: WidgetNode; onSubmit?: SubmitHandler | undefined; settled?: boolean | undefined; answer?: AnswerValue | null }) {
   const ctx = { onSubmit, settled, answer, keys: !settled && countType(view, 'options') === 1 }
   return h(WidgetNode, { node: view, ctx })
 }
 
 // The card chrome every view wears, pending or settled: a title bar with a small
 // "View" tag, and a dismiss button while the card still waits for an answer.
-function WidgetCard({ title, view, onSubmit, onDismiss, raised = false, settled = false, answer = null }) {
+function WidgetCard({ title, view, onSubmit, onDismiss, raised = false, settled = false, answer = null }: { title: string; view: WidgetNode; onSubmit?: SubmitHandler | undefined; onDismiss?: (() => void) | undefined; raised?: boolean | undefined; settled?: boolean | undefined; answer?: AnswerValue | null }) {
   const titleId = useId()
   return h('div', {
     className: settled ? 'bt-q bt-q-settled' : raised ? 'bt-q bt-q-raised' : 'bt-q',
@@ -199,10 +239,10 @@ function WidgetCard({ title, view, onSubmit, onDismiss, raised = false, settled 
 
 // A view waiting for its answer, inline at its call or raised in the dock. Like a
 // pending question it hides on submit and comes back if the reply fails.
-export function PendingView({ sessionId, view, actions, inline }) {
-  const [answered, setAnswered] = useState(null)
+export function PendingView({ sessionId, view, actions, inline }: { sessionId: string; view: ShownLike; actions: WidgetActions; inline: boolean }) {
+  const [answered, setAnswered] = useState<string | null>(null)
   const hold = useDockHold(sessionId, 'view', view.id, actions, inline)
-  const onSubmit = (action, values) => {
+  const onSubmit = (action: string | undefined, values: AnswerValues): void => {
     setAnswered(view.id)
     void actions.answerView(sessionId, view.id, action, values).catch(() => setAnswered(null))
   }
@@ -217,10 +257,10 @@ export function PendingView({ sessionId, view, actions, inline }) {
 }
 
 // The show_view call in the transcript.
-export function WidgetCell({ sessionId, callId, args, done, isError, roster, actions, heldCards }) {
+export function WidgetCell({ sessionId, callId, args, done, isError, roster, actions, heldCards }: { sessionId: string; callId: string; args?: WidgetCallArgs | undefined; done: boolean; isError: boolean; roster: { views?: Record<string, ShownLike | undefined> | undefined }; actions: WidgetActions; heldCards?: Record<string, number> | undefined }) {
   const record = roster.views?.[sessionId]
   if (record !== undefined && record.callId === callId) {
-    if (heldCards?.[heldCardKey('view', record.id)] > 0) return null
+    if ((heldCards?.[heldCardKey('view', record.id)] ?? 0) > 0) return null
     return h(PendingView, { sessionId, view: record, actions, inline: true })
   }
   // A refused call (bad blueprint) drew no card; don't render an empty one.
@@ -228,7 +268,7 @@ export function WidgetCell({ sessionId, callId, args, done, isError, roster, act
   // Display-only cards draw from the recorded call arguments, which keep the
   // provider's encoding: unwrap it the same way the host does before storing. The
   // args accessor reads strings through `text`; `value` drops them.
-  const blueprint = normalizeView(args?.value?.('view'))
+  const blueprint = normalizeView(args?.value?.('view')) as WidgetNode
   const shown = checkShownView(args?.text?.('title'), blueprint)
   // A call the host refused — a blueprint it would not show, or a reply it cannot
   // wait for — leaves no card; the model's retry then stays the only one. So does
@@ -242,18 +282,18 @@ export function WidgetCell({ sessionId, callId, args, done, isError, roster, act
 
 // Views asked by a call the transcript does not draw wait above the composer,
 // mirroring the question dock.
-export function WidgetDock({ sessionId, useRoster, useCards, useHeldCards, actions }) {
+export function WidgetDock({ sessionId, useRoster, useCards, useHeldCards, actions }: { sessionId: string; useRoster: RosterHook; useCards?: CardsHook | undefined; useHeldCards?: CardsHook | undefined; actions: WidgetActions }) {
   const view = useRoster(value => value.views?.[sessionId])
-  const drawn = useCards?.(state => state[sessionId]?.[view?.callId] > 0) === true
-  const held = useHeldCards?.(state => state[sessionId]?.[heldCardKey('view', view?.id)] > 0) === true
+  const drawn = useCards?.(state => view?.callId !== undefined && (state[sessionId]?.[view.callId] ?? 0) > 0) === true
+  const held = useHeldCards?.(state => view !== undefined && (state[sessionId]?.[heldCardKey('view', view.id)] ?? 0) > 0) === true
   if (view === undefined || (view.callId && drawn && !held)) return null
   return h(PendingView, { sessionId, view, actions, inline: false })
 }
 
 // An answered view rides on the reply message itself: the settled card, read-only.
-export function AnsweredView({ node }) {
+export function AnsweredView({ node }: { node: ReplyNode }) {
   const data = node.data ?? {}
-  let payload = null
+  let payload: ReplyData | null = null
   if (Array.isArray(data.views)) payload = data
   else {
     try { payload = typeof data.text === 'string' ? JSON.parse(data.text) : null } catch { payload = null }
@@ -261,15 +301,16 @@ export function AnsweredView({ node }) {
   }
   const view = payload?.views?.[0]
   if (view === null || typeof view !== 'object' || view.view === undefined) return null
-  const answers = Array.isArray(payload.answers) ? payload.answers : []
-  const answer = answers.find(entry => entry?.id === view.id) ?? answers[0] ?? null
+  const answers = Array.isArray(payload?.answers) ? payload.answers : []
+  const answer = answers.find(entry => entry.id === view.id) ?? answers[0] ?? null
   return h('div', { className: 'bt-q-inline' }, h(WidgetCard, { title: view.title ?? '', view: view.view, settled: true, answer }))
 }
 
 // A question reply node carries either questions (data.questions) or a view answer
 // (JSON text discriminated by kind); each shape gets its own renderer.
-export function AnsweredReply({ node }) {
-  const data = node?.data ?? {}
+export function AnsweredReply({ node }: { node?: ReplyNode | undefined }) {
+  if (node === undefined) return h(AnsweredCell, { node })
+  const data = node.data ?? {}
   if (Array.isArray(data.views) && data.views.length > 0) return h(AnsweredView, { node })
   if (!Array.isArray(data.questions) || data.questions.length === 0) {
     let parsed = null

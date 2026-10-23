@@ -8612,11 +8612,11 @@ function validateForm(node, values) {
   return { fields };
 }
 
-// src/client/widget-cell.js
+// src/client/widget-cell.ts
 var import_react6 = require("react");
 var mdLabels = () => ({ code: { copyLabel: t("Copy"), copiedLabel: t("Copied") }, footnotes: t("Footnotes") });
-var optionsOf2 = (node) => (Array.isArray(node?.options) ? node.options : []).map((option) => typeof option === "string" ? { label: option } : option).filter((option) => option !== null && typeof option === "object" && option.label !== void 0);
-var fieldsOf = (node) => (Array.isArray(node?.fields) ? node.fields : []).filter((field) => field !== null && typeof field === "object" && field.id !== void 0);
+var optionsOf2 = (node) => (Array.isArray(node.options) ? node.options : []).map((option) => typeof option === "string" ? { label: option } : option).filter((option) => option !== null && typeof option === "object" && option.label !== void 0);
+var fieldsOf = (node) => (Array.isArray(node.fields) ? node.fields : []).filter((field) => field !== null && typeof field === "object" && field.id !== void 0);
 var cellText2 = (value) => value === null || value === void 0 ? "" : typeof value === "object" ? JSON.stringify(value) : String(value);
 var countType = (node, type) => {
   if (node === null || typeof node !== "object") return 0;
@@ -8639,7 +8639,7 @@ function OptionsInput({ node, onSubmit, keys }) {
     if (picked.length > 0) onSubmit?.(node.id, { selected: picked });
   };
   const ownRef = (0, import_react6.useRef)(null);
-  useOptionKeys(keys ? options.length : 0, (index) => choose(options[index].label), ownRef);
+  useOptionKeys(keys ? options.length : 0, (index) => choose(options[index]?.label ?? ""), ownRef);
   return (0, import_react6.createElement)(
     import_react6.Fragment,
     null,
@@ -8754,7 +8754,7 @@ function FormInput({ node, onSubmit }) {
 }
 function SettledForm({ node, answer }) {
   const fields = answerValues(answer, node)?.fields;
-  const values = fields !== null && typeof fields === "object" ? fields : {};
+  const values = fields ?? {};
   return (0, import_react6.createElement)(
     "div",
     { className: "bt-widget-form" },
@@ -8812,13 +8812,13 @@ function WidgetNode({ node, ctx }) {
       return (0, import_react6.createElement)(
         "div",
         { className: "bt-widget-stack" },
-        children.map((child, index) => (0, import_react6.createElement)(WidgetNode, { key: child?.id ?? index, node: child, ctx }))
+        children.map((child, index) => (0, import_react6.createElement)(WidgetNode, { key: child.id ?? index, node: child, ctx }))
       );
     }
     case "text":
       return (0, import_react6.createElement)(import_dsh_client_ui_primitives.MarkdownText, { text: String(node.text ?? ""), labels: mdLabels(), variant: "compact" });
     case "metric": {
-      const tone = ["good", "warn", "bad"].includes(node.tone) ? node.tone : void 0;
+      const tone = node.tone !== void 0 && ["good", "warn", "bad"].includes(node.tone) ? node.tone : void 0;
       return (0, import_react6.createElement)(
         "div",
         { className: "bt-widget-metric", "data-tone": tone },
@@ -8883,7 +8883,7 @@ function PendingView({ sessionId, view, actions, inline }) {
 function WidgetCell({ sessionId, callId, args, done, isError, roster, actions, heldCards }) {
   const record = roster.views?.[sessionId];
   if (record !== void 0 && record.callId === callId) {
-    if (heldCards?.[heldCardKey("view", record.id)] > 0) return null;
+    if ((heldCards?.[heldCardKey("view", record.id)] ?? 0) > 0) return null;
     return (0, import_react6.createElement)(PendingView, { sessionId, view: record, actions, inline: true });
   }
   if (done && isError) return (0, import_react6.createElement)("span", { className: "bt-q-gone", hidden: true });
@@ -8896,8 +8896,8 @@ function WidgetCell({ sessionId, callId, args, done, isError, roster, actions, h
 }
 function WidgetDock({ sessionId, useRoster, useCards, useHeldCards, actions }) {
   const view = useRoster((value) => value.views?.[sessionId]);
-  const drawn = useCards?.((state) => state[sessionId]?.[view?.callId] > 0) === true;
-  const held = useHeldCards?.((state) => state[sessionId]?.[heldCardKey("view", view?.id)] > 0) === true;
+  const drawn = useCards?.((state) => view?.callId !== void 0 && (state[sessionId]?.[view.callId] ?? 0) > 0) === true;
+  const held = useHeldCards?.((state) => view !== void 0 && (state[sessionId]?.[heldCardKey("view", view.id)] ?? 0) > 0) === true;
   if (view === void 0 || view.callId && drawn && !held) return null;
   return (0, import_react6.createElement)(PendingView, { sessionId, view, actions, inline: false });
 }
@@ -8915,12 +8915,13 @@ function AnsweredView({ node }) {
   }
   const view = payload?.views?.[0];
   if (view === null || typeof view !== "object" || view.view === void 0) return null;
-  const answers = Array.isArray(payload.answers) ? payload.answers : [];
-  const answer = answers.find((entry) => entry?.id === view.id) ?? answers[0] ?? null;
+  const answers = Array.isArray(payload?.answers) ? payload.answers : [];
+  const answer = answers.find((entry) => entry.id === view.id) ?? answers[0] ?? null;
   return (0, import_react6.createElement)("div", { className: "bt-q-inline" }, (0, import_react6.createElement)(WidgetCard, { title: view.title ?? "", view: view.view, settled: true, answer }));
 }
 function AnsweredReply({ node }) {
-  const data = node?.data ?? {};
+  if (node === void 0) return (0, import_react6.createElement)(AnsweredCell, { node });
+  const data = node.data ?? {};
   if (Array.isArray(data.views) && data.views.length > 0) return (0, import_react6.createElement)(AnsweredView, { node });
   if (!Array.isArray(data.questions) || data.questions.length === 0) {
     let parsed = null;
