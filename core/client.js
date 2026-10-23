@@ -8520,7 +8520,7 @@ function interactiveNodes(node, found = []) {
   }
   return found;
 }
-var idsOf = (nodes) => nodes.map((node) => String(node.id));
+var idsOf = (nodes) => nodes.map((node) => String(node.id ?? ""));
 function validateViewAnswer(view, action, values) {
   const nodes = interactiveNodes(view);
   if (typeof action !== "string" || action === "") return { error: `action: expected an interactive component id; allowed: ${allowed(idsOf(nodes))}` };

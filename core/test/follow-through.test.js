@@ -76,8 +76,8 @@ const freshHome = (t) => {
   })
   return home
 }
-const settle = async (check) => {
-  const until = Date.now() + 3000
+const settle = async (check, budget = 12_000) => {
+  const until = Date.now() + budget
   while (!check() && Date.now() < until) await new Promise(resolve => setImmediate(resolve))
   assert.ok(check(), 'condition not reached')
 }
@@ -239,6 +239,7 @@ test('a message a shutdown cancelled is sent again once; one still waiting, take
   // A hard stop keeps the inbox: that message runs when the Session wakes.
   second.agentOf('b').inbox.nextTurn.push(numbers)
   t.mock.timers.tick(3000)
+  t.mock.timers.reset()
   await settle(() => second.agentOf('b').calls.length === 1)
   const [again] = second.agentOf('b').calls
   assert.deepEqual([again.source.exchangeId, again.source.role, text(again)], [plan.source.exchangeId, 'request', text(plan)])

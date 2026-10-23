@@ -294,7 +294,7 @@ function interactiveNodes(node: unknown, found: JsonObject[] = []): JsonObject[]
   return found
 }
 
-const idsOf = (nodes: readonly JsonObject[]): string[] => nodes.map(node => String(node.id))
+const idsOf = (nodes: readonly JsonObject[]): string[] => nodes.map(node => String(node.id ?? ''))
 
 // `action` is the id of the component the user submitted. One submit settles
 // the whole card, so only that component's values are kept.

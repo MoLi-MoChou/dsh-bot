@@ -12,7 +12,7 @@ const read = path => readFileSync(join(PLUGIN, path), 'utf8')
 const packageJson = JSON.parse(read('package.json'))
 const tsconfig = JSON.parse(read('tsconfig.json'))
 
-test('the TypeScript toolchain is installed and wired into the gates', () => {
+test('the TypeScript toolchain is installed and wired into the gates', async () => {
   assert.equal(packageJson.scripts.typecheck, 'tsc --noEmit -p tsconfig.json')
   assert.ok(packageJson.devDependencies.typescript)
   assert.ok(packageJson.devDependencies['@types/node'])
@@ -52,7 +52,7 @@ test('the client build accepts a TSX/TS entry and still writes the same client.j
   assert.match(script, /node scripts\/build-client\.mjs --check/)
 })
 
-test('the shared contract layer exists and names the endpoints both ends share', () => {
+test('the shared contract layer exists and names the endpoints both ends share', async () => {
   const rpc = read('src/shared/rpc.ts')
   for (const endpoint of ['state: {', 'chat: {', 'send: {', "'workspace-download': {"]) assert.ok(rpc.includes(endpoint), endpoint)
   // The envelope's error code is a closed union, not a free string.
@@ -67,8 +67,12 @@ test('the shared contract layer exists and names the endpoints both ends share',
   assert.match(views, /export interface DiffView/)
   assert.match(views, /export interface DiagramView/)
   // The Phase 3 cards are declared, not accepted yet: the runtime validator still knows
-  // only the eight components the UI can draw.
-  assert.doesNotMatch(read('src/shared/views/validate.ts'), /diff|diagram/)
+  // only the eight components the UI can draw. Assert the behaviour, not the source text.
+  const { validateView } = await import('../src/shared/views/validate.ts')
+  for (const type of ['diff', 'diagram']) {
+    const checked = validateView({ type, patch: '', source: '' })
+    assert.match(String(checked.error), new RegExp(`unknown component "${type}"`))
+  }
 })
 
 test('the host types name the DSH context without importing a DSH install', () => {

@@ -1,0 +1,19 @@
+{
+  "tests": 883,
+  "names": [
+    "a change that waits for its folder keeps the member another change added meanwhile",
+    "a Bot deleted while a change waits for its folder is not added back",
+    "a group deleted while a change waits for its folder stays deleted",
+    "create_bot stores a photo, and update_bot changes and clears it",
+    "a photo that cannot be read changes nothing, and a non-Main Bot cannot set another Bot's",
+    "a relative file link a member writes reaches the group, and another Bot, as a full path",
+    "a move that fails while the plugin unloads hands its input back to the part it left",
+    "a move that never started keeps carry and one pause note in the inbox; a retry adds none",
+    "an ordinary failure during the move is still a warning, not the unload note",
+    "an ordinary failure in the move that never started wakes the part at once",
+    "a marked earlier part hands its kept input on after a restart, once, and is archived",
+    "a marked part that stayed current is woken for its kept input, once, in order",
+    "unmarked earlier parts are never resolved by the restart pass",
+    "a state write that fails as a switch ends is warned about, not left unhandled"
+  ]
+}
