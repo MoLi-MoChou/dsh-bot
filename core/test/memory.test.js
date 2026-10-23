@@ -7,7 +7,7 @@ import { apply } from '../index.js'
 import {
   MEMORY_LIMITS, addLink, cleanEntry, cleanTopic, formatEntry, insertEntry, looksLikeKey,
   looksSecret, matchEntries, parseAsk, parseMemory, parseReview, reviewEntries, removeLink, splitMeta, writtenIn,
-} from '../src/host/memory.js'
+} from '../src/host/memory.ts'
 import { latestMemoryChange, summaryBlocks } from '../src/client/text.ts'
 import { fakeContext } from './fake-ctx.js'
 
