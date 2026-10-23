@@ -11,7 +11,7 @@ const { outputFiles } = await build({
     contents: [
       "export { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines } from './src/client/cells.js'",
       "export { QuestionDock } from './src/client/questions.js'",
-      "export { SecretDock } from './src/client/secret-card.js'",
+      "export { SecretDock } from './src/client/secret-card.ts'",
       "export { countCards } from './src/client/sources.ts'",
     ].join('\n'),
     resolveDir: fileURLToPath(new URL('..', import.meta.url)),

@@ -51,7 +51,7 @@ const LINE_EXEMPTIONS = [
   'src/client/browser-pane.ts',
   'src/client/bot-browsers.ts',
   'src/client/model-menu.ts',
-  'src/client/secret-card.js',
+  'src/client/secret-card.ts',
 ]
 
 const DEFAULT_COMPILER_OPTIONS = {

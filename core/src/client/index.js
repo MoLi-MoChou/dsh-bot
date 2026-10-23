@@ -22,7 +22,7 @@ import { AssistantCell, TriggerCell, TurnProcessCell, Nothing, TurnTailCell, Too
 import { Overlays } from './overlays.ts'
 import { createBotBrowsers, serveBrowserReads } from './bot-browsers.ts'
 import { BROWSER_CSS } from './browser-pane.ts'
-import { SECRET_CSS, SecretDock } from './secret-card.js'
+import { SECRET_CSS, SecretDock } from './secret-card.ts'
 import { MODEL_CSS, ModelChoiceDock, DeepSeekSignIn } from './model-menu.ts'
 import { BOT_SETTINGS_CSS } from './bot-settings.js'
 import { GROUP_SETTINGS_CSS } from './group-settings.ts'

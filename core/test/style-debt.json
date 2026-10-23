@@ -60,7 +60,7 @@
       "#e3a008": 1,
       "#f0b84a": 2
     },
-    "secret-card.js": {
+    "secret-card.ts": {
       "#16a34a": 1,
       "#22a06b": 1,
       "#b25e09": 1,
@@ -100,7 +100,7 @@
     "member-status.js": {
       "13px": 1
     },
-    "secret-card.js": {
+    "secret-card.ts": {
       "5px": 1
     },
     "sidebar.js": {

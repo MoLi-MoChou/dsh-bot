@@ -3,7 +3,7 @@
 // all of it; a key only ever travels from these inputs to the host.
 import { createElement as h, useEffect, useState } from 'react'
 import { CheckIcon, TrashIcon } from './icons.ts'
-import { KeyIcon, MaskedInput } from './secret-card.js'
+import { KeyIcon, MaskedInput } from './secret-card.ts'
 import { Segmented, SPRING_SHAPE } from './motion.js'
 import { hostText, t } from './i18n.ts'
 

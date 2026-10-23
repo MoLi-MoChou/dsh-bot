@@ -9034,7 +9034,7 @@ function usePaneLeft() {
   return paneLeft;
 }
 
-// src/client/secret-card.js
+// src/client/secret-card.ts
 var import_react8 = require("react");
 var MIN_VALUE = 4;
 var NONE = {};
@@ -9056,14 +9056,15 @@ var WarnIcon = () => (0, import_react8.createElement)(
   (0, import_react8.createElement)("path", { d: "M10 3.5l7 12.5H3z" }),
   (0, import_react8.createElement)("path", { d: "M10 8.5v3.5M10 14.2h.01" })
 );
+var failureMessage = (failure) => failure?.message ?? String(failure);
 var MASK_BY_CSS = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("-webkit-text-security", "disc");
 var insecure = () => typeof location !== "undefined" && location.protocol === "http:" && !/^(localhost|127(?:\.\d{1,3}){3}|\[::1\])$/.test(location.hostname);
 var scopeLabel = (scope, roster) => {
   if (scope === "all") return t("All Bots");
-  const names = (scope ?? []).map((id) => roster.byId[id]?.name).filter(Boolean);
+  const names = (scope ?? []).map((id) => roster.byId[id]?.name).filter((name) => name !== void 0);
   return names.length === 0 ? t("No Bot") : names.join(t(" and "));
 };
-var when = (time) => Number.isFinite(time) ? new Date(time).toLocaleString(dateLocale(), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+var when = (time) => time !== void 0 && Number.isFinite(time) ? new Date(time).toLocaleString(dateLocale(), { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
 function MaskedInput({ value, onChange, onEnter, label, autoFocus = false }) {
   return (0, import_react8.createElement)("input", {
     className: "bt-secret-input",
@@ -9135,7 +9136,7 @@ function SecretCard({ sessionId, bot, request, roster, actions, inline = false }
     busyRef.current = true;
     setBusy(true);
     setError("");
-    return Promise.resolve().then(make).then(() => setValue(""), (failure) => setError(failure?.message ?? String(failure))).finally(() => {
+    return Promise.resolve().then(make).then(() => setValue(""), (failure) => setError(failureMessage(failure))).finally(() => {
       busyRef.current = false;
       setBusy(false);
     });
@@ -9236,7 +9237,7 @@ function SecretToolCell({ sessionId, callId, name, done, content, roster, action
   const bot = roster.byId[sessionId];
   if (!bot) return null;
   const request = (roster.secretRequests?.[bot.id] ?? []).find((entry) => entry.callId === callId && (entry.sessionId ?? sessionId) === sessionId);
-  if (request?.status === "pending" && heldCards[heldCardKey("secret", request.id)] > 0) return null;
+  if (request?.status === "pending" && (heldCards[heldCardKey("secret", request.id)] ?? 0) > 0) return null;
   if (request) return (0, import_react8.createElement)("div", { className: "bt-q-inline" }, (0, import_react8.createElement)(RequestView, { sessionId, bot, request, roster, actions }));
   if (done && /already saved/.test(contentText(content))) {
     return (0, import_react8.createElement)("div", { className: "bt-event" }, (0, import_react8.createElement)("span", { className: "bt-secret-event" }, (0, import_react8.createElement)(KeyIcon), t("{bot} is using {name}", { bot: bot.name, name: name ?? t("a saved key") })));
@@ -9249,7 +9250,7 @@ function SecretDock({ sessionId, useRoster, useCards, useHeldCards, actions }) {
   const held = useHeldCards?.((state) => state[sessionId]) ?? NONE;
   const bot = roster.byId[sessionId];
   if (!bot || currentPart(bot) !== sessionId) return null;
-  const drawn = (entry) => entry.callId && entry.sessionId === sessionId && shown[entry.callId] > 0 && !(held[heldCardKey("secret", entry.id)] > 0);
+  const drawn = (entry) => entry.callId !== void 0 && entry.callId !== "" && entry.sessionId === sessionId && (shown[entry.callId] ?? 0) > 0 && !((held[heldCardKey("secret", entry.id)] ?? 0) > 0);
   const waiting = (roster.secretRequests?.[bot.id] ?? []).filter((entry) => entry.status === "pending" && !drawn(entry));
   if (waiting.length === 0) return null;
   return (0, import_react8.createElement)("div", { className: "bt-q-dock bt-secret-dock" }, waiting.map((request) => (0, import_react8.createElement)(SecretCard, { key: JSON.stringify([sessionId, request.id, request.kind]), sessionId, bot, request, roster, actions })));
@@ -9323,7 +9324,7 @@ function SecretRow({ secret, roster, actions, run, open, onToggle }) {
     if (!open) setConfirm(false);
   }, [open]);
   const asker = secret.requestedBy ? roster.byId[secret.requestedBy]?.name ?? t("a deleted Bot") : t("you");
-  const allowed2 = secret.scope === "all" ? [] : secret.scope.map((id) => roster.byId[id]).filter(Boolean);
+  const allowed2 = secret.scope === "all" ? [] : secret.scope.map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   const meta = [t("Asked by {name}", { name: asker }), t("added {time}", { time: when(secret.createdAt) }), secret.lastUsedAt ? t("last used {time}", { time: when(secret.lastUsedAt) }) : t("not used yet")].join(" · ");
   return (0, import_react8.createElement)(
     "div",
@@ -13115,7 +13116,7 @@ function ModelChoiceDock({ sessionId, useRoster, actions }) {
     setBusy(ref);
     setError("");
     void Promise.resolve(actions.updateBot(bot.id, { model: ref })).catch((failure) => {
-      setError(failureMessage(failure));
+      setError(failureMessage2(failure));
       void actions.refreshModels?.();
     }).finally(() => setBusy(""));
   };
@@ -13169,7 +13170,7 @@ function ModelKeyCard({ model, actions }) {
     if (!ready || actions.setProviderKey === void 0) return;
     setBusy(true);
     setError("");
-    void Promise.resolve(actions.setProviderKey(model.provider, value)).then(() => setValue(""), (failure) => setError(hostText(failureMessage(failure)))).finally(() => setBusy(false));
+    void Promise.resolve(actions.setProviderKey(model.provider, value)).then(() => setValue(""), (failure) => setError(hostText(failureMessage2(failure)))).finally(() => setBusy(false));
   };
   return (0, import_react19.createElement)(
     "div",
@@ -13217,7 +13218,7 @@ function SignInHost({ entry, actions }) {
     }
   });
 }
-var failureMessage = (failure) => failure?.message ?? String(failure);
+var failureMessage2 = (failure) => failure?.message ?? String(failure);
 var MODEL_CSS = `
 .bt-ctx{display:flex;align-items:center;gap:8px;padding:8px 10px 6px;font-size:12.5px;color:var(--bt-ink-2);font-variant-numeric:tabular-nums}
 .bt-ctx svg{flex:none;color:var(--bt-accent)}

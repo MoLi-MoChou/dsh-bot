@@ -3,6 +3,7 @@
 // lists the saved keys and who may use them. Values only ever travel from these
 // inputs to the host; nothing here reads one back.
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { CheckIcon, CloseIcon, TrashIcon } from './icons.ts'
 import { BotAvatar, BotMark } from './mark.ts'
 import { contentText, currentPart } from './text.ts'
@@ -13,7 +14,47 @@ import { useEscape } from './overlay-hooks.ts'
 import { heldCardKey } from './sources.ts'
 
 const MIN_VALUE = 4
-const NONE = {}
+const NONE: Record<string, number> = {}
+
+// A stored key's scope: every Bot, or the listed Bot ids.
+export type SecretScope = 'all' | string[]
+// What a save asks for: the card's "only this Bot" choice resolves to `bot` on the host.
+export type SecretSetScope = 'all' | 'bot' | string[]
+// One saved key as the settings page reads it; the value never comes back.
+export interface SecretEntry {
+  readonly name: string
+  readonly purpose?: string | undefined
+  readonly scope: SecretScope
+  readonly requestedBy?: string | null | undefined
+  readonly createdAt?: number | undefined
+  readonly lastUsedAt?: number | undefined
+}
+// One card a Bot asked for, kept by the host.
+export interface SecretRequest {
+  readonly id: string
+  readonly callId?: string | undefined
+  readonly sessionId?: string | undefined
+  readonly name: string
+  readonly purpose?: string | undefined
+  readonly kind: 'fill' | 'allow'
+  readonly status?: 'pending' | 'saved' | 'allowed' | 'canceled' | undefined
+  readonly scope?: SecretScope | undefined
+}
+export interface SecretBot { id: string; name: string }
+export interface SecretRoster {
+  byId: Record<string, SecretBot | undefined>
+  secrets?: readonly SecretEntry[] | undefined
+  secretRequests?: Record<string, readonly SecretRequest[] | undefined> | undefined
+}
+export interface SecretsRoster extends SecretRoster { bots: readonly SecretBot[] }
+export interface SecretActions {
+  secretSet: (payload: { requestId?: string | undefined; name?: string | undefined; value: string; scope?: SecretSetScope | undefined; purpose?: string | undefined }) => Promise<unknown>
+  secretAllow: (requestId: string) => Promise<unknown>
+  secretCancel: (requestId: string) => Promise<unknown>
+  secretUpdate: (name: string, scope: SecretScope) => Promise<unknown>
+  secretDelete: (name: string) => Promise<unknown>
+  noteHeldCard?: (sessionId: string, kind: string, requestId: string, delta: number) => void
+}
 
 export const KeyIcon = () => h('svg', { width: 15, height: 15, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
   h('path', { d: 'M7 9.5a3.5 3.5 0 1 1 0 .01z' }), h('path', { d: 'M10.4 10.6L17 10.6M14.5 10.6v2.4M16.6 10.6v1.8' }))
@@ -22,26 +63,30 @@ const LockIcon = () => h('svg', { width: 14, height: 14, viewBox: '0 0 20 20', f
 const WarnIcon = () => h('svg', { width: 14, height: 14, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
   h('path', { d: 'M10 3.5l7 12.5H3z' }), h('path', { d: 'M10 8.5v3.5M10 14.2h.01' }))
 
+const failureMessage = (failure: unknown): string => (failure as { message?: string } | null)?.message ?? String(failure)
+
 // Password managers ignore a text field masked by CSS, so it never offers to save the
 // key; browsers without that CSS fall back to a new-password field.
 const MASK_BY_CSS = typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('-webkit-text-security', 'disc')
 
-const insecure = () => typeof location !== 'undefined' && location.protocol === 'http:'
+const insecure = (): boolean => typeof location !== 'undefined' && location.protocol === 'http:'
   && !/^(localhost|127(?:\.\d{1,3}){3}|\[::1\])$/.test(location.hostname)
 
-const scopeLabel = (scope, roster) => {
+const scopeLabel = (scope: SecretScope | undefined, roster: SecretRoster): string => {
   if (scope === 'all') return t('All Bots')
-  const names = (scope ?? []).map(id => roster.byId[id]?.name).filter(Boolean)
+  const names = (scope ?? []).map(id => roster.byId[id]?.name).filter((name): name is string => name !== undefined)
   return names.length === 0 ? t('No Bot') : names.join(t(' and '))
 }
-const when = time => (Number.isFinite(time) ? new Date(time).toLocaleString(dateLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
+const when = (time: number | undefined): string => (time !== undefined && Number.isFinite(time) ? new Date(time).toLocaleString(dateLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
 
-/**
- * A secret input that shows dots until asked otherwise. The props a caller varies are
- * typed here until this file migrates.
- * @param {{ value: string, onChange: (value: string) => void, onEnter?: () => void, label: string, autoFocus?: boolean }} props
- */
-export function MaskedInput({ value, onChange, onEnter, label, autoFocus = false }) {
+export interface MaskedInputProps {
+  value: string
+  onChange: (value: string) => void
+  onEnter?: (() => void) | undefined
+  label: string
+  autoFocus?: boolean | undefined
+}
+export function MaskedInput({ value, onChange, onEnter, label, autoFocus = false }: MaskedInputProps) {
   return h('input', {
     className: 'bt-secret-input',
     type: MASK_BY_CSS ? 'text' : 'password',
@@ -58,8 +103,8 @@ export function MaskedInput({ value, onChange, onEnter, label, autoFocus = false
     'data-form-type': 'other',
     'aria-label': label,
     placeholder: t('Paste or type the key'),
-    onChange: event => onChange(event.target.value),
-    onKeyDown: (event) => {
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value),
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
       if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
       event.preventDefault()
       onEnter?.()
@@ -67,8 +112,10 @@ export function MaskedInput({ value, onChange, onEnter, label, autoFocus = false
   })
 }
 
-function ScopeSwitch({ value, onChange, bot }) {
-  const options = [['all', t('All Bots')], ['bot', t('Only {name}', { name: bot.name })]]
+type ScopeChoice = 'all' | 'bot'
+interface ScopeSwitchProps { value: ScopeChoice; onChange: (value: ScopeChoice) => void; bot: SecretBot }
+function ScopeSwitch({ value, onChange, bot }: ScopeSwitchProps) {
+  const options: [ScopeChoice, string][] = [['all', t('All Bots')], ['bot', t('Only {name}', { name: bot.name })]]
   return h('div', { className: 'bt-secret-scope', role: 'radiogroup', 'aria-label': t('Who may use it') },
     h('span', { className: 'bt-secret-glide', 'data-at': value === 'all' ? 0 : 1, 'aria-hidden': true }),
     options.map(([id, text]) => h('button', {
@@ -76,7 +123,14 @@ function ScopeSwitch({ value, onChange, bot }) {
     }, text)))
 }
 
-function SecretHead({ bot, title, detail, name, onClose }) {
+interface SecretHeadProps {
+  bot: SecretBot
+  title: string
+  detail?: string | undefined
+  name: string
+  onClose?: (() => void) | undefined
+}
+function SecretHead({ bot, title, detail, name, onClose }: SecretHeadProps) {
   return h('div', { className: 'bt-q-head bt-secret-head' },
     h('span', { className: 'bt-secret-who' }, h(BotMark, { bot, size: 28 }), h('span', { className: 'bt-secret-lock' }, h(LockIcon))),
     h('div', { className: 'bt-q-text' },
@@ -85,9 +139,17 @@ function SecretHead({ bot, title, detail, name, onClose }) {
     onClose ? h('button', { type: 'button', className: 'bt-q-x', 'aria-label': t('Cancel the request'), title: t('Cancel'), onClick: onClose }, h(CloseIcon)) : null)
 }
 
-export function SecretCard({ sessionId, bot, request, roster, actions, inline = false }) {
+export interface SecretCardProps {
+  sessionId: string
+  bot: SecretBot
+  request: SecretRequest
+  roster: SecretRoster
+  actions: SecretActions
+  inline?: boolean | undefined
+}
+export function SecretCard({ sessionId, bot, request, roster, actions, inline = false }: SecretCardProps) {
   const [value, setValue] = useState('')
-  const [scope, setScope] = useState('all')
+  const [scope, setScope] = useState<ScopeChoice>('all')
   const [replacing, setReplacing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -95,27 +157,27 @@ export function SecretCard({ sessionId, bot, request, roster, actions, inline = 
   const hold = useDockHold(sessionId, 'secret', request.id, actions, inline)
   const noteId = useId()
   const secret = (roster.secrets ?? []).find(entry => entry.name === request.name)
-  const run = (make) => {
+  const run = (make: () => unknown): Promise<unknown> | undefined => {
     if (busyRef.current) return undefined
     hold()
     busyRef.current = true
     setBusy(true)
     setError('')
-    return Promise.resolve().then(make).then(() => setValue(''), failure => setError(failure?.message ?? String(failure))).finally(() => {
+    return Promise.resolve().then(make).then(() => setValue(''), failure => setError(failureMessage(failure))).finally(() => {
       busyRef.current = false
       setBusy(false)
     })
   }
-  const cancel = () => run(() => actions.secretCancel(request.id))
+  const cancel = (): Promise<unknown> | undefined => run(() => actions.secretCancel(request.id))
   const long = value.trim().length >= MIN_VALUE
-  const save = () => { if (long && !busy) void run(() => actions.secretSet({ requestId: request.id, value, scope })) }
-  const allow = () => { if (!busy) void run(() => actions.secretAllow(request.id)) }
+  const save = (): void => { if (long && !busy) void run(() => actions.secretSet({ requestId: request.id, value, scope })) }
+  const allow = (): void => { if (!busy) void run(() => actions.secretAllow(request.id)) }
   const filling = request.kind === 'fill' || replacing
   const warn = insecure() ? h('div', { className: 'bt-secret-warn', role: 'note' }, h(WarnIcon), t('This page is not on HTTPS: the key crosses the network unencrypted.')) : null
   return h('div', {
     className: 'bt-q bt-secret', role: 'group', 'aria-describedby': noteId, 'data-kind': request.kind,
     onFocusCapture: hold, onPointerDownCapture: hold,
-    onKeyDown: (event) => {
+    onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key !== 'Escape' || busy) return
       event.preventDefault()
       event.stopPropagation()
@@ -147,7 +209,7 @@ export function SecretCard({ sessionId, bot, request, roster, actions, inline = 
         : h('button', { type: 'button', className: 'bt-q-submit', disabled: busy, onClick: allow }, busy ? t('Allowing…') : t('Allow'))))
 }
 
-function SettledSecret({ bot, request, roster }) {
+function SettledSecret({ bot, request, roster }: { bot: SecretBot; request: SecretRequest; roster: SecretRoster }) {
   const canceled = request.status === 'canceled'
   const text = canceled ? t('{bot} asked for {name}', { bot: bot.name, name: request.name })
     : request.status === 'allowed' ? t('Allowed {bot} to use {name}', { bot: bot.name, name: request.name })
@@ -160,19 +222,38 @@ function SettledSecret({ bot, request, roster }) {
       canceled ? h('span', { className: 'bt-q-badge' }, t('Canceled')) : h('span', { className: 'bt-q-check bt-secret-check', title: t('Done') }, h(CheckIcon))))
 }
 
-function RequestView({ sessionId, bot, request, roster, actions }) {
+interface RequestViewProps {
+  sessionId: string
+  bot: SecretBot
+  request: SecretRequest
+  roster: SecretRoster
+  actions: SecretActions
+}
+function RequestView({ sessionId, bot, request, roster, actions }: RequestViewProps) {
   return request.status === 'pending'
     ? h(SecretCard, { key: JSON.stringify([sessionId, request.id, request.kind]), sessionId, bot, request, roster, actions, inline: true })
     : h(SettledSecret, { bot, request, roster })
 }
 
+// What a client may pass as a call's content; only the text blocks matter here.
+export type SecretContent = Parameters<typeof contentText>[0]
+export interface SecretToolCellProps {
+  sessionId: string
+  callId: string
+  name?: string | undefined
+  done?: boolean | undefined
+  content?: SecretContent
+  roster: SecretRoster
+  actions: SecretActions
+  heldCards?: Record<string, number> | undefined
+}
 // The card at its request_secret call; a key that was already there gets one line.
-export function SecretToolCell({ sessionId, callId, name, done, content, roster, actions, heldCards = NONE }) {
+export function SecretToolCell({ sessionId, callId, name, done, content, roster, actions, heldCards = NONE }: SecretToolCellProps) {
   const bot = roster.byId[sessionId]
   if (!bot) return null
   // Call ids repeat across a Bot's chat parts.
   const request = (roster.secretRequests?.[bot.id] ?? []).find(entry => entry.callId === callId && (entry.sessionId ?? sessionId) === sessionId)
-  if (request?.status === 'pending' && heldCards[heldCardKey('secret', request.id)] > 0) return null
+  if (request?.status === 'pending' && (heldCards[heldCardKey('secret', request.id)] ?? 0) > 0) return null
   if (request) return h('div', { className: 'bt-q-inline' }, h(RequestView, { sessionId, bot, request, roster, actions }))
   if (done && /already saved/.test(contentText(content))) {
     return h('div', { className: 'bt-event' }, h('span', { className: 'bt-secret-event' }, h(KeyIcon), t('{bot} is using {name}', { bot: bot.name, name: name ?? t('a saved key') })))
@@ -180,16 +261,25 @@ export function SecretToolCell({ sessionId, callId, name, done, content, roster,
   return null
 }
 
+export type CardCounts = Record<string, Record<string, number> | undefined>
+export type CardsHook = <T>(select: (state: CardCounts) => T) => T
+export interface SecretDockProps {
+  sessionId: string
+  useRoster: <T>(select: (roster: SecretRoster) => T) => T
+  useCards?: CardsHook | undefined
+  useHeldCards?: CardsHook | undefined
+  actions: SecretActions
+}
 // A card whose call the transcript does not draw (an earlier part of the chat, a
 // hidden turn, a call outside the loaded history) waits above the composer instead.
 // Once editing starts it keeps that component until completion or cancellation.
-export function SecretDock({ sessionId, useRoster, useCards, useHeldCards, actions }) {
+export function SecretDock({ sessionId, useRoster, useCards, useHeldCards, actions }: SecretDockProps) {
   const roster = useRoster(value => value)
   const shown = useCards?.(state => state[sessionId]) ?? NONE
   const held = useHeldCards?.(state => state[sessionId]) ?? NONE
   const bot = roster.byId[sessionId]
   if (!bot || currentPart(bot) !== sessionId) return null
-  const drawn = entry => entry.callId && entry.sessionId === sessionId && shown[entry.callId] > 0 && !(held[heldCardKey('secret', entry.id)] > 0)
+  const drawn = (entry: SecretRequest): boolean => entry.callId !== undefined && entry.callId !== '' && entry.sessionId === sessionId && (shown[entry.callId] ?? 0) > 0 && !((held[heldCardKey('secret', entry.id)] ?? 0) > 0)
   const waiting = (roster.secretRequests?.[bot.id] ?? []).filter(entry => entry.status === 'pending' && !drawn(entry))
   if (waiting.length === 0) return null
   return h('div', { className: 'bt-q-dock bt-secret-dock' }, waiting.map(request => h(SecretCard, { key: JSON.stringify([sessionId, request.id, request.kind]), sessionId, bot, request, roster, actions })))
@@ -198,15 +288,20 @@ export function SecretDock({ sessionId, useRoster, useCards, useHeldCards, actio
 // -------------------------------------------------------------------------
 // Settings page
 
-function ScopeEditor({ secret, roster, onSave }) {
-  const [mode, setMode] = useState(secret.scope === 'all' ? 'all' : 'some')
-  const [picked, setPicked] = useState(secret.scope === 'all' ? [] : secret.scope)
-  const toggle = id => setPicked(list => (list.includes(id) ? list.filter(item => item !== id) : [...list, id]))
+interface ScopeEditorProps {
+  secret: SecretEntry
+  roster: SecretsRoster
+  onSave: (scope: SecretScope) => unknown
+}
+function ScopeEditor({ secret, roster, onSave }: ScopeEditorProps) {
+  const [mode, setMode] = useState<'all' | 'some'>(secret.scope === 'all' ? 'all' : 'some')
+  const [picked, setPicked] = useState<string[]>(secret.scope === 'all' ? [] : secret.scope)
+  const toggle = (id: string): void => setPicked(list => (list.includes(id) ? list.filter(item => item !== id) : [...list, id]))
   const same = mode === 'all' ? secret.scope === 'all' : secret.scope !== 'all' && [...picked].sort().join() === [...secret.scope].sort().join()
   return h('div', { className: 'bt-secret-edit-block' },
     h('div', { className: 'bt-secret-edit-label' }, t('Who may use it')),
     h('div', { className: 'bt-secret-radios', role: 'radiogroup', 'aria-label': t('Who may use {name}', { name: secret.name }) },
-      [['all', t('All Bots')], ['some', t('Chosen Bots')]].map(([id, text]) => h('label', { key: id, className: 'bt-secret-radio' },
+      ([['all', t('All Bots')], ['some', t('Chosen Bots')]] as const).map(([id, text]) => h('label', { key: id, className: 'bt-secret-radio' },
         h('input', { type: 'radio', name: `scope-${secret.name}`, checked: mode === id, onChange: () => setMode(id) }), text))),
     mode === 'some' ? h('div', { className: 'bt-secret-bots' }, roster.bots.map(bot => h('button', {
       key: bot.id, type: 'button', className: 'bt-secret-bot', 'aria-pressed': picked.includes(bot.id), onClick: () => toggle(bot.id),
@@ -215,15 +310,16 @@ function ScopeEditor({ secret, roster, onSave }) {
       h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: same, onClick: () => onSave(mode === 'all' ? 'all' : picked) }, t('Save access'))))
 }
 
-function ValueEditor({ secret, onSave }) {
+interface ValueEditorProps { secret: SecretEntry; onSave: (value: string) => unknown }
+function ValueEditor({ secret, onSave }: ValueEditorProps) {
   const [value, setValue] = useState('')
   const [replaced, setReplaced] = useState(false)
   const long = value.trim().length >= MIN_VALUE
-  const save = () => {
+  const save = (): void => {
     if (!long) return
     void Promise.resolve(onSave(value)).then(ok => { if (ok) { setValue(''); setReplaced(true) } })
   }
-  const edit = next => { setValue(next); setReplaced(false) }
+  const edit = (next: string): void => { setValue(next); setReplaced(false) }
   return h('div', { className: 'bt-secret-edit-block' },
     h('div', { className: 'bt-secret-edit-label' }, t('Replace the value')),
     h('div', { className: 'bt-secret-inline' },
@@ -233,11 +329,19 @@ function ValueEditor({ secret, onSave }) {
       : replaced ? h('div', { className: 'bt-set-hint bt-secret-ok', role: 'status' }, h(CheckIcon), t('Replaced. Bots get the new value from their next command.')) : null)
 }
 
-function SecretRow({ secret, roster, actions, run, open, onToggle }) {
+interface SecretRowProps {
+  secret: SecretEntry
+  roster: SecretsRoster
+  actions: SecretActions
+  run: (work: Promise<unknown>) => Promise<boolean>
+  open: boolean
+  onToggle: () => void
+}
+function SecretRow({ secret, roster, actions, run, open, onToggle }: SecretRowProps) {
   const [confirm, setConfirm] = useState(false)
   useEffect(() => { if (!open) setConfirm(false) }, [open])
   const asker = secret.requestedBy ? roster.byId[secret.requestedBy]?.name ?? t('a deleted Bot') : t('you')
-  const allowed = secret.scope === 'all' ? [] : secret.scope.map(id => roster.byId[id]).filter(Boolean)
+  const allowed = secret.scope === 'all' ? [] : secret.scope.map(id => roster.byId[id]).filter((bot): bot is SecretBot => bot !== undefined)
   const meta = [t('Asked by {name}', { name: asker }), t('added {time}', { time: when(secret.createdAt) }), secret.lastUsedAt ? t('last used {time}', { time: when(secret.lastUsedAt) }) : t('not used yet')].join(' · ')
   return h('div', { className: 'bt-secret-item', 'data-open': open ? '' : undefined },
     h('button', { type: 'button', className: 'bt-set-row bt-secret-summary', 'aria-expanded': open, onClick: onToggle },
@@ -261,18 +365,23 @@ function SecretRow({ secret, roster, actions, run, open, onToggle }) {
           : h('button', { type: 'button', className: 'bt-soft bt-soft-sm bt-secret-danger', onClick: () => setConfirm(true) }, h(TrashIcon), t('Delete')))) : null)
 }
 
-function AddSecret({ actions, run, onDone }) {
+interface AddSecretProps {
+  actions: SecretActions
+  run: (work: Promise<unknown>) => Promise<boolean>
+  onDone: () => void
+}
+function AddSecret({ actions, run, onDone }: AddSecretProps) {
   const [name, setName] = useState('')
   const [purpose, setPurpose] = useState('')
   const [value, setValue] = useState('')
   const ready = /^[A-Za-z][\w-]{0,63}$/.test(name.trim()) && value.trim().length >= MIN_VALUE
-  const save = () => {
+  const save = (): void => {
     if (!ready) return
     void run(actions.secretSet({ name, purpose, value, scope: 'all' })).then(ok => { if (ok) { setValue(''); onDone() } })
   }
   return h('div', { className: 'bt-set-row bt-set-paste bt-secret-add' },
-    h('input', { className: 'bt-input', 'aria-label': t('Key name'), placeholder: t('NAME, e.g. GITHUB_TOKEN'), value: name, spellCheck: false, autoComplete: 'off', autoFocus: true, onChange: event => setName(event.target.value.toUpperCase()) }),
-    h('input', { className: 'bt-input', 'aria-label': t('What it is for'), placeholder: t('What it is for'), value: purpose, autoComplete: 'off', onChange: event => setPurpose(event.target.value) }),
+    h('input', { className: 'bt-input', 'aria-label': t('Key name'), placeholder: t('NAME, e.g. GITHUB_TOKEN'), value: name, spellCheck: false, autoComplete: 'off', autoFocus: true, onChange: (event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value.toUpperCase()) }),
+    h('input', { className: 'bt-input', 'aria-label': t('What it is for'), placeholder: t('What it is for'), value: purpose, autoComplete: 'off', onChange: (event: React.ChangeEvent<HTMLInputElement>) => setPurpose(event.target.value) }),
     h('label', { className: 'bt-q-field bt-secret-field' }, h(MaskedInput, { value, onChange: setValue, onEnter: save, label: t('Value') })),
     h('div', { className: 'bt-secret-row-actions' },
       h('span', { className: 'bt-set-hint' }, t('New keys are for all Bots; narrow it down afterwards.')),
@@ -280,8 +389,19 @@ function AddSecret({ actions, run, onDone }) {
       h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: !ready, onClick: save }, t('Save key'))))
 }
 
-export function SecretsPage({ roster, actions, run, Section }) {
-  const [open, setOpen] = useState(null)
+export interface SectionProps {
+  title?: string | undefined
+  className?: string | undefined
+  children?: ReactNode | undefined
+}
+export interface SecretsPageProps {
+  roster: SecretsRoster
+  actions: SecretActions
+  run: (work: Promise<unknown>) => Promise<boolean>
+  Section: (props: SectionProps) => ReactNode
+}
+export function SecretsPage({ roster, actions, run, Section }: SecretsPageProps) {
+  const [open, setOpen] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   useEscape(() => setAdding(false), adding)
   useEscape(() => setOpen(null), open !== null && !adding)

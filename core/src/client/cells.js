@@ -7,7 +7,7 @@ import { SmileIcon, ReplyIcon, DotsIcon, CheckIcon, DownloadIcon, CopyIcon, Memo
 import { colorOf, toolState, BotMark, RoomAvatar } from './mark.ts'
 import { SettledQuestion, PendingQuestion } from './questions.js'
 import { AnsweredReply, WidgetCell } from './widget-cell.ts'
-import { SecretToolCell } from './secret-card.js'
+import { SecretToolCell } from './secret-card.ts'
 import { t } from './i18n.ts'
 import { call } from './api.ts'
 import { failureLabel } from './diagnostics.ts'

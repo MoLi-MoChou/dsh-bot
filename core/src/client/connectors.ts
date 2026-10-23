@@ -1,7 +1,7 @@
 import { createElement as h, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
 import { useMorph } from './motion.js'
-import { MaskedInput } from './secret-card.js'
+import { MaskedInput } from './secret-card.ts'
 import { t } from './i18n.ts'
 
 const TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new'
