@@ -35,7 +35,7 @@ import { freePriority, groupsFor, readMode, surfaceGroups, writeMode } from './s
 import { installLocale, language, t } from './i18n.ts'
 import { noteClientError, quietly } from './diagnostics.ts'
 import { ErrorToast, FEEDBACK_CSS } from './feedback.ts'
-import { ABOUT_CSS } from './about.js'
+import { ABOUT_CSS } from './about.ts'
 import { MEMBER_CSS, MemberDock } from './member-status.js'
 import { USER_MESSAGE_CSS, UserMessageCell, canDrawUserMessages } from './user-message.ts'
 import { noticeApprovals } from './approval-notices.ts'

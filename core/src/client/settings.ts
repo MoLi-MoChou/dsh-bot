@@ -19,7 +19,8 @@ import { ConnectorsPage } from './connectors.js'
 import { CapabilitiesPage } from './capability-settings.ts'
 import { SchedulesPage } from './schedules.js'
 import { FeedbackIcon, FeedbackPage } from './feedback.ts'
-import { AboutPage } from './about.js'
+import { AboutPage } from './about.ts'
+import type { AboutUpdate } from './about.ts'
 import { ProvidersPage } from './providers-page.ts'
 import { FolderMenu } from './folder-menu.ts'
 import { t } from './i18n.ts'
@@ -239,7 +240,8 @@ export interface SettingsDialogProps {
   id?: string | null | undefined
   roster: SettingsRoster
   actions: SettingsActions
-  useUpdate: (...args: never[]) => unknown
+  /** The update store, as the shell keeps it: one selected slice of the plugin update state. */
+  useUpdate: <T>(select: (value: AboutUpdate) => T) => T
   leaving?: boolean | undefined
 }
 // While `leaving`, the dialog plays its exit and takes no input.

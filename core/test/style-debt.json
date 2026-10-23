@@ -1,8 +1,5 @@
 {
   "colors": {
-    "about.js": {
-      "#e3a008": 2
-    },
     "bot-browsers.ts": {
       "#fff": 1
     },
@@ -81,6 +78,9 @@
     },
     "mark.ts": {
       "#fff": 1
+    },
+    "about.ts": {
+      "#e3a008": 2
     }
   },
   "radii": {

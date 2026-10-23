@@ -17207,7 +17207,7 @@ var FEEDBACK_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-toast{animation:none}.bt-toast[data-leaving]{transition:none}}
 `;
 
-// src/client/about.js
+// src/client/about.ts
 var import_react35 = require("react");
 var CHEER_MS = 1800;
 var starCount = (count) => new Intl.NumberFormat(dateLocale(), { notation: "compact", maximumFractionDigits: 1 }).format(count);
@@ -17278,11 +17278,12 @@ function AppUpdateRow({ Row: Row3, run }) {
   const [bridge, state, setState] = useAppUpdate();
   if (!bridge) return null;
   const phase = state?.phase ?? "idle";
+  const percent2 = state?.percent ?? 0;
   const control = phase === "downloaded" ? (0, import_react35.createElement)("button", { type: "button", className: "bt-fb-primary", onClick: () => run(bridge.install()) }, t("Restart to update")) : phase === "downloading" ? (0, import_react35.createElement)(
     "span",
-    { className: "bt-app-progress", role: "progressbar", "aria-valuenow": Math.floor(state.percent ?? 0), "aria-valuemin": 0, "aria-valuemax": 100 },
-    (0, import_react35.createElement)("span", { style: { width: `${Math.max(2, Math.min(100, state.percent ?? 0))}%` } })
-  ) : phase === "unsupported" ? state.reason === "portable" ? (0, import_react35.createElement)("a", linkProps(RELEASES_PAGE), t("Open")) : null : (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: phase === "checking", onClick: () => run(bridge.check().then(setState)) }, phase === "checking" ? t("Checking…") : t("Check for updates"));
+    { className: "bt-app-progress", role: "progressbar", "aria-valuenow": Math.floor(percent2), "aria-valuemin": 0, "aria-valuemax": 100 },
+    (0, import_react35.createElement)("span", { style: { width: `${Math.max(2, Math.min(100, percent2))}%` } })
+  ) : phase === "unsupported" ? state?.reason === "portable" ? (0, import_react35.createElement)("a", linkProps(RELEASES_PAGE), t("Open")) : null : (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: phase === "checking", onClick: () => run(bridge.check().then(setState)) }, phase === "checking" ? t("Checking…") : t("Check for updates"));
   return (0, import_react35.createElement)(Row3, { label: productName(), hint: appHint(state) }, control);
 }
 function EngineRow({ Row: Row3, run }) {
@@ -17342,19 +17343,21 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
     });
   };
   const phase = update.phase ?? "idle";
-  const dsh = update.dsh;
+  const dsh = update.dsh ?? {};
   const dshPhase = dsh?.phase ?? "idle";
   (0, import_react35.useEffect)(() => {
     if (phase === "installed" || dshPhase === "installed") setCheer(true);
   }, [phase, dshPhase]);
   const dshNew = showsDshRow(dsh, update.app);
-  const dshShown = dshNew && dsh.available;
+  const dshShown = dshNew && dsh?.available;
   const botControl = phase === "installed" || update.source === "app" ? null : update.available || phase === "installing" ? (0, import_react35.createElement)(
     "button",
     { type: "button", className: "bt-fb-primary", disabled: phase === "installing", onClick: () => run(actions.installUpdate()) },
     phase === "installing" ? t("Updating…") : phase === "failed" ? t("Try again") : t("Update")
   ) : (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: checking || update.enabled === false, onClick: check }, checking ? t("Checking…") : t("Check for updates"));
-  const dshControl = !dshNew || dshPhase === "installed" ? null : dsh.kind === "app" ? dsh.available ? (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => run(actions.openAppUpdates(dsh.verified)) }, t("Open updates")) : null : dsh.available || dshPhase !== "idle" ? (0, import_react35.createElement)(
+  const dshControl = !dshNew || dshPhase === "installed" ? null : dsh.kind === "app" ? dsh.available ? (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => {
+    actions.openAppUpdates(dsh.verified);
+  } }, t("Open updates")) : null : dsh.available || dshPhase !== "idle" ? (0, import_react35.createElement)(
     "button",
     { type: "button", className: "bt-fb-primary", disabled: dshPhase === "installing", onClick: () => run(actions.installDshUpdate()) },
     dshPhase === "installing" ? t("Updating…") : dshPhase === "failed" ? t("Try again") : t("Update")

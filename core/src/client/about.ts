@@ -9,12 +9,64 @@ import { SPRING_POP } from './motion.ts'
 import { MoonBotMark } from './icons.ts'
 import { showsDshRow } from './dsh-offer.ts'
 
+// The desktop app's own updater and its engine downloader, as the app exposes them.
+interface AppUpdateState { phase?: string; version?: string; percent?: number; checkedAt?: number; error?: string; reason?: string; current?: string }
+interface AppUpdateBridge {
+  state: () => Promise<AppUpdateState | null>
+  onChange: (listener: (state: AppUpdateState | null) => void) => (() => void) | undefined
+  check: () => Promise<AppUpdateState | null>
+  install: () => Promise<unknown>
+}
+interface AppEngineState { phase?: string; percent?: number; error?: string }
+interface AppEngineBridge {
+  state: () => Promise<AppEngineState | null>
+  onChange: (listener: (state: AppEngineState | null) => void) => (() => void) | undefined
+  download: () => Promise<AppEngineState | null>
+}
+// The plugin's own update state, and DSH's beside it.
+interface AboutDsh {
+  phase?: string
+  available?: boolean
+  blockedBy?: string
+  installed?: string
+  verified?: string
+  current?: string
+  kind?: string
+  error?: string
+}
+export interface AboutUpdate {
+  phase?: string
+  available?: boolean
+  latest?: string
+  installed?: string
+  source?: string
+  enabled?: boolean
+  checkedAt?: number
+  error?: string
+  notesUrl?: string
+  current?: string
+  repoUrl?: string
+  app?: { phase?: string; version?: string }
+  dsh?: AboutDsh
+}
+export interface AboutActions {
+  checkUpdate: () => Promise<unknown>
+  installUpdate: () => Promise<unknown>
+  installDshUpdate: () => Promise<unknown>
+  openAppUpdates: (version?: string) => void
+  openSettings: (page: string) => void
+  repoStars: () => Promise<number>
+}
+export type RunWork = (work: Promise<unknown>) => Promise<boolean | undefined>
+type SectionLike = React.ComponentType<Record<string, unknown>>
+type RowLike = React.ComponentType<Record<string, unknown>>
+
 // The length of the mark's `done` hop (bt-done in styles.js).
 const CHEER_MS = 1800
 
-const starCount = count => new Intl.NumberFormat(dateLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(count)
+const starCount = (count: number): string => new Intl.NumberFormat(dateLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(count)
 
-function botHint(update) {
+function botHint(update: AboutUpdate): string | null {
   if (update.phase === 'installing') return t('Updating DS Bot…')
   if (update.phase === 'installed') return t('Restart DSH to start using DS Bot {version}.', { version: update.installed ?? update.latest })
   if (update.phase === 'failed') return t('The update did not finish: {reason}', { reason: hostText(update.error ?? '') })
@@ -29,7 +81,7 @@ function botHint(update) {
   return `${update.latest ? t('Up to date') : t('Could not check for updates.')} · ${checked}`
 }
 
-function dshHint(dsh, shown) {
+function dshHint(dsh: AboutDsh, shown: boolean | undefined): string {
   if (dsh.phase === 'installing') return t('Updating DSH…')
   if (dsh.phase === 'installed') return t('Restart DSH to start using DSH {version}.', { version: dsh.installed ?? dsh.verified })
   if (dsh.phase === 'failed') return t('The update did not finish: {reason}', { reason: hostText(dsh.error ?? '') })
@@ -42,11 +94,11 @@ function dshHint(dsh, shown) {
 // process): checks at launch and every few hours, downloads only the changed blocks,
 // then installs silently on restart. This row lets the user check, watch, and restart.
 const RELEASES_PAGE = 'https://github.com/MoLi-MoChou/moon-bot/releases'
-const appBridge = () => (typeof window === 'undefined' ? null : window.dsBotApp?.updates ?? null)
+const appBridge = (): AppUpdateBridge | null => (typeof window === 'undefined' ? null : (window.dsBotApp?.updates as AppUpdateBridge | undefined) ?? null)
 
-function useAppUpdate() {
+function useAppUpdate(): [AppUpdateBridge | null, AppUpdateState | null, React.Dispatch<React.SetStateAction<AppUpdateState | null>>] {
   const bridge = appBridge()
-  const [state, setState] = useState(null)
+  const [state, setState] = useState<AppUpdateState | null>(null)
   useEffect(() => {
     if (!bridge) return undefined
     let live = true
@@ -57,7 +109,7 @@ function useAppUpdate() {
   return [bridge, state, setState]
 }
 
-function appHint(state) {
+function appHint(state: AppUpdateState | null): string | null {
   if (!state) return null
   switch (state.phase) {
     case 'checking': return t('Checking for updates…')
@@ -70,24 +122,25 @@ function appHint(state) {
   }
 }
 
-function AppUpdateRow({ Row, run }) {
+function AppUpdateRow({ Row, run }: { Row: RowLike; run: RunWork }) {
   const [bridge, state, setState] = useAppUpdate()
   if (!bridge) return null
   const phase = state?.phase ?? 'idle'
+  const percent = state?.percent ?? 0
   const control = phase === 'downloaded'
     ? h('button', { type: 'button', className: 'bt-fb-primary', onClick: () => run(bridge.install()) }, t('Restart to update'))
     : phase === 'downloading'
-      ? h('span', { className: 'bt-app-progress', role: 'progressbar', 'aria-valuenow': Math.floor(state.percent ?? 0), 'aria-valuemin': 0, 'aria-valuemax': 100 },
-          h('span', { style: { width: `${Math.max(2, Math.min(100, state.percent ?? 0))}%` } }))
-      : phase === 'unsupported' ? (state.reason === 'portable' ? h('a', linkProps(RELEASES_PAGE), t('Open')) : null)
+      ? h('span', { className: 'bt-app-progress', role: 'progressbar', 'aria-valuenow': Math.floor(percent), 'aria-valuemin': 0, 'aria-valuemax': 100 },
+          h('span', { style: { width: `${Math.max(2, Math.min(100, percent))}%` } }))
+      : phase === 'unsupported' ? (state?.reason === 'portable' ? h('a', linkProps(RELEASES_PAGE), t('Open')) : null)
         : h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: phase === 'checking', onClick: () => run(bridge.check().then(setState)) }, phase === 'checking' ? t('Checking…') : t('Check for updates'))
   return h(Row, { label: productName(), hint: appHint(state) }, control)
 }
 
 // Moon Bot patch: the Office preview engine is downloaded after install (app/src/engines.mjs).
-function EngineRow({ Row, run }) {
-  const bridge = typeof window === 'undefined' ? null : window.dsBotApp?.engine ?? null
-  const [state, setState] = useState(null)
+function EngineRow({ Row, run }: { Row: RowLike; run: RunWork }) {
+  const bridge = (typeof window === 'undefined' ? null : (window.dsBotApp?.engine as AppEngineBridge | undefined) ?? null)
+  const [state, setState] = useState<AppEngineState | null>(null)
   useEffect(() => {
     if (!bridge) return undefined
     let live = true
@@ -107,15 +160,21 @@ function EngineRow({ Row, run }) {
   return h(Row, { label: t('Office file previews'), hint }, control)
 }
 
-const linkProps = href => ({ className: 'bt-soft bt-soft-sm bt-about-link', href, target: '_blank', rel: 'noopener noreferrer' })
+const linkProps = (href: string): Record<string, string> => ({ className: 'bt-soft bt-soft-sm bt-about-link', href, target: '_blank', rel: 'noopener noreferrer' })
 
-export function AboutPage({ useUpdate, actions, run, Section, Row }) {
-  const update = useUpdate(value => value) ?? {}
+export function AboutPage({ useUpdate, actions, run, Section, Row }: {
+  useUpdate: <T>(select: (value: AboutUpdate) => T) => T
+  actions: AboutActions
+  run: RunWork
+  Section: SectionLike
+  Row: RowLike
+}) {
+  const update: AboutUpdate = useUpdate(value => value) ?? {}
   // Moon Bot patch: in the app, the version shown is the app's.
   const [appVersion, setAppVersion] = useState('')
   useEffect(() => { appBridge()?.state().then(value => setAppVersion(value?.current ?? ''), () => {}) }, [])
   const [checking, setChecking] = useState(false)
-  const [stars, setStars] = useState(null)
+  const [stars, setStars] = useState<number | null>(null)
   useEffect(() => {
     let live = true
     actions.repoStars().then((count) => { if (live && Number.isInteger(count)) setStars(count) }, () => {})
@@ -133,12 +192,12 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
     void run(actions.checkUpdate()).then((done) => { setChecking(false); if (done) setCheer(true) })
   }
   const phase = update.phase ?? 'idle'
-  const dsh = update.dsh
+  const dsh: AboutDsh = update.dsh ?? {}
   const dshPhase = dsh?.phase ?? 'idle'
   useEffect(() => { if (phase === 'installed' || dshPhase === 'installed') setCheer(true) }, [phase, dshPhase])
   // Same rule as the sidebar card.
   const dshNew = showsDshRow(dsh, update.app)
-  const dshShown = dshNew && dsh.available
+  const dshShown = dshNew && dsh?.available
   const botControl = phase === 'installed' || update.source === 'app' ? null
     : update.available || phase === 'installing'
       ? h('button', { type: 'button', className: 'bt-fb-primary', disabled: phase === 'installing', onClick: () => run(actions.installUpdate()) },
@@ -146,7 +205,7 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
       : h('button', { type: 'button', className: 'bt-soft bt-soft-sm', disabled: checking || update.enabled === false, onClick: check }, checking ? t('Checking…') : t('Check for updates'))
   const dshControl = !dshNew || dshPhase === 'installed' ? null
     : dsh.kind === 'app'
-      ? dsh.available ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => run(actions.openAppUpdates(dsh.verified)) }, t('Open updates')) : null
+      ? dsh.available ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => { actions.openAppUpdates(dsh.verified) } }, t('Open updates')) : null
       : dsh.available || dshPhase !== 'idle'
         ? h('button', { type: 'button', className: 'bt-fb-primary', disabled: dshPhase === 'installing', onClick: () => run(actions.installDshUpdate()) },
             dshPhase === 'installing' ? t('Updating…') : dshPhase === 'failed' ? t('Try again') : t('Update'))

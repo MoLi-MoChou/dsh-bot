@@ -88,6 +88,13 @@ export interface SettingsActions extends FolderMenuActions, SecretActions, Conne
   diagnosticsLog: () => Promise<string>
   diagnosticsClear: () => Promise<unknown>
   dismissToast: (token: string) => void
+  // The update surface the About page and the sidebar share: the plugin update, DSH's own,
+  // and the desktop app updater and engine downloader that index.js installs at start.
+  checkUpdate: () => Promise<unknown>
+  installUpdate: () => Promise<unknown>
+  installDshUpdate: () => Promise<unknown>
+  openAppUpdates: (version?: string) => void
+  repoStars: () => Promise<number>
 }
 export type RunWork = (work: Promise<unknown>) => Promise<boolean>
 

@@ -6,6 +6,7 @@ import type { NewChatActions, NewChatRoster } from './new-chat.ts'
 import { ExchangeDialog } from './exchange.ts'
 import { VoiceMode } from './voice.js'
 import { SettingsDialog } from './settings.ts'
+import type { SettingsDialogProps } from './settings.ts'
 import type { SettingsActions, SettingsRoster } from './settings-types.ts'
 import { ContextMenu } from './context-menu.ts'
 import { BotPanel } from './browser-pane.ts'
@@ -113,6 +114,6 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
     ui.exchange ? createPortal(h(ExchangeDialog, { pair: ui.exchange, roster: roster as never, actions: actions as unknown as ExchangeActions }), document.body) : null,
     ui.voice ? createPortal(h(VoiceMode, { key: ui.voice, sessionId: ui.voice, roster, actions, useSessions, useSessionStatus }), document.body) : null,
     menu ? createPortal(h(ContextMenu, { key: `${menu.kind ?? ''}:${menu.id}:${menu.x}:${menu.y}`, menu: menu as never, roster: roster as unknown as ContextRoster, actions: actions as unknown as ContextMenuActions, leaving: menuLeaving }), document.body) : null,
-    settings ? createPortal(h(SettingsDialog, { page: settings.page, id: settings.id, roster: roster as unknown as SettingsRoster, actions: actions as unknown as SettingsActions, useUpdate, leaving: settingsLeaving }), document.body) : null,
+    settings ? createPortal(h(SettingsDialog, { page: settings.page, id: settings.id, roster: roster as unknown as SettingsRoster, actions: actions as unknown as SettingsActions, useUpdate: useUpdate as unknown as SettingsDialogProps['useUpdate'], leaving: settingsLeaving }), document.body) : null,
     owner ? createPortal(h(MemoryDialog, { key: owner.id, owner, actions: actions as unknown as MemoryActions, leaving: memoryLeaving }), document.body) : null)
 }
