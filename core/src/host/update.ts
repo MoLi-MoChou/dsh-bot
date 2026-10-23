@@ -1,9 +1,47 @@
+import type { PluginManagerService } from './dsh-types.js'
+import type { HostConfig, HostRuntime } from './runtime.js'
+
+/** Where this package was installed from. */
+export type UpdateSource =
+  | { readonly kind: 'unknown' }
+  | { readonly kind: 'path' }
+  | { readonly kind: 'tarball' }
+  | { readonly kind: 'registry' }
+  | {
+      readonly kind: 'git'
+      readonly owner?: string
+      readonly repo?: string
+      readonly ref?: string
+      readonly rest?: readonly string[]
+    }
+  | { readonly kind: 'web' }
+  | { readonly kind: 'app' }
+
+interface UpdateTarget {
+  readonly version: string
+  readonly spec: string
+  readonly registry?: string
+}
+
+interface UpdateStatus {
+  name: string
+  current: string
+  latest: string | null
+  source: string
+  notesUrl: string | null
+  checkedAt: number
+  phase: 'idle' | 'installing' | 'installed' | 'failed'
+  installed: string | null
+  error: string | null
+}
+
 // Updates: compare this package's version with the newest release where it was
 // installed from (the npm registry, or a GitHub tag for a versioned git install)
 // and, when the user asks, reinstall it through DSH's plugin manager. A new version
 // runs from the next DSH start. A linked or local checkout is never offered one.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { clearTimeout, setTimeout } from 'node:timers'
 
 const PKG = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
 export const OFFICIAL_REGISTRY = 'https://registry.npmjs.org/'
@@ -16,17 +54,17 @@ const STARTUP_DELAY_MS = 15_000
 const VERSION = /^v?(\d+\.\d+\.\d+(?:-[\w.]+)?)(?:\+[\w.]+)?$/
 
 /** A release version without its `v` and build metadata, or null. */
-export const cleanVersion = value => VERSION.exec(String(value ?? '').trim())?.[1] ?? null
+export const cleanVersion = (value: unknown): string | null => VERSION.exec(String(value ?? '').trim())?.[1] ?? null
 
 /** Whether version `a` is newer than `b` (semver order, prereleases before their release). */
-export function newer(a, b) {
-  const parse = (value) => {
-    const [core, pre] = (cleanVersion(value) ?? '0.0.0').split(/-(.*)/s)
+export function newer(a: unknown, b: unknown): boolean {
+  const parse = (value: unknown): { nums: number[]; pre: string | null } => {
+    const [core = '0.0.0', pre] = (cleanVersion(value) ?? '0.0.0').split(/-(.*)/s)
     return { nums: core.split('.').map(Number), pre: pre ?? null }
   }
   const x = parse(a)
   const y = parse(b)
-  for (let index = 0; index < 3; index++) if (x.nums[index] !== y.nums[index]) return x.nums[index] > y.nums[index]
+  for (let index = 0; index < 3; index++) if (x.nums[index] !== y.nums[index]) return (x.nums[index] ?? 0) > (y.nums[index] ?? 0)
   if (x.pre === y.pre) return false
   if (x.pre === null) return true
   if (y.pre === null) return false
@@ -39,7 +77,7 @@ export function newer(a, b) {
  * other fragment parts when it pins a GitHub tag), `path` (link:, file: or a folder),
  * `tarball`, or `unknown`.
  */
-export function sourceOf(spec) {
+export function sourceOf(spec: unknown): UpdateSource {
   const text = typeof spec === 'string' ? spec.trim() : ''
   if (text === '') return { kind: 'unknown' }
   if (/^(link|file):/i.test(text) || /^([a-z]:[\\/]|[\\/]|~|\.)/i.test(text)) return { kind: 'path' }
@@ -49,7 +87,7 @@ export function sourceOf(spec) {
     const parts = (github[3] ?? '').split('&').filter(Boolean)
     const ref = parts.find(part => !part.includes(':')) ?? ''
     return {
-      kind: 'git', owner: github[1], repo: github[2],
+      kind: 'git', owner: github[1] ?? '', repo: github[2] ?? '',
       ...(cleanVersion(ref) ? { ref } : {}),
       rest: parts.filter(part => part !== ref),
     }
@@ -59,18 +97,18 @@ export function sourceOf(spec) {
   return { kind: 'registry' }
 }
 
-const normalizeRegistry = url => `${String(url).trim().replace(/\/+$/, '')}/`
-export const encodeName = name => (name.startsWith('@') ? `@${encodeURIComponent(name.slice(1))}` : encodeURIComponent(name))
+const normalizeRegistry = (url: unknown): string => `${String(url).trim().replace(/\/+$/, '')}/`
+export const encodeName = (name: string): string => (name.startsWith('@') ? `@${encodeURIComponent(name.slice(1))}` : encodeURIComponent(name))
 
-export const fetchJson = async (url, headers = {}) => {
+export const fetchJson = async (url: string, headers: Readonly<Record<string, string>> = {}): Promise<Record<string, unknown>> => {
   const response = await fetch(url, { headers: { accept: 'application/json', ...headers }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
   if (!response.ok) throw new Error(`${url} answered ${response.status}`)
-  return response.json()
+  return response.json() as Promise<Record<string, unknown>>
 }
 
 // The registries the plugin manager installs from, in its order: its configured
 // first one (else pnpm's own), then the fallbacks, unless that first one is private.
-export async function registryPlan(config, manager) {
+export async function registryPlan(config: HostConfig, manager: PluginManagerService | undefined): Promise<string[]> {
   if (typeof config.updateRegistry === 'string' && config.updateRegistry !== '') return [normalizeRegistry(config.updateRegistry)]
   const configured = await Promise.resolve(manager?.registries?.()).catch(() => null)
   if (!configured) return [OFFICIAL_REGISTRY, MIRROR_REGISTRY]
@@ -83,15 +121,16 @@ export async function registryPlan(config, manager) {
 
 // The plugin manager's `source` for this package; DSH releases before it reported
 // one leave the profile's own dependency entry to say the same.
-export async function installSpecOf(ctx) {
-  const manager = ctx.get?.('pluginManager')
+export async function installSpecOf(ctx: { get<T>(name: string): T | undefined }): Promise<string | undefined> {
+  const manager = ctx.get<PluginManagerService>('pluginManager')
   const bundles = await Promise.resolve(manager?.listBundles?.()).catch(() => null)
   const own = Array.isArray(bundles) ? bundles.find(bundle => bundle.name === PKG.name) : undefined
   if (typeof own?.source === 'string') return own.source
-  const dir = ctx.get?.('profileContext')?.dir
+  const dir = ctx.get<{ readonly dir?: string }>('profileContext')?.dir
   if (typeof dir !== 'string') return undefined
   try {
-    return JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).dependencies?.[PKG.name]
+    const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as { readonly dependencies?: Record<string, string> }
+    return manifest.dependencies?.[PKG.name]
   } catch { return undefined }
 }
 
@@ -110,20 +149,20 @@ const releasesUrl = () => {
 
 export const STARS_TTL_MS = 60 * 60_000
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, config } = rt
   const enabled = config.updateCheck !== false
-  const manager = () => ctx.get?.('pluginManager')
+  const manager = (): PluginManagerService | undefined => ctx.get<PluginManagerService>('pluginManager')
 
-  const status = {
+  const status: UpdateStatus = {
     name: PKG.name, current: PKG.version, latest: null, source: 'unknown', notesUrl: releasesUrl(),
     checkedAt: 0, phase: 'idle', installed: null, error: null,
   }
   // Where the newest version was found, and the spec that installs it.
-  let target = null
-  let checking = null
+  let target: UpdateTarget | null = null
+  let checking: Promise<void> | null = null
 
-  const view = () => ({
+  const view = (): Record<string, unknown> => ({
     name: status.name, current: status.current, latest: status.latest, source: status.source, notesUrl: status.notesUrl,
     repoUrl: repoUrl(), enabled,
     checkedAt: status.checkedAt, phase: status.phase, installed: status.installed, error: status.error,
@@ -132,21 +171,21 @@ export function install(rt) {
 
   // Asked only while the About page is open, so a closed page never calls GitHub.
   // A failed answer keeps the last count and is asked again next time.
-  let stars = { count: null, at: 0 }
-  let starring = null
-  async function repoStars() {
+  let stars: { count: number | null; at: number } = { count: null, at: 0 }
+  let starring: Promise<void> | null = null
+  async function repoStars(): Promise<number | null> {
     const repo = repoSlug()
     if (repo === null) return null
     if (Date.now() - stars.at < STARS_TTL_MS) return stars.count
     starring ??= fetchJson(`https://api.github.com/repos/${repo}`, { 'user-agent': `${PKG.name}/${PKG.version}` })
-      .then((info) => { if (Number.isInteger(info?.stargazers_count)) stars = { count: info.stargazers_count, at: Date.now() } })
-      .catch(error => rt.warn('ds-bot: star count failed: %s', error?.message ?? error))
+      .then((info) => { if (Number.isInteger(info.stargazers_count)) stars = { count: Number(info.stargazers_count), at: Date.now() } })
+      .catch((error: unknown) => rt.warn('ds-bot: star count failed: %s', error instanceof Error ? error.message : error))
       .finally(() => { starring = null })
     await starring
     return stars.count
   }
 
-  async function newestFromRegistry() {
+  async function newestFromRegistry(): Promise<UpdateTarget | null> {
     for (const registry of await registryPlan(config, manager())) {
       try {
         const version = cleanVersion((await fetchJson(`${registry}${encodeName(PKG.name)}/latest`)).version)
@@ -156,30 +195,30 @@ export function install(rt) {
     return null
   }
 
-  async function newestFromGitHub(source) {
+  async function newestFromGitHub(source: Extract<UpdateSource, { kind: 'git' }>): Promise<UpdateTarget | null> {
     if (!source.ref) return null
     const release = await fetchJson(`https://api.github.com/repos/${source.owner}/${source.repo}/releases/latest`, { 'user-agent': `${PKG.name}/${PKG.version}` })
     const version = cleanVersion(release?.tag_name)
     if (!version) return null
     // The API answers through redirects, so the release's html_url names the
     // repository's current address; the install moves to it.
-    const current = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/releases\//.exec(release.html_url ?? '')
+    const current = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/releases\//.exec(String(release.html_url ?? ''))
     const [owner, repo] = current ? [current[1], current[2]] : [source.owner, source.repo]
-    const fragment = [release.tag_name, ...source.rest].join('&')
+    const fragment = [release.tag_name, ...(source.rest ?? [])].join('&')
     return { version, spec: `github:${owner}/${repo}#${fragment}` }
   }
 
-  async function runCheck() {
+  async function runCheck(): Promise<void> {
     // The desktop app updates as a whole, with this package inside it.
     // Moon Bot: the web build updates with its server deploy, never from the page.
-    const source = process.env.DS_BOT_WEB === '1' ? { kind: 'web' } : process.env.DS_BOT_APP === '1' ? { kind: 'app' } : sourceOf(await installSpecOf(ctx))
+    const source: UpdateSource = process.env.DS_BOT_WEB === '1' ? { kind: 'web' } : process.env.DS_BOT_APP === '1' ? { kind: 'app' } : sourceOf(await installSpecOf(ctx))
     status.source = source.kind
-    let found = null
+    let found: { version: string; spec: string; registry?: string } | null = null
     try {
       if (source.kind === 'registry') found = await newestFromRegistry()
       else if (source.kind === 'git') found = await newestFromGitHub(source)
     } catch (error) {
-      rt.warn('ds-bot: update check failed: %s', error?.message ?? error)
+      rt.warn('ds-bot: update check failed: %s', error instanceof Error ? error.message : error)
     }
     status.checkedAt = Date.now()
     // Nothing found now (a linked checkout, a moved tag, an unreachable registry)
@@ -195,9 +234,9 @@ export function install(rt) {
   }
 
   /** Ask where the package came from for its newest version; a fresh check ignores the last answer. */
-  async function check({ fresh = false } = {}) {
+  async function check({ fresh = false }: { readonly fresh?: boolean } = {}): Promise<Record<string, unknown> | undefined> {
     if (!enabled) return view()
-    if (checking) return checking
+    if (checking !== null) return checking.then(() => undefined)
     if (!fresh && Date.now() - status.checkedAt < CHECK_TTL_MS) return view()
     checking = runCheck().finally(() => { checking = null })
     await checking
@@ -205,7 +244,7 @@ export function install(rt) {
   }
 
   /** Start reinstalling the newest version; the answer comes back through `check`. */
-  function start() {
+  function start(): Record<string, unknown> {
     if (status.phase === 'installing') return view()
     if (target === null) throw new Error('No DS Bot update is available')
     const service = manager()
@@ -214,14 +253,15 @@ export function install(rt) {
     Object.assign(status, { phase: 'installing', error: null })
     void Promise.resolve(service.installBundle(chosen.spec, chosen.registry ? { registry: chosen.registry } : {}))
       .then((result) => {
-        if (result?.error || !['applied', 'restart-required'].includes(result?.application)) {
-          throw new Error(result?.error?.diagnostic ?? result?.error?.code ?? `install ${result?.application ?? 'failed'}`)
+        const answer = result as { readonly error?: { readonly diagnostic?: string; readonly code?: string }; readonly application?: string; readonly version?: unknown } | undefined
+        if (answer?.error !== undefined || !['applied', 'restart-required'].includes(String(answer?.application))) {
+          throw new Error(answer?.error?.diagnostic ?? answer?.error?.code ?? `install ${answer?.application ?? 'failed'}`)
         }
-        Object.assign(status, { phase: 'installed', installed: cleanVersion(result.version) ?? chosen.version })
+        Object.assign(status, { phase: 'installed', installed: cleanVersion(answer?.version) ?? chosen.version })
       })
       .catch((error) => {
-        rt.warn('ds-bot: update to %s failed: %s', chosen.spec, error?.message ?? error)
-        Object.assign(status, { phase: 'failed', error: String(error?.message ?? error).slice(0, 600) })
+        rt.warn('ds-bot: update to %s failed: %s', chosen.spec, error instanceof Error ? error.message : error)
+        Object.assign(status, { phase: 'failed', error: String(error instanceof Error ? error.message : error).slice(0, 600) })
       })
     return view()
   }
@@ -230,7 +270,7 @@ export function install(rt) {
     ctx.effect(() => {
       const timer = setTimeout(() => { void check() }, STARTUP_DELAY_MS)
       // A pending first check never keeps the process alive.
-      timer.unref?.()
+      timer.unref()
       return () => clearTimeout(timer)
     }, 'ds-bot: update check')
   }

@@ -1,3 +1,53 @@
+import type { HostRuntime } from './runtime.js'
+
+/** One kept diagnostic entry. */
+export interface DiagnosticEntry {
+  time: number
+  level: string
+  source: string
+  text: string
+  stack?: string
+  code?: string
+  status?: number
+  bot?: string
+  where?: string
+  sessionId?: string
+  [key: string]: unknown
+}
+
+interface CleanOptions {
+  readonly redact?: (value: string) => string
+  readonly home?: string
+}
+
+interface ReportFacts {
+  readonly botVersion?: string | undefined
+  readonly dshVersion?: string | undefined
+  readonly os: string
+  readonly node: string
+  readonly team: string
+  readonly models?: string | undefined
+  readonly readOnly?: string | undefined
+}
+
+interface ReportClient {
+  readonly surface?: string | undefined
+  readonly language?: string | undefined
+  readonly userAgent?: string | undefined
+}
+
+interface ReportInput {
+  readonly facts: ReportFacts
+  readonly client?: ReportClient
+  readonly entries?: readonly DiagnosticEntry[]
+  readonly clientEntries?: readonly DiagnosticEntry[]
+}
+
+interface ReportBody {
+  readonly client?: unknown
+  readonly clientErrors?: unknown
+}
+
 // Diagnostics: what went wrong on this host, kept where the user can see it and report it.
 // DSH mounts no exporter for ctx.logger once it has started, so warnings would otherwise
 // reach only stderr. Entries are kept in memory and in <home>/logs/diagnostics.jsonl, so
@@ -18,11 +68,11 @@ const TEXT_MAX = 2000
 export const REPORT_ENTRIES = 20
 export const ISSUES_URL = 'https://github.com/MoLi-MoChou/moon-bot/issues/new'
 
-const quote = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const quote = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 // Shapes of credentials that are not saved keys: provider keys, bearer tokens, and
 // token or key parameters in addresses (the Web login address carries one).
-const CREDENTIALS = [
+const CREDENTIALS: readonly (readonly [RegExp, string])[] = [
   [/\bsk-[A-Za-z0-9_*.-]{6,}/g, 'sk-[hidden]'],
   [/\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{16,}/g, '[hidden]'],
   [/\bgithub_pat_[A-Za-z0-9_]{16,}/g, '[hidden]'],
@@ -36,7 +86,7 @@ const CREDENTIALS = [
   [/(["']?(?:api[_-]?key|authorization|x-api-key|password|secret)["']?\s*[:=]\s*["']?)[^\s"',}]{6,}/gi, '$1[hidden]'],
 ]
 
-export function cleanText(text, { redact = value => value, home = homedir() } = {}) {
+export function cleanText(text: unknown, { redact = (value: string): string => value, home = homedir() }: CleanOptions = {}): string {
   let out = redact(String(text ?? ''))
   for (const [pattern, replacement] of CREDENTIALS) out = out.replace(pattern, replacement)
   if (home && home.length > 1) {
@@ -50,10 +100,10 @@ export function cleanText(text, { redact = value => value, home = homedir() } = 
   return out.length > TEXT_MAX ? `${out.slice(0, TEXT_MAX)}…` : out
 }
 
-const errorText = error => `${error.name && error.name !== 'Error' ? `${error.name}: ` : ''}${error.message}`
+const errorText = (error: Error): string => `${error.name && error.name !== 'Error' ? `${error.name}: ` : ''}${error.message}`
 
 // One log line, as the downloaded log and the report show it.
-export function entryLine(entry) {
+export function entryLine(entry: DiagnosticEntry): string {
   const where = [entry.bot, entry.where].filter(Boolean).join(' · ')
   const code = entry.code ? ` [${entry.code}${entry.status ? ` ${entry.status}` : ''}]` : ''
   return `${new Date(entry.time).toISOString()} ${entry.level.toUpperCase()} ${entry.source}${where ? ` (${where})` : ''}${code} ${entry.text}`
@@ -61,8 +111,8 @@ export function entryLine(entry) {
 
 // The Markdown block for an issue. `facts` come from this host, `client` from the
 // browser that asked; `entries` are already cleaned.
-export function reportMarkdown({ facts, client = {}, entries = [], clientEntries = [] }) {
-  const row = (label, value) => (value === undefined || value === null || value === '' ? null : `| ${label} | ${String(value).replace(/\|/g, '\\|')} |`)
+export function reportMarkdown({ facts, client = {}, entries = [], clientEntries = [] }: ReportInput): string {
+  const row = (label: string, value: unknown): string | null => (value === undefined || value === null || value === '' ? null : `| ${label} | ${String(value).replace(/\|/g, '\\|')} |`)
   const lines = [
     '| | |',
     '|---|---|',
@@ -76,20 +126,20 @@ export function reportMarkdown({ facts, client = {}, entries = [], clientEntries
     row('Team', facts.team),
     row('Models', facts.models),
     row('Read-only', facts.readOnly),
-  ].filter(Boolean)
+  ].filter((row): row is string => row !== null)
   const recent = entries.slice(-REPORT_ENTRIES)
-  const out = [...lines, '']
+  const out: string[] = [...lines, '']
   out.push(recent.length === 0 ? 'No host errors recorded.' : `Recent host errors (${recent.length} of ${entries.length}, oldest first):`)
   if (recent.length > 0) out.push('```', ...recent.map(entryLine), '```')
   const stacks = recent.filter(entry => entry.stack).slice(-3)
-  for (const entry of stacks) out.push('', `<details><summary>Stack: ${entry.text.slice(0, 80).replace(/</g, '&lt;')}</summary>`, '', '```', entry.stack, '```', '</details>')
+  for (const entry of stacks) out.push('', `<details><summary>Stack: ${entry.text.slice(0, 80).replace(/</g, '&lt;')}</summary>`, '', '```', entry.stack ?? '', '```', '</details>')
   if (clientEntries.length > 0) {
     out.push('', `Recent browser errors (${Math.min(clientEntries.length, 10)}):`, '```', ...clientEntries.slice(-10).map(entryLine), '```')
   }
   return out.join('\n')
 }
 
-const ownVersion = () => {
+const ownVersion = (): string | undefined => {
   try {
     return JSON.parse(readFileSync(fileURLToPath(new URL('../../package.json', import.meta.url)), 'utf8')).version
   } catch {
@@ -98,7 +148,7 @@ const ownVersion = () => {
 }
 
 // DSH packages share one version; the LLM package is always beside the plugin.
-const dshVersion = () => {
+const dshVersion = (): string | undefined => {
   try {
     let dir = dirname(fileURLToPath(import.meta.resolve('@deepseek-ai/dsh-llm')))
     for (let depth = 0; depth < 5; depth += 1, dir = dirname(dir)) {
@@ -111,12 +161,12 @@ const dshVersion = () => {
   return undefined
 }
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, home, config } = rt
   const logPath = join(home, 'logs', 'diagnostics.jsonl')
   const toFile = config.diagnosticsFile !== false
-  let fresh = []
-  let writing = Promise.resolve()
+  let fresh: DiagnosticEntry[] = []
+  let writing: Promise<PromiseSettledResult<unknown>[]> | Promise<void> = Promise.resolve()
   let fileFailed = false
   let stopped = false
 
@@ -127,7 +177,7 @@ export function install(rt) {
     return writing
   }, 'ds-bot: diagnostics log')
 
-  const clean = text => cleanText(text, { redact: rt.redactSecrets })
+  const clean = (text: unknown): string => cleanText(text, { redact: rt.redactSecrets })
 
   // Entries from earlier runs, read once; new ones are kept apart until then.
   const earlier = toFile
@@ -142,7 +192,7 @@ export function install(rt) {
     : Promise.resolve([])
   let cleared = 0
 
-  const append = (entry) => {
+  const append = (entry: DiagnosticEntry): void => {
     if (!toFile || stopped) return
     writing = writing.then(async () => {
       await mkdir(dirname(logPath), { recursive: true })
@@ -157,8 +207,8 @@ export function install(rt) {
   }
 
   // `fields`: source ('host', 'turn', 'api'), level, code, status, bot, where, sessionId, stack.
-  const note = ({ level = 'error', source = 'host', text, stack, ...fields }) => {
-    const entry = { time: Date.now(), level, source, text: clean(text) }
+  const note = ({ level = 'error', source = 'host', text, stack, ...fields }: { readonly level?: string; readonly source?: string; readonly text: unknown; readonly stack?: string | undefined; readonly code?: string | undefined; readonly status?: number | undefined; readonly sessionId?: string | undefined; readonly [key: string]: unknown }): DiagnosticEntry => {
+    const entry: DiagnosticEntry = { time: Date.now(), level, source, text: clean(text) }
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined && value !== null && value !== '') entry[key] = typeof value === 'string' ? clean(value) : value
     }
@@ -171,7 +221,7 @@ export function install(rt) {
     return entry
   }
 
-  const warn = (template, ...args) => {
+  const warn = (template: string, ...args: readonly unknown[]): void => {
     const error = args.find(arg => arg instanceof Error)
     const line = clean(format(template, ...args.map(arg => (arg instanceof Error ? errorText(arg) : arg))))
     const frames = typeof error?.stack === 'string' ? error.stack.split('\n').filter(item => /^\s+at /.test(item)).slice(0, STACK_LINES).map(item => item.trim()) : []
@@ -181,12 +231,12 @@ export function install(rt) {
       level: 'warn',
       source: 'host',
       text: line.replace(/^ds-bot: /, ''),
-      code: typeof error?.code === 'string' ? error.code : undefined,
+      code: typeof (error as { readonly code?: unknown } | undefined)?.code === 'string' ? String((error as { readonly code?: string }).code) : undefined,
       stack: error?.stack,
     })
   }
 
-  const entries = async () => {
+  const entries = async (): Promise<DiagnosticEntry[]> => {
     const old = (await earlier).filter(entry => entry.time > cleared)
     return [...old, ...fresh].slice(-KEEP).map(entry => ({
       ...entry,
@@ -195,10 +245,10 @@ export function install(rt) {
     }))
   }
 
-  const facts = () => {
+  const facts = (): ReportFacts => {
     const bots = Object.values(rt.state.bots)
     const models = [...new Set(bots.map(bot => bot.model ?? bot.appliedModel).filter(Boolean))]
-    const count = (n, one, many) => `${n} ${n === 1 ? one : many}`
+    const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
     const groups = Object.keys(rt.state.rooms).length
     return {
       botVersion: ownVersion(),
@@ -211,20 +261,21 @@ export function install(rt) {
     }
   }
 
-  const sanitizeClient = (client) => {
-    const pick = (value, max) => (typeof value === 'string' ? clean(value.slice(0, max)) : undefined)
+  const sanitizeClient = (client: unknown): ReportClient => {
+    const source = client as { readonly surface?: unknown; readonly language?: unknown; readonly userAgent?: unknown } | undefined
+    const pick = (value: unknown, max: number): string | undefined => (typeof value === 'string' ? clean(value.slice(0, max)) : undefined)
     return {
-      surface: pick(client?.surface, 40),
-      language: pick(client?.language, 20),
-      userAgent: pick(client?.userAgent, 200),
+      surface: pick(source?.surface, 40),
+      language: pick(source?.language, 20),
+      userAgent: pick(source?.userAgent, 200),
     }
   }
-  const sanitizeClientEntries = list => (Array.isArray(list) ? list : []).slice(-20).flatMap((item) => {
+  const sanitizeClientEntries = (list: unknown): DiagnosticEntry[] => (Array.isArray(list) ? list : []).slice(-20).flatMap((item) => {
     if (typeof item?.text !== 'string' || typeof item.time !== 'number') return []
     return [{ time: item.time, level: item.level === 'warn' ? 'warn' : 'error', source: 'browser', text: clean(item.text.slice(0, 500)), ...(typeof item.code === 'string' ? { code: clean(item.code.slice(0, 40)) } : {}) }]
   })
 
-  async function report(body = {}) {
+  async function report(body: ReportBody = {}): Promise<Record<string, unknown>> {
     await rt.loadSecrets?.().catch(() => {})
     const list = await entries()
     const client = sanitizeClient(body.client)
@@ -239,13 +290,13 @@ export function install(rt) {
     }
   }
 
-  async function logText() {
+  async function logText(): Promise<string> {
     await rt.loadSecrets?.().catch(() => {})
     const list = await entries()
     return list.map(entry => (entry.stack ? `${entryLine(entry)}\n${entry.stack.replace(/^/gm, '    ')}` : entryLine(entry))).join('\n')
   }
 
-  async function clear() {
+  async function clear(): Promise<void> {
     cleared = Date.now()
     fresh = []
     if (!toFile || stopped) return

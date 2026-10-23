@@ -413,6 +413,32 @@ export interface CredentialsService {
   unset(ref: string): Promise<unknown>
 }
 
+/** A plugin manager's registry configuration. */
+export interface PluginManagerRegistries {
+  readonly registry?: string
+  readonly resolved?: string
+  readonly fallbackRegistries?: readonly string[]
+}
+
+/** A bundle DSH's plugin manager installed. */
+export interface PluginManagerBundle {
+  readonly name?: string
+  readonly source?: unknown
+}
+
+/** DSH's plugin manager, as far as the update check reads it. */
+export interface PluginManagerService {
+  registries?(): Promise<PluginManagerRegistries | null> | PluginManagerRegistries | null
+  listBundles?(): Promise<readonly PluginManagerBundle[]> | readonly PluginManagerBundle[] | null
+  installBundle?(spec: string, options?: { readonly registry?: string }): Promise<unknown> | unknown
+}
+
+/** The profile this plugin runs in. */
+export interface ProfileContextService {
+  readonly dir?: string
+  readonly packageManager?: { readonly command?: string }
+}
+
 /** The services `ctx.get(name)` may return, by the names the host asks for. */
 export interface DshServices {
   readonly attachments: AttachmentsService

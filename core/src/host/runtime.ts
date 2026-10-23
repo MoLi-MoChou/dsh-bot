@@ -14,6 +14,8 @@ export interface HostConfig {
   readonly mainRole?: string
   readonly timeRefreshIntervalMs?: number
   readonly updateCheck?: boolean
+  readonly diagnosticsFile?: boolean
+  readonly updateRegistry?: string
   readonly github?: Readonly<Record<string, unknown>> | false
   readonly timeZone?: string
 }
@@ -148,6 +150,7 @@ export interface StoredState {
   rooms: Record<string, StoredRoom>
   exchangeTurns: Record<string, readonly number[]>
   workspaceId?: string
+  mainBotIds: readonly string[]
   exchanges: ExchangeEntry[]
   connectors?: Record<string, { readonly login?: string | null; readonly connectedAt?: number }>
   works?: Record<string, StoredWork>

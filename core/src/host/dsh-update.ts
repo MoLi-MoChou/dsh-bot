@@ -1,5 +1,5 @@
 import type { ChildProcess } from 'node:child_process'
-import type { LoaderService } from './dsh-types.js'
+import type { LoaderService, PluginManagerService } from './dsh-types.js'
 import type { HostRuntime } from './runtime.ts'
 
 interface DshUpdateStatus {
@@ -45,7 +45,7 @@ import { dirname, join } from 'node:path'
 import {
   CHECK_TTL_MS, cleanVersion, encodeName, fetchJson, installSpecOf,
   newer, registryPlan, repoSlug, sourceOf,
-} from './update.js'
+} from './update.ts'
 
 const PKG = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
 const APP_BOOT = '@deepseek-ai/dsh-app-boot'
@@ -110,10 +110,11 @@ export function install(rt: HostRuntime): void {
   // itself updates from: its registry, or the public repo's latest release.
   async function releasedDeclaration(source: { readonly kind?: string }): Promise<DshDeclaration | null> {
     if (source.kind === 'registry') {
-      for (const registry of await registryPlan(config, ctx.get<unknown>('pluginManager'))) {
+      for (const registry of await registryPlan(config, ctx.get<PluginManagerService>('pluginManager'))) {
         try {
           const manifest = await fetchJson(`${registry}${encodeName(PKG.name)}/latest`)
-          if (manifest?.dsBot?.verifiedDsh) return manifest.dsBot
+          const dsBot = manifest.dsBot as { readonly verifiedDsh?: unknown } | undefined
+          if (dsBot?.verifiedDsh) return dsBot
         } catch { /* unreachable or not published there: ask the next one */ }
       }
       return null
@@ -125,7 +126,8 @@ export function install(rt: HostRuntime): void {
       const tag = cleanVersion(release?.tag_name)
       if (!tag) return null
       const manifest = await fetchJson(`https://raw.githubusercontent.com/${repo}/${release.tag_name}/core/package.json`, { 'user-agent': `${PKG.name}/${PKG.version}` })
-      return manifest?.dsBot?.verifiedDsh ? manifest.dsBot : null
+      const dsBot = manifest.dsBot as { readonly verifiedDsh?: unknown } | undefined
+      return dsBot?.verifiedDsh ? dsBot : null
     } catch { return null }
   }
 

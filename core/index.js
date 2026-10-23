@@ -2,7 +2,7 @@
 // Every Bot is one root Session; the roster, rooms, and the bot-to-bot exchange log live
 // in one JSON file under DSH_HOME so they survive restarts without new Session event types.
 import { join } from 'node:path'
-import * as diagnostics from './src/host/diagnostics.js'
+import * as diagnostics from './src/host/diagnostics.ts'
 import * as store from './src/host/store.js'
 import * as models from './src/host/models.ts'
 import * as providers from './src/host/providers.ts'
@@ -29,7 +29,7 @@ import * as connectors from './src/host/connectors.ts'
 import * as capabilities from './src/host/capabilities.js'
 import * as schedules from './src/host/schedules.ts'
 import * as usage from './src/host/usage.js'
-import * as update from './src/host/update.js'
+import * as update from './src/host/update.ts'
 import * as dshUpdate from './src/host/dsh-update.ts'
 import * as thinking from './src/host/thinking.ts'
 import * as channel from './src/host/channel.js'

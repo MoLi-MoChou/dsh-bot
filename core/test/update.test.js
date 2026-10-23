@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, test } from 'node:test'
-import { cleanVersion, install, newer, sourceOf } from '../src/host/update.js'
+import { cleanVersion, install, newer, sourceOf } from '../src/host/update.ts'
 
 const PKG = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
 const flush = async () => { for (let index = 0; index < 8; index += 1) await Promise.resolve() }
