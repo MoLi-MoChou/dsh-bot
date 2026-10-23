@@ -879,6 +879,7 @@ var ZH = {
   "{count} stars": "{count} 个 Star",
   "If DS Bot helps you, a star on GitHub helps more people find it.": "如果 Moon Bot 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。",
   Updates: "更新",
+  Runtime: "运行时",
   "Check for updates": "检查更新",
   "Checking…": "正在检查…",
   "Up to date": "已是最新版本",
@@ -1023,6 +1024,15 @@ var ZH = {
   "Some folders are not shown.": "还有一些文件夹没有显示。"
 };
 var HOST_ERRORS = [
+  // Approval refusal from DSH (shows in chat + sidebar preview when the user rejects).
+  [/^Error:\s*the user rejected escalating this command to danger-full-access\.?$/i, "你拒绝了完全访问权限，命令没有执行"],
+  [/^the user rejected escalating this command to danger-full-access\.?$/i, "你拒绝了完全访问权限，命令没有执行"],
+  [/^Error:\s*the user rejected escalating this command to workspace-write\.?$/i, "你拒绝了工作区写入权限，命令没有执行"],
+  [/^the user rejected escalating this command to workspace-write\.?$/i, "你拒绝了工作区写入权限，命令没有执行"],
+  [/^Error:\s*the user rejected escalating this command to ([\w-]+)\.?$/i, "你拒绝了权限提升（$1），命令没有执行"],
+  [/^the user rejected escalating this command to ([\w-]+)\.?$/i, "你拒绝了权限提升（$1），命令没有执行"],
+  [/^Error:\s*the user rejected(?: this (?:command|action|request))?\.?$/i, "你拒绝了这次操作，命令没有执行"],
+  [/^the user rejected(?: this (?:command|action|request))?\.?$/i, "你拒绝了这次操作，命令没有执行"],
   [/^Model (.+) is not available\. Available: (.*)$/, "模型 $1 不可用。可用的：$2"],
   [/^The API key for (.+) is set outside DS Bot and cannot be changed here$/, "$1 的 API key 是在 DS Bot 之外设置的，这里改不了"],
   [/^(.+) takes no API key here$/, "$1 不能在这里填 API key"],
@@ -1269,6 +1279,47 @@ function relabelTitle() {
   fix();
   const observer = new MutationObserver(fix);
   observer.observe(document.head, { childList: true, subtree: true, characterData: true });
+  return () => observer.disconnect();
+}
+var DEEPSEEK_CTA = /Session Log|帮助改进\s*DeepSeek|help improve DeepSeek|Improve DeepSeek/i;
+function quietShellDeepSeekCtas() {
+  if (typeof MutationObserver === "undefined") return () => {
+  };
+  const hide = () => {
+    for (const node of document.querySelectorAll("button, a, [role=button]")) {
+      const label = `${node.textContent ?? ""} ${node.getAttribute("aria-label") ?? ""}`;
+      if (!DEEPSEEK_CTA.test(label)) continue;
+      const row = node.closest('[class*="row"], [class*="Row"], li, section, div') ?? node;
+      if (row instanceof HTMLElement) row.style.display = "none";
+    }
+  };
+  const observer = new MutationObserver(hide);
+  observer.observe(document.body, { childList: true, subtree: true });
+  hide();
+  return () => observer.disconnect();
+}
+var REJECT_LINE = /^(?:Error:\s*)?the user rejected escalating this command to ([\w-]+)\.?$/i;
+var REJECT_PLAIN = /^(?:Error:\s*)?the user rejected(?: this (?:command|action|request))?\.?$/i;
+function quietShellRejectionCopy() {
+  if (typeof MutationObserver === "undefined") return () => {
+  };
+  const fix = () => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const raw = node.nodeValue?.trim() ?? "";
+      if (!raw || raw.length > 200) continue;
+      let next = null;
+      const m = REJECT_LINE.exec(raw);
+      if (m) {
+        const preset = m[1].toLowerCase();
+        next = preset === "danger-full-access" ? "你拒绝了完全访问权限，命令没有执行" : preset === "workspace-write" ? "你拒绝了工作区写入权限，命令没有执行" : `你拒绝了权限提升（${m[1]}），命令没有执行`;
+      } else if (REJECT_PLAIN.test(raw)) next = "你拒绝了这次操作，命令没有执行";
+      if (next && node.nodeValue !== next) node.nodeValue = next;
+    }
+  };
+  const observer = new MutationObserver(fix);
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  fix();
   return () => observer.disconnect();
 }
 
@@ -2242,7 +2293,7 @@ function previewOf(list, id, hiddenTurns = []) {
     const entry = outline[index];
     if (hiddenTurns.includes(entry.turn)) continue;
     const text = entry.response || entry.prompt || "";
-    if (text !== "") return stripHeader(text).replace(/\s+/g, " ").trim();
+    if (text !== "") return hostText(stripHeader(text).replace(/\s+/g, " ").trim());
   }
   return "";
 }
@@ -16837,7 +16888,8 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
       Section,
       { key: "updates", title: t("Updates") },
       (0, import_react33.createElement)(Row3, { label: productName(), hint: botHint(update) }),
-      dsh?.current ? (0, import_react33.createElement)(Row3, { label: "DeepSeek Harness", hint: t("Version {version}", { version: dsh.current }) }) : null
+      // Runtime build id stays available but is not framed as a second product.
+      dsh?.current ? (0, import_react33.createElement)(Row3, { label: t("Runtime"), hint: t("Version {version}", { version: dsh.current }) }) : null
     ) : (0, import_react33.createElement)(
       Section,
       { key: "updates", title: t("Updates") },
@@ -20255,6 +20307,8 @@ function apply(ctx) {
   relabelTitle();
   ctx.effect(() => installFilesPanel({ call }), "moon-bot: workspace file downloads");
   relabelShellVersion(true ? "0.1.4" : "");
+  quietShellDeepSeekCtas();
+  quietShellRejectionCopy();
   ctx.effect(() => installLocale(ctx.get("locale")), "ds-bot: interface copy");
   const roster = createSource(EMPTY_ROSTER);
   migrateStorage();

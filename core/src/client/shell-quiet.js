@@ -70,3 +70,50 @@ export function relabelTitle() {
   observer.observe(document.head, { childList: true, subtree: true, characterData: true })
   return () => observer.disconnect()
 }
+
+// Moon Bot patch: DSH General settings still offer "Upload Session Log to help improve
+// DeepSeek". That is upstream telemetry branding, not Moon Bot — hide those CTAs.
+const DEEPSEEK_CTA = /Session Log|帮助改进\s*DeepSeek|help improve DeepSeek|Improve DeepSeek/i
+export function quietShellDeepSeekCtas() {
+  if (typeof MutationObserver === 'undefined') return () => {}
+  const hide = () => {
+    for (const node of document.querySelectorAll('button, a, [role=button]')) {
+      const label = `${node.textContent ?? ''} ${node.getAttribute('aria-label') ?? ''}`
+      if (!DEEPSEEK_CTA.test(label)) continue
+      const row = node.closest('[class*="row"], [class*="Row"], li, section, div') ?? node
+      if (row instanceof HTMLElement) row.style.display = 'none'
+    }
+  }
+  const observer = new MutationObserver(hide)
+  observer.observe(document.body, { childList: true, subtree: true })
+  hide()
+  return () => observer.disconnect()
+}
+
+// Moon Bot patch: DSH paints approval-rejection tool errors in English into the chat.
+// Rewrite known refusal lines in place so chat matches the Chinese hostText map.
+const REJECT_LINE = /^(?:Error:\s*)?the user rejected escalating this command to ([\w-]+)\.?$/i
+const REJECT_PLAIN = /^(?:Error:\s*)?the user rejected(?: this (?:command|action|request))?\.?$/i
+export function quietShellRejectionCopy() {
+  if (typeof MutationObserver === 'undefined') return () => {}
+  const fix = () => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const raw = node.nodeValue?.trim() ?? ''
+      if (!raw || raw.length > 200) continue
+      let next = null
+      const m = REJECT_LINE.exec(raw)
+      if (m) {
+        const preset = m[1].toLowerCase()
+        next = preset === 'danger-full-access' ? '你拒绝了完全访问权限，命令没有执行'
+          : preset === 'workspace-write' ? '你拒绝了工作区写入权限，命令没有执行'
+            : `你拒绝了权限提升（${m[1]}），命令没有执行`
+      } else if (REJECT_PLAIN.test(raw)) next = '你拒绝了这次操作，命令没有执行'
+      if (next && node.nodeValue !== next) node.nodeValue = next
+    }
+  }
+  const observer = new MutationObserver(fix)
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+  fix()
+  return () => observer.disconnect()
+}

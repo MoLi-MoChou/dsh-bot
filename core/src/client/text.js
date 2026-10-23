@@ -1,6 +1,6 @@
 // -------------------------------------------------------------------------
 // Text helpers
-import { dateLocale, t } from './i18n.js'
+import { dateLocale, hostText, t } from './i18n.js'
 import { mentionSpans } from '../shared/mentions.js'
 
 export const MENTION_ORIGIN = 'https://bots.local/'
@@ -230,7 +230,7 @@ export function previewOf(list, id, hiddenTurns = []) {
     const entry = outline[index]
     if (hiddenTurns.includes(entry.turn)) continue
     const text = entry.response || entry.prompt || ''
-    if (text !== '') return stripHeader(text).replace(/\s+/g, ' ').trim()
+    if (text !== '') return hostText(stripHeader(text).replace(/\s+/g, ' ').trim())
   }
   return ''
 }

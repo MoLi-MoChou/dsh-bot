@@ -1,9 +1,19 @@
 {
   "env": { "browser": true, "node": true, "es2024": true },
-  "globals": { "__MOON_BOT_VERSION__": "readonly" },
-  "ignorePatterns": ["src/client/vendor/**"],
   "rules": {
     "no-undef": "error",
-    "no-unused-vars": ["error", { "ignoreRestSiblings": true }]
-  }
+    "no-unused-vars": [
+      "error",
+      {
+        "ignoreRestSiblings": true
+      }
+    ]
+  },
+  "globals": {
+    "__MOON_BOT_VERSION__": "readonly"
+  },
+  "ignorePatterns": [
+    "src/client/vendor/**",
+    "client.js"
+  ]
 }

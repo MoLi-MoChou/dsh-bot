@@ -830,6 +830,7 @@ const ZH = {
   '{count} stars': '{count} 个 Star',
   'If DS Bot helps you, a star on GitHub helps more people find it.': '如果 Moon Bot 对你有用，欢迎在 GitHub 上点个 Star，让更多人看到它。',
   Updates: '更新',
+  Runtime: '运行时',
   'Check for updates': '检查更新',
   'Checking…': '正在检查…',
   'Up to date': '已是最新版本',
@@ -977,6 +978,15 @@ const ZH = {
 // Host errors stay English, since Bots read them too; they are translated where the
 // interface shows them. Static ones go through ZH, these carry names or numbers.
 const HOST_ERRORS = [
+  // Approval refusal from DSH (shows in chat + sidebar preview when the user rejects).
+  [/^Error:\s*the user rejected escalating this command to danger-full-access\.?$/i, '你拒绝了完全访问权限，命令没有执行'],
+  [/^the user rejected escalating this command to danger-full-access\.?$/i, '你拒绝了完全访问权限，命令没有执行'],
+  [/^Error:\s*the user rejected escalating this command to workspace-write\.?$/i, '你拒绝了工作区写入权限，命令没有执行'],
+  [/^the user rejected escalating this command to workspace-write\.?$/i, '你拒绝了工作区写入权限，命令没有执行'],
+  [/^Error:\s*the user rejected escalating this command to ([\w-]+)\.?$/i, '你拒绝了权限提升（$1），命令没有执行'],
+  [/^the user rejected escalating this command to ([\w-]+)\.?$/i, '你拒绝了权限提升（$1），命令没有执行'],
+  [/^Error:\s*the user rejected(?: this (?:command|action|request))?\.?$/i, '你拒绝了这次操作，命令没有执行'],
+  [/^the user rejected(?: this (?:command|action|request))?\.?$/i, '你拒绝了这次操作，命令没有执行'],
   [/^Model (.+) is not available\. Available: (.*)$/, '模型 $1 不可用。可用的：$2'],
   [/^The API key for (.+) is set outside DS Bot and cannot be changed here$/, '$1 的 API key 是在 DS Bot 之外设置的，这里改不了'],
   [/^(.+) takes no API key here$/, '$1 不能在这里填 API key'],

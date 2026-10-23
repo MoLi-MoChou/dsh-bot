@@ -1,4 +1,4 @@
-import { quietShellOnboarding, noteSignInAsked, relabelShellVersion, relabelTitle } from './shell-quiet.js'
+import { quietShellOnboarding, noteSignInAsked, relabelShellVersion, relabelTitle, quietShellDeepSeekCtas, quietShellRejectionCopy } from './shell-quiet.js'
 import { call } from './api.js'
 import { isHex, inkText, paintCss } from './inks.js'
 import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.js'
@@ -55,6 +55,8 @@ export function apply(ctx) {
   relabelTitle()
   ctx.effect(() => installFilesPanel({ call }), 'moon-bot: workspace file downloads')
   relabelShellVersion(typeof __MOON_BOT_VERSION__ === 'string' ? __MOON_BOT_VERSION__ : '')
+  quietShellDeepSeekCtas()
+  quietShellRejectionCopy()
   ctx.effect(() => installLocale(ctx.get('locale')), 'ds-bot: interface copy')
   const roster = createSource(EMPTY_ROSTER)
   migrateStorage()
