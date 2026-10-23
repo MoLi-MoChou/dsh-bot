@@ -4,7 +4,7 @@
 //   live      work changed without a new revision: ask for `state` again
 //   message   a new entry of a Bot's own chat, as the `chat` endpoint returns it
 //   stream    the reply a Bot is writing: a start, its text as it comes, an end
-import { ROUTE } from './constants.js'
+import { ROUTE } from './constants.ts'
 
 export const FEED_ROUTE = `${ROUTE}/feed`
 // A comment line now and then keeps an idle connection open.

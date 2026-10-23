@@ -2,7 +2,7 @@
 // them. Its Sessions are ordinary root Sessions in the DS Bot workspace, so they get
 // the whole dsh conversation surface and none of the team tools.
 import { randomUUID } from 'node:crypto'
-import { AGENT_NAME, AGENT_SESSION_TITLE_MAX, TEAM_TOOLS } from './constants.js'
+import { AGENT_NAME, AGENT_SESSION_TITLE_MAX, TEAM_TOOLS } from './constants.ts'
 
 export function install(rt) {
   const { ctx, state } = rt

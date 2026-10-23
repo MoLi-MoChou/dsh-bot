@@ -2,15 +2,15 @@
 // the limits on messages, group chats, and chat reads.
 
 // Classic avatar inks, offered as Bot colors.
-export const COLORS = ['lilac', 'deepseek', 'blue', 'violet', 'orange', 'green', 'magenta', 'cyan', 'red', 'yellow', 'brown', 'gray', 'black', 'aurora']
+export const COLORS: readonly string[] = ['lilac', 'deepseek', 'blue', 'violet', 'orange', 'green', 'magenta', 'cyan', 'red', 'yellow', 'brown', 'gray', 'black', 'aurora']
 // Deeper inks, also offered as accent swatches; each is a valid Bot color too.
-export const EXTRA_COLORS = ['charcoal', 'graphite', 'rose', 'sky', 'tangerine', 'cobalt']
+export const EXTRA_COLORS: readonly string[] = ['charcoal', 'graphite', 'rose', 'sky', 'tangerine', 'cobalt']
 // Renamed color ids, so a Bot saved with an old one keeps its color (LEGACY: old id → new id).
-export const LEGACY_COLORS = { kimi: 'charcoal', zai: 'graphite', minimax: 'rose', stepfun: 'sky', mimo: 'tangerine', qwen: 'cobalt' }
+export const LEGACY_COLORS: Readonly<Record<string, string>> = { kimi: 'charcoal', zai: 'graphite', minimax: 'rose', stepfun: 'sky', mimo: 'tangerine', qwen: 'cobalt' }
 // Renamed theme ids, so a saved choice keeps its look (LEGACY: old id → new id).
-export const LEGACY_THEMES = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
+export const LEGACY_THEMES: Readonly<Record<string, string>> = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
 
-export const OCR_PROMPT = [
+export const OCR_PROMPT: string = [
   'Transcribe all text in this image exactly, in its original language, keeping line breaks and reading order; use Markdown tables for tables.',
   'Then add a line starting with "Image:" that describes in one to three sentences what is not text (photo, chart, diagram, screen layout).',
   'Reply with only that. If there is no text, reply with only the "Image:" line.',
@@ -50,7 +50,7 @@ export const REFERENCE_KIND = 'session-reference'
 // plain message goes to the admin, who calls others with @mentions. New groups start
 // in `admin` mode, because every extra speaker re-reads its whole context; a group
 // without an admin still answers as `everyone`.
-export const ROOM_MODES = ['everyone', 'admin']
+export const ROOM_MODES: readonly string[] = ['everyone', 'admin']
 export const ROOM_NAME_MAX = 60
 export const ROOM_NOTICE_MAX = 2000
 export const ROOM_MAX_MEMBERS = 12
@@ -61,7 +61,7 @@ export const AGENT_NAME = 'DSH Agent'
 export const AGENT_SESSION_TITLE_MAX = 80
 // Every tool this plugin registers for Bots. `read_browser` only exists in the
 // Desktop profile, so a restriction filters this list down to registered names.
-export const TEAM_TOOLS = [
+export const TEAM_TOOLS: readonly string[] = [
   'list_bots', 'message_bot', 'stop_bot', 'create_bot', 'update_bot', 'list_models',
   'create_group', 'update_group', 'delete_group', 'post_to_group', 'ask_user', 'show_view',
   'request_secret', 'list_secrets', 'group_relay', 'read_own_chat',

@@ -5,7 +5,7 @@
 import { readFile, realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { MAX_AVATAR_IMAGE } from './constants.js'
+import { MAX_AVATAR_IMAGE } from './constants.ts'
 
 // Base64 is four characters for every three bytes, and the data URL adds a mime
 // prefix, so a raw image must stay under this to fit MAX_AVATAR_IMAGE once stored.

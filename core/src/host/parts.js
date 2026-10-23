@@ -16,10 +16,10 @@
 // read_own_chat searches every part, the condensed messages included.
 import { randomUUID } from 'node:crypto'
 import { BlockAssembler, createUserMessage } from '@deepseek-ai/dsh-llm'
-import { HANDOFF_ACK, HISTORY_TIMEOUT_MS, REPLY_KIND, SOURCE_KIND } from './constants.js'
+import { HANDOFF_ACK, HISTORY_TIMEOUT_MS, REPLY_KIND, SOURCE_KIND } from './constants.ts'
 import { CHECKPOINT_PROMPT, STEWARD_SYSTEM, checkpointCount, checkpointTail, checkpointTailNote, checkpointText, linesFor, parseDecision, stewardRequest } from './steward.js'
 import { RESUME_DELAY_MS } from './resume.js'
-import { clip, createClock, escapeRegExp, estimateTokens, splitRef, textOf } from './text.js'
+import { clip, createClock, escapeRegExp, estimateTokens, splitRef, textOf } from './text.ts'
 import { validateViewAnswer, viewSummary } from '../shared/views.js'
 
 // An ask_user card as the user saw it. The user's reply is often just an option label,

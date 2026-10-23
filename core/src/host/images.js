@@ -5,9 +5,9 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { BlockAssembler } from '@deepseek-ai/dsh-llm'
-import { OCR_CACHE_MAX, OCR_PROMPT, OCR_RETRY_MS, OCR_TIMEOUT_MS } from './constants.js'
-import { replaceFile } from './files.js'
-import { splitRef } from './text.js'
+import { OCR_CACHE_MAX, OCR_PROMPT, OCR_RETRY_MS, OCR_TIMEOUT_MS } from './constants.ts'
+import { replaceFile } from './files.ts'
+import { splitRef } from './text.ts'
 
 export function offloadTargets(session, beforeSeq) {
   const targets = []

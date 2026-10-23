@@ -2,7 +2,7 @@
 // each assistant/message event: for one step, its last reasoning chunk's time minus
 // its first one's, summed over the turn. assistant/attempt events are skipped on
 // purpose — a failed or retried attempt's thinking never reached the reply.
-import { HISTORY_TIMEOUT_MS } from './constants.js'
+import { HISTORY_TIMEOUT_MS } from './constants.ts'
 
 export function thinkingMs(events, turn) {
   let total = 0

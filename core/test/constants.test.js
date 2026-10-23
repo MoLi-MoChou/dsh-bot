@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import * as plugin from '../index.js'
-import { COLORS, EXTRA_COLORS, LEGACY_COLORS, ROOM_MODES } from '../src/host/constants.js'
+import { COLORS, EXTRA_COLORS, LEGACY_COLORS, ROOM_MODES } from '../src/host/constants.ts'
 
 test('the plugin entry re-exports the shared colors', () => {
   assert.equal(plugin.name, 'ds-bot')

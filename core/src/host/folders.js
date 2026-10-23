@@ -5,7 +5,7 @@
 import { mkdir, realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
-import { unquote } from './text.js'
+import { unquote } from './text.ts'
 
 const PICK_TIMEOUT_MS = 10 * 60_000
 

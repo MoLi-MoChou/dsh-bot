@@ -4,7 +4,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { readAvatar } from '../src/host/avatar.js'
-import { MAX_AVATAR_IMAGE } from '../src/host/constants.js'
+import { MAX_AVATAR_IMAGE } from '../src/host/constants.ts'
 
 // Only the magic bytes matter to the reader; the rest of a fixture need not decode.
 const file = (magic, size = 32) => Buffer.concat([magic, Buffer.alloc(size, 7)])

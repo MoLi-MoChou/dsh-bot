@@ -4,10 +4,10 @@
 import { mkdirSync, statSync } from 'node:fs'
 import { copyFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { LEGACY_THEMES, MAX_EXCHANGES, ROOM_MODES, TEXT_KEPT } from './constants.js'
-import { replaceFile } from './files.js'
+import { LEGACY_THEMES, MAX_EXCHANGES, ROOM_MODES, TEXT_KEPT } from './constants.ts'
+import { replaceFile } from './files.ts'
 import { homeLock } from './home-lock.js'
-import { currentColor, headOf, normalize, unquote } from './text.js'
+import { currentColor, headOf, normalize, unquote } from './text.ts'
 
 // A table read that sees only the keys the table holds itself. Ids that come from
 // outside (a request body, a tool argument, a name a model gives) go through this, so

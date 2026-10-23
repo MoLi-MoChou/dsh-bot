@@ -3,7 +3,7 @@ import { closeSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync }
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { replaceFile } from '../src/host/files.js'
+import { replaceFile } from '../src/host/files.ts'
 
 const folder = (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'ds-bot-files-'))

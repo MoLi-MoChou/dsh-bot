@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
 import { fakeAttachments, fakeContext } from './fake-ctx.js'
-import { MESSAGE_INLINE_MAX, ROOM_LATE_ROUNDS, ROOM_STEP_GAP_MS, ROOM_WORK_GRACE_MS } from '../src/host/constants.js'
+import { MESSAGE_INLINE_MAX, ROOM_LATE_ROUNDS, ROOM_STEP_GAP_MS, ROOM_WORK_GRACE_MS } from '../src/host/constants.ts'
 
 // Chief, the admin of group 'r1', speaks there from 'ga'; Writer from 'gb'; Tester from 'gc'.
 const seed = (room = {}, extraRooms = {}) => ({

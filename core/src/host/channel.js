@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { questionReply, viewReply } from './parts.js'
 import { validateViewAnswer } from '../shared/views.js'
-import { COLORS, EXTRA_COLORS, ROUTE } from './constants.js'
+import { COLORS, EXTRA_COLORS, ROUTE } from './constants.ts'
 
 const LANGUAGES = { zh: 'Chinese (简体中文)', en: 'English' }
 const RUN_STATS = ['sessionStats', 'tokenUsage', 'contextPressure']

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
-import { TEAM_TOOLS } from '../src/host/constants.js'
+import { TEAM_TOOLS } from '../src/host/constants.ts'
 import { fakeContext } from './fake-ctx.js'
 
 const flush = async () => { for (let index = 0; index < 8; index += 1) await Promise.resolve() }

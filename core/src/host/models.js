@@ -1,7 +1,7 @@
 // Models. Every Bot runs on one model of its own, fixed when it is created and changed
 // only in its settings or by a Main Bot. The team's first Main Bot has none until the
 // user picks one in its chat. The Session keeps the selection durably.
-import { normalize, splitRef } from './text.js'
+import { normalize, splitRef } from './text.ts'
 
 const CATALOG_TTL_MS = 10_000
 const ROUTE_WAIT_MS = 30_000

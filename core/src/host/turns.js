@@ -2,9 +2,9 @@
 // triggered, the waiters and inboxes of group rounds, and routing a finished turn's reply.
 //
 // Turn tracking: which turns were triggered by another Bot, and what they said.
-import { HANDOFF_ACK, MESSAGE_INLINE_MAX, REFERENCE_KIND, REPLY_KIND, SOURCE_KIND } from './constants.js'
-import { absoluteLinks } from './links.js'
-import { textOf } from './text.js'
+import { HANDOFF_ACK, MESSAGE_INLINE_MAX, REFERENCE_KIND, REPLY_KIND, SOURCE_KIND } from './constants.ts'
+import { absoluteLinks } from './links.ts'
+import { textOf } from './text.ts'
 import { reminderText } from './schedules.js'
 
 // A failed turn's `LlmFailure`, kept to what can be shown and logged. Like DSH's own

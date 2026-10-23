@@ -36,7 +36,7 @@ import * as channel from './src/host/channel.js'
 import * as feed from './src/host/feed.js'
 import * as workspaceFiles from './src/host/workspace-files.js'
 
-export { COLORS } from './src/host/constants.js'
+export { COLORS } from './src/host/constants.ts'
 
 export const name = 'ds-bot'
 export const inject = ['llm', 'tools', 'systemPrompt', 'sessionController', 'sessions', 'sessionTitle', 'workspaceRegistry', 'connection']

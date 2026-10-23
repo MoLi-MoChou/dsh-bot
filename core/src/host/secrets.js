@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { chmod, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { replaceFile } from './files.js'
+import { replaceFile } from './files.ts'
 import { output } from './tools.js'
 
 export const SECRET_NAME = /^[A-Z][A-Z0-9_]{0,63}$/

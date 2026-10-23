@@ -5,8 +5,8 @@
 // that came back, together with what came back. Results find their way up by
 // themselves, so no Bot needs to message one that waits for it, and that is the one
 // hand-off refused. The open works are kept in state.json so a restart waits on.
-import { TEXT_KEPT } from './constants.js'
-import { headOf } from './text.js'
+import { TEXT_KEPT } from './constants.ts'
+import { headOf } from './text.ts'
 
 const minutes = since => {
   const count = Math.floor((Date.now() - since) / 60_000)

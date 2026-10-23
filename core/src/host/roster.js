@@ -1,8 +1,8 @@
 // Roster: creating, changing, and deleting Bots and group chats, the Main Bot role, and
 // the first Main Bot of a new team.
 import { mkdir } from 'node:fs/promises'
-import { MAX_AVATAR_IMAGE, ROOM_MAX_MEMBERS, ROOM_MODES, ROOM_NAME_MAX, ROOM_NOTICE_MAX } from './constants.js'
-import { currentColor, isColor, normalize, unquote } from './text.js'
+import { MAX_AVATAR_IMAGE, ROOM_MAX_MEMBERS, ROOM_MODES, ROOM_NAME_MAX, ROOM_NOTICE_MAX } from './constants.ts'
+import { currentColor, isColor, normalize, unquote } from './text.ts'
 import { nameProblem } from '../shared/mentions.js'
 
 export function install(rt) {

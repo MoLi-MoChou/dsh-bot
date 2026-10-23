@@ -9,8 +9,8 @@
 // rebuild. Without SQLite, read_own_chat scans the logs as before.
 import { mkdir, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { ANCHOR_LINE_MAX, HISTORY_PAGE, HISTORY_PAGES_MAX, HISTORY_TIMEOUT_MS, OWN_CHAT_BRIEF, OWN_CHAT_LINE_MAX, OWN_CHAT_READ, OWN_CHAT_SEARCH } from './constants.js'
-import { excerpt } from './text.js'
+import { ANCHOR_LINE_MAX, HISTORY_PAGE, HISTORY_PAGES_MAX, HISTORY_TIMEOUT_MS, OWN_CHAT_BRIEF, OWN_CHAT_LINE_MAX, OWN_CHAT_READ, OWN_CHAT_SEARCH } from './constants.ts'
+import { excerpt } from './text.ts'
 
 const INDEX_VERSION = 3
 const AROUND_LINES = 6

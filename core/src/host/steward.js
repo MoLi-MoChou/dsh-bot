@@ -6,7 +6,7 @@
 //
 // Every line follows the model. Its declared window, less the room its reply
 // needs, is the usable context; the check line is a share of that.
-import { estimateTokens } from './text.js'
+import { estimateTokens } from './text.ts'
 
 // For a model that declares no window.
 export const DEFAULT_WINDOW = 500_000

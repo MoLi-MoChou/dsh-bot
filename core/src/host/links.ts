@@ -11,12 +11,18 @@ const LINK = /(!?\[[^\]\n]*\]\()(<[^<>\n]*>|[^\s()<>]+)((?:\s+"[^"\n]*")?\))/g
 const ABSOLUTE = /^(?:\/|[A-Za-z]:[\\/])/
 const SCHEME = /^[a-z][a-z\d+.-]*:/i
 
-function relativeFile(destination) {
+/** A relative file link: the path, and the `#L12` fragment it keeps, if any. */
+interface RelativeFile {
+  readonly path: string
+  readonly fragment: string
+}
+
+function relativeFile(destination: string): RelativeFile | undefined {
   const hash = destination.indexOf('#')
   const target = hash < 0 ? destination : destination.slice(0, hash)
   const fragment = hash < 0 ? '' : destination.slice(hash)
   if (target === '' || target.includes('?') || (fragment !== '' && !/^#L[1-9]\d*(?:-L[1-9]\d*)?$/.test(fragment))) return undefined
-  let path
+  let path: string
   try {
     path = decodeURIComponent(target)
   } catch {
@@ -28,11 +34,12 @@ function relativeFile(destination) {
 }
 
 // DSH decodes the link back to the path, so `%` and what would end the link are escaped.
-const href = path => path.replace(/\\/g, '/').replace(/[%\s()<>]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`)
+const href = (path: string): string => path.replace(/\\/g, '/').replace(/[%\s()<>]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`)
 
-export function absoluteLinks(text, folder) {
+/** Makes the relative file links in `text` absolute against `folder`, leaving code alone. */
+export function absoluteLinks(text: string, folder: string | undefined): string {
   if (typeof text !== 'string' || !folder || !text.includes('](')) return text
-  return text.split(CODE).map((part, index) => (index % 2 === 1 ? part : part.replace(LINK, (whole, open, destination, close) => {
+  return text.split(CODE).map((part, index) => (index % 2 === 1 ? part : part.replace(LINK, (whole: string, open: string, destination: string, close: string) => {
     const file = relativeFile(destination.startsWith('<') ? destination.slice(1, -1) : destination)
     return file === undefined ? whole : `${open}${href(resolve(folder, file.path))}${file.fragment}${close}`
   }))).join('')
