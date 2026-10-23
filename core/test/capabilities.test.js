@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { createRuntime } from '../index.js'
-import { expandCapabilityNames, validateCapabilityName } from '../src/host/capabilities.js'
+import { expandCapabilityNames, validateCapabilityName } from '../src/host/capabilities.ts'
 import { fakeContext } from './fake-ctx.js'
 
 const makeHome = state => {

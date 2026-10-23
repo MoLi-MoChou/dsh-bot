@@ -184,10 +184,30 @@ export interface DeliveryInput {
 }
 
 
+/** One saved capability: an MCP server, a skill, or a pack of them. */
+export interface CapabilityItem {
+  name: string
+  kind: string
+  description?: string
+  createdBy?: string | null | undefined
+  createdAt?: number
+  updatedAt?: number
+  transport?: string
+  command?: string
+  args?: string[]
+  env?: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+  approved?: boolean
+  content?: string
+  items?: string[]
+  readonly [key: string]: unknown
+}
+
 export interface StoredState {
   readonly version: number
   revision: number
-  capabilities: { items: Record<string, unknown> }
+  capabilities: { items: Record<string, CapabilityItem> }
   prefs: Record<string, unknown>
   switching: Record<string, unknown>
   whaleStored?: boolean
@@ -234,6 +254,9 @@ export interface HostRuntime {
   readonly pastOwners: Map<string, { readonly botId: string; readonly roomId?: string }>
   load(): Promise<unknown>
   botOf(botId: string | undefined): StoredBot | undefined
+  findBot(ref: string | undefined): StoredBot | undefined
+  findRooms(ref: string | undefined): StoredRoom[]
+  isAdminOf(room: StoredRoom, id: string | undefined): boolean
   roomOf(roomId: string | undefined): StoredRoom | undefined
   chatOf(botId: string): string
   selfOf(sessionId: string | undefined): string | undefined
@@ -285,6 +308,9 @@ export interface HostRuntime {
   autoRoomName?(members: readonly string[]): string
   retitleRoom?(room: StoredRoom): Promise<unknown>
   capabilitiesStateSaved?(): void
+  canUseSecret?(name: string, botId: string): boolean
+  capabilityEnsureTimeoutMs?: number
+  secretsChanged?(): void
   cancelApprovals?(sessionId: string): void
   ownRequest(options: { readonly sessionId?: string | undefined; readonly messages?: unknown }): boolean
   partsOf(botId: string): readonly { readonly sessionId: string; readonly number: number; readonly startedAt: number; readonly endedAt?: number | undefined }[]

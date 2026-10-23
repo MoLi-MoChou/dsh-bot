@@ -81,7 +81,11 @@ export interface Agent {
   readonly inbox?: SessionInbox
   readonly status?: string
   /** A DSH Agent carries its own tool surface, which the Agent page restricts. */
-  readonly ctx?: { readonly tools?: { restrict?(options: { readonly deny: readonly string[] }): void } }
+  readonly ctx?: {
+    readonly tools?: { restrict?(options: { readonly deny: readonly string[] }): void }
+    plugin?(plugin: unknown, config?: unknown): PluginFiber
+    effect?(execute: () => void | Disposer, label?: string): void
+  }
   followup(message: unknown): void
   steer(message: unknown): void
   inject(message: unknown): void
