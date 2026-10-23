@@ -109,6 +109,10 @@ const CHOSEN = '[aria-pressed="true"],[aria-selected="true"],[aria-current="page
 // box gets data-glide once the thumb is placed, so its CSS can drop the chosen item's
 // own fill. `selector` finds the chosen item; with none the thumb gets data-hidden.
 // `box` takes a ref the caller already holds for the container.
+/**
+ * @param {string} key
+ * @param {{ axis?: 'x' | 'y', selector?: string, lead?: { duration: number, easing: string }, trail?: { duration: number, easing: string }, box?: import('react').RefObject<HTMLElement | null> | undefined }} [options]
+ */
 export function useGlide(key, { axis = 'x', selector = CHOSEN, lead = SPRING_LEAD, trail = SPRING_TRAIL, box: given } = {}) {
   const ownBox = useRef(null)
   const box = given ?? ownBox

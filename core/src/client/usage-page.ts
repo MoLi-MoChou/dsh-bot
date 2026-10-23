@@ -1,5 +1,7 @@
 import { createElement as h, startTransition, useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, ReactElement, ReactNode, RefObject } from 'react'
 import { colorOf, MAIN_LOOK } from './characters.ts'
+import type { LookBot } from './characters.ts'
 import { GRADIENTS, paintCss } from './inks.ts'
 import { BotAvatar, BotMark, RoomAvatar } from './mark.ts'
 import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.ts'
@@ -7,6 +9,7 @@ import { reducedMotion, useGlide } from './motion.js'
 import { EmptyState } from './empty-state.ts'
 import { dateLocale, t } from './i18n.js'
 import { DAY_MS, HOUR, HOUR_MS, MODEL, OWNER, RANGES, compact, dayKey, hourMs, mondayOf, percent, spanRange, summarize, tokensOf } from './usage-data.ts'
+import type { UsageBucket, UsageRange, UsageRow, UsageSum, UsageSummary } from './usage-data.ts'
 
 // Usage page: the host's ledger as hourly rows, summed here by hour, day, week, or
 // month, over a preset range or days picked on a calendar. The overview stacks the
@@ -19,27 +22,82 @@ const TOP_SERIES = 7
 const RING_R = 42
 const RING = 2 * Math.PI * RING_R
 
-const rangeLabel = id => ({ '24h': t('24 hours'), '7d': t('7 days'), '30d': t('30 days'), '12w': t('12 weeks'), '12m': t('12 months') })[id]
-const unitLabel = unit => ({ hour: t('Per hour'), day: t('Per day'), week: t('Per week'), month: t('Per month') })[unit]
-const MODEL_INKS = ['deepseek', 'tangerine', 'green', 'violet', 'sky', 'rose', 'yellow', 'cyan', 'magenta', 'brown']
+type PageRange = UsageRange & { readonly ends?: boolean | undefined }
+type UsageFocus = { readonly kind: 'owner' | 'model'; readonly key: string }
+type Glyph = () => ReactElement
+
+type UsageOwner =
+  | { readonly key: string; readonly kind: 'other' }
+  | { readonly key: string; readonly kind: 'room' | 'agent' | 'bot'; readonly id: string; readonly name: string; readonly deleted?: boolean | undefined }
+
+interface UsageModel {
+  readonly key: string
+  readonly provider: string
+  readonly model: string
+  readonly name: string
+  readonly providerName?: string | undefined
+}
+
+interface UsagePageView {
+  readonly owners: readonly UsageOwner[]
+  readonly models: readonly UsageModel[]
+  readonly kinds: readonly string[]
+  readonly rows: readonly UsageRow[]
+  readonly now: string
+  readonly scanning: boolean
+}
+
+interface UsageBot extends LookBot {
+  id?: string
+  name?: string
+  role?: string | null
+}
+
+interface UsageRoom {
+  readonly members: readonly string[]
+}
+
+interface UsageRoster {
+  readonly byId: Record<string, UsageBot | undefined>
+  readonly roomsById: Record<string, UsageRoom | undefined>
+}
+
+interface UsageActions {
+  usage: () => Promise<UsagePageView>
+  openSettings: (page: string, id?: string | null) => void
+}
+
+const rangeLabel = (id: string): string | undefined => {
+  const labels: Record<string, string> = { '24h': t('24 hours'), '7d': t('7 days'), '30d': t('30 days'), '12w': t('12 weeks'), '12m': t('12 months') }
+  return labels[id]
+}
+const unitLabel = (unit: string): string | undefined => {
+  const labels: Record<string, string> = { hour: t('Per hour'), day: t('Per day'), week: t('Per week'), month: t('Per month') }
+  return labels[unit]
+}
+const MODEL_INKS: readonly string[] = ['deepseek', 'tangerine', 'green', 'violet', 'sky', 'rose', 'yellow', 'cyan', 'magenta', 'brown']
 // Token kinds, from the solid output to the faint cache hits.
-const PARTS = [['output', 1], ['input', 0.6], ['cacheRead', 0.32]]
-const partLabel = part => ({ output: t('Output'), input: t('Input'), cacheRead: t('Cache hit') })[part]
+type PartKey = 'output' | 'input' | 'cacheRead'
+const PARTS: readonly (readonly [PartKey, number])[] = [['output', 1], ['input', 0.6], ['cacheRead', 0.32]]
+const partLabel = (part: string): string | undefined => {
+  const labels: Record<string, string> = { output: t('Output'), input: t('Input'), cacheRead: t('Cache hit') }
+  return labels[part]
+}
 // A color a step softer than the Bot's own, mixed into the card so stacks stay opaque.
 // A gradient softens stop by stop.
-const soften = (paint, strength = 1) => {
-  const mix = color => `color-mix(in srgb, ${color} ${Math.round(88 * strength)}%, var(--bt-card))`
+const soften = (paint: string, strength = 1): string => {
+  const mix = (color: string): string => `color-mix(in srgb, ${color} ${Math.round(88 * strength)}%, var(--bt-card))`
   return paint.startsWith('linear-gradient(') ? paint.replace(/#[0-9a-f]{6}/gi, mix) : mix(paint)
 }
 
-const full = count => new Intl.NumberFormat(dateLocale()).format(Math.round(count))
-const hitRate = sum => percent(sum.cacheRead, sum.input + sum.cacheRead)
+const full = (count: number): string => new Intl.NumberFormat(dateLocale()).format(Math.round(count))
+const hitRate = (sum: UsageSum): string => percent(sum.cacheRead, sum.input + sum.cacheRead)
 
-const dates = options => new Intl.DateTimeFormat(dateLocale(), { timeZone: 'UTC', ...options })
-const hourText = ms => `${String(new Date(ms).getUTCHours()).padStart(2, '0')}:00`
-const yearOf = ms => new Date(ms).getUTCFullYear()
+const dates = (options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat => new Intl.DateTimeFormat(dateLocale(), { timeZone: 'UTC', ...options })
+const hourText = (ms: number): string => `${String(new Date(ms).getUTCHours()).padStart(2, '0')}:00`
+const yearOf = (ms: number): number => new Date(ms).getUTCFullYear()
 // Day keys `from` to `to` as one short phrase, with the year only when it is not this one.
-function spanText(from, to) {
+function spanText(from: string, to: string): string {
   const start = hourMs(from)
   const end = hourMs(to)
   const year = new Date().getFullYear()
@@ -47,22 +105,22 @@ function spanText(from, to) {
   // Not formatRange: in Chinese it falls back to numbers like 10/1 – 10/9.
   return from === to ? format.format(start) : `${format.format(start)} – ${format.format(end)}`
 }
-const daysText = count => (count === 1 ? t('1 day') : t('{count} days', { count }))
-const lastText = range => (range.from ? spanText(range.from, range.to) : t('Last {range}', { range: rangeLabel(range.id) }))
-function compareText(range) {
+const daysText = (count: number): string => (count === 1 ? t('1 day') : t('{count} days', { count }))
+const lastText = (range: PageRange): string => (range.from ? spanText(range.from, range.to!) : t('Last {range}', { range: rangeLabel(range.id) }))
+function compareText(range: PageRange): string {
   if (!range.from) return t('Compared with the {range} before', { range: rangeLabel(range.id) })
   return range.days === 1 ? t('Compared with the day before') : t('Compared with the {count} days before', { count: range.days })
 }
 
-function tickOf(range, bucket) {
+function tickOf(range: PageRange, bucket: UsageBucket): string {
   if (range.unit === 'hour') {
     // Over two picked days, midnight names its day.
-    return range.days > 1 && new Date(bucket.start).getUTCHours() === 0 ? dates({ month: 'numeric', day: 'numeric' }).format(bucket.start) : hourText(bucket.start)
+    return range.days !== undefined && range.days > 1 && new Date(bucket.start).getUTCHours() === 0 ? dates({ month: 'numeric', day: 'numeric' }).format(bucket.start) : hourText(bucket.start)
   }
   if (range.unit === 'month') return dates({ month: 'short' }).format(bucket.start)
   return dates({ month: 'numeric', day: 'numeric' }).format(bucket.start)
 }
-function titleOf(range, bucket) {
+function titleOf(range: PageRange, bucket: UsageBucket): string {
   if (range.unit === 'hour') return `${dates({ month: 'short', day: 'numeric' }).format(bucket.start)} ${hourText(bucket.start)}–${hourText(bucket.start + HOUR_MS)}`
   if (range.unit === 'day') return dates({ month: 'long', day: 'numeric', weekday: 'short' }).format(bucket.start)
   if (range.unit === 'week') return spanText(dayKey(bucket.start), dayKey((bucket.end ?? bucket.start + 7 * DAY_MS) - DAY_MS))
@@ -72,7 +130,7 @@ function titleOf(range, bucket) {
 }
 
 // The number eases to each new value.
-function useTween(value) {
+function useTween(value: number): number {
   const [shown, setShown] = useState(0)
   const from = useRef(0)
   useEffect(() => {
@@ -83,8 +141,8 @@ function useTween(value) {
     }
     const begin = from.current
     const started = performance.now()
-    let frame
-    const step = (now) => {
+    let frame = 0
+    const step = (now: number): void => {
       const progress = Math.min(1, (now - started) / 650)
       from.current = begin + (value - begin) * (1 - (1 - progress) ** 3)
       setShown(from.current)
@@ -96,16 +154,26 @@ function useTween(value) {
   return shown
 }
 
-const glyphBox = (size, icon) => h('span', { className: 'bt-us-glyph', style: { width: size, height: size } }, h(icon))
-function ModelGlyph({ name, paint, size }) {
+const glyphBox = (size: number, icon: Glyph): ReactElement => h('span', { className: 'bt-us-glyph', style: { width: size, height: size } }, h(icon))
+interface ModelGlyphProps { name: string; paint: string; size: number }
+function ModelGlyph({ name, paint, size }: ModelGlyphProps): ReactElement {
   return h('span', {
     className: 'bt-us-model', 'aria-hidden': true,
     style: { width: size, height: size, fontSize: Math.round(size * 0.42), background: `color-mix(in srgb, ${paint} 20%, var(--bt-card))`, color: `color-mix(in srgb, ${paint} 72%, var(--bt-ink))` },
   }, (name.match(/[\p{L}\p{N}]/u)?.[0] ?? '?').toUpperCase())
 }
 
+interface Face {
+  readonly kind: string
+  readonly name: string
+  readonly sub: string
+  readonly paint: string
+  readonly stops?: readonly (readonly [number, string])[] | undefined
+  readonly glyph: (size: number) => ReactElement
+}
+
 // A Bot shows in its own color and character; a group chat and the other sessions in gray.
-function ownerFace(owner, roster) {
+function ownerFace(owner: UsageOwner, roster: UsageRoster): Face {
   if (owner.kind === 'bot') {
     const bot = roster.byId[owner.id] ?? { id: owner.id, name: owner.name }
     const name = bot.name || owner.name || t('Deleted Bot')
@@ -131,13 +199,21 @@ function ownerFace(owner, roster) {
   return { kind: 'other', name: t('Other'), sub: '', paint: 'var(--bt-us-rest)', glyph: size => glyphBox(size, ChatsIcon) }
 }
 
-function kindLabel(kind, botFocus) {
-  const labels = { chat: botFocus ? t('Own chat') : t('Conversations'), group: t('Group chats'), compaction: t('Compaction and handoff'), image: t('Image reading'), memory: t('Memory'), 'session-title': t('Titles'), other: t('Other') }
-  return labels[kind] ?? kind
+function kindLabel(kind: string | undefined, botFocus: boolean): string | undefined {
+  const labels: Record<string, string> = { chat: botFocus ? t('Own chat') : t('Conversations'), group: t('Group chats'), compaction: t('Compaction and handoff'), image: t('Image reading'), memory: t('Memory'), 'session-title': t('Titles'), other: t('Other') }
+  return labels[kind ?? ''] ?? kind
 }
 
 // Buttons on a track; a thumb slides to the chosen one.
-function Tabs({ label, value, options, onChange, boxRef }) {
+type TabOption = readonly [id: string, text: ReactNode, icon?: Glyph | undefined]
+interface TabsProps {
+  label: string
+  value: string
+  options: readonly TabOption[]
+  onChange: (id: string) => void
+  boxRef?: RefObject<HTMLElement | null> | undefined
+}
+function Tabs({ label, value, options, onChange, boxRef }: TabsProps): ReactElement {
   const names = options.map(([, text]) => text).join('\n')
   const glide = useGlide(`${value}\n${names}`, { box: boxRef })
   return h('div', { ref: glide.box, className: 'bt-us-tabs', role: 'group', 'aria-label': label },
@@ -145,10 +221,11 @@ function Tabs({ label, value, options, onChange, boxRef }) {
     options.map(([id, text, icon]) => h('button', { key: id, type: 'button', 'aria-pressed': value === id, onClick: () => onChange(id) }, icon ? h(icon) : null, text)))
 }
 
-function Stats({ range, total, previous }) {
+interface StatsProps { range: PageRange; total: UsageSum; previous: number }
+function Stats({ range, total, previous }: StatsProps): ReactElement {
   const shown = useTween(total.total)
   const change = previous > 0 ? Math.round(((total.total - previous) / previous) * 100) : null
-  const cell = (label, value) => h('div', { className: 'bt-us-stat' }, h('span', { className: 'bt-us-stat-label' }, label), h('span', { className: 'bt-us-stat-value' }, value))
+  const cell = (label: ReactNode, value: ReactNode): ReactElement => h('div', { className: 'bt-us-stat' }, h('span', { className: 'bt-us-stat-label' }, label), h('span', { className: 'bt-us-stat-value' }, value))
   return h('section', { className: 'bt-us-stats', style: { '--i': 0 } },
     h('div', { className: 'bt-us-stat bt-us-stat-main' },
       h('span', { className: 'bt-us-stat-label' }, lastText(range)),
@@ -160,28 +237,53 @@ function Stats({ range, total, previous }) {
     cell(t('Calls'), full(total.calls)))
 }
 
-function niceTop(max) {
+function niceTop(max: number): number {
   if (!(max > 0)) return 1
   const step = 10 ** Math.floor(Math.log10(max))
-  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map(scale => scale * step).find(value => value >= max)
+  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map(scale => scale * step).find(value => value >= max) ?? 10 * step
 }
 
+type StackPart = readonly [key: string, value: number]
+interface ChartColumn {
+  readonly key: string
+  readonly tick: string
+  readonly title: string
+  readonly total: number
+  readonly parts: StackPart[]
+  readonly tip: StackPart[]
+}
+interface ChartSeries {
+  readonly key: string
+  readonly name: string | undefined
+  fill?: string | undefined
+  readonly pick?: UsageFocus | undefined
+}
+interface ChartProps {
+  range: PageRange
+  columns: ChartColumn[]
+  series: ChartSeries[]
+  tipSeries: ChartSeries[]
+  by?: string | undefined
+  onBy?: ((value: string) => void) | undefined
+  onPick?: ((pick: UsageFocus) => void) | undefined
+}
 // Stacked bars, one per bucket, each stack a column of rounded pieces. Hovering a bar
 // dims the others and lists its `tip` rows (named by `tipSeries`) beside it.
-function Chart({ range, columns, series, tipSeries, by, onBy, onPick }) {
-  const [hover, setHover] = useState(null)
+function Chart({ range, columns, series, tipSeries, by, onBy, onPick }: ChartProps): ReactElement {
+  const [hover, setHover] = useState<number | null>(null)
   const top = niceTop(Math.max(0, ...columns.map(column => column.total)))
   const count = columns.length
   const fillOf = new Map(series.map(entry => [entry.key, entry.fill]))
   const tipOf = new Map(tipSeries.map(entry => [entry.key, entry]))
   const tip = hover === null ? null : columns[hover]
-  const tipSide = hover !== null && hover >= count / 2
-    ? { right: `calc(${((count - hover) / count) * 100}% + 8px)` }
-    : { left: `calc(${((hover + 1) / count) * 100}% + 8px)` }
+  const tipSide: CSSProperties = hover === null ? {}
+    : hover >= count / 2
+      ? { right: `calc(${((count - hover) / count) * 100}% + 8px)` }
+      : { left: `calc(${((hover + 1) / count) * 100}% + 8px)` }
   return h('section', { className: 'bt-us-card bt-us-chart', style: { '--i': 1 } },
     h('div', { className: 'bt-us-card-head' },
       h('h3', null, t('Tokens over time'), h('span', null, unitLabel(range.unit))),
-      onBy ? h(Tabs, { label: t('Group usage by'), value: by, onChange: onBy, options: [['bot', t('By Bot')], ['model', t('By model')]] }) : null),
+      onBy ? h(Tabs, { label: t('Group usage by'), value: by ?? '', onChange: onBy, options: [['bot', t('By Bot')], ['model', t('By model')]] }) : null),
     h('div', { className: 'bt-us-chart-body' },
       h('div', { className: 'bt-us-plot', 'data-hover': hover === null ? undefined : '', onMouseLeave: () => setHover(null) },
         [1, 0.5].map(level => h('div', { key: level, className: 'bt-us-grid', style: { bottom: `${level * 100}%` } }, h('span', null, compact(top * level)))),
@@ -206,11 +308,22 @@ function Chart({ range, columns, series, tipSeries, by, onBy, onPick }) {
           (range.from ? at : count - 1 - at) % range.stride === 0 ? column.tick : '')))),
     series.length > 1 || series[0]?.pick ? h('div', { className: 'bt-us-legend' },
       series.map(entry => h(entry.pick ? 'button' : 'span', {
-        key: entry.key, className: 'bt-us-key', ...(entry.pick ? { type: 'button', onClick: () => onPick(entry.pick) } : {}),
+        key: entry.key, className: 'bt-us-key', ...(entry.pick ? { type: 'button', onClick: () => onPick?.(entry.pick!) } : {}),
       }, h('i', { className: 'bt-us-dot', style: { background: entry.fill } }), entry.name))) : null)
 }
 
-function Row({ kind, glyph, name, sub, sum, whole, fill, index, onClick }) {
+interface RowProps {
+  kind?: string | undefined
+  glyph?: ReactNode
+  name: ReactNode
+  sub?: ReactNode
+  sum: UsageSum
+  whole: number
+  fill?: string | undefined
+  index: number
+  onClick?: (() => void) | undefined
+}
+function Row({ kind, glyph, name, sub, sum, whole, fill, index, onClick }: RowProps): ReactElement {
   const width = whole > 0 ? Math.max(sum.total > 0 ? 2 : 0, (sum.total / whole) * 100) : 0
   return h(onClick ? 'button' : 'div', {
     className: 'bt-us-row', 'data-kind': kind, style: { '--i': index },
@@ -226,14 +339,16 @@ function Row({ kind, glyph, name, sub, sum, whole, fill, index, onClick }) {
   h('span', { className: 'bt-us-row-num' }, h('b', null, compact(sum.total)), h('small', null, `${percent(sum.total, whole)}%`)))
 }
 
-function ListCard({ title, count, index, children }) {
+interface ListCardProps { title: ReactNode; count?: ReactNode; index: number; children?: ReactNode }
+function ListCard({ title, count, index, children }: ListCardProps): ReactElement {
   return h('section', { className: 'bt-us-card', style: { '--i': index } },
     h('div', { className: 'bt-us-card-head' }, h('h3', null, title, count === undefined ? null : h('span', null, count))),
     h('div', { className: 'bt-us-rows' }, children))
 }
 
+interface ProfileProps { face: Face; share: number; range: PageRange }
 // One Bot, group chat, or model: its face inside a ring as long as its share of the range.
-function Profile({ face, share, range }) {
+function Profile({ face, share, range }: ProfileProps): ReactElement {
   const arc = Math.max(0, Math.min(1, share)) * RING
   return h('section', { className: 'bt-us-profile' },
     h('span', { className: 'bt-us-ring' },
@@ -247,53 +362,75 @@ function Profile({ face, share, range }) {
       h('h3', null, face.name),
       face.sub ? h('span', { className: 'bt-us-profile-sub' }, face.sub) : null,
       h('span', { className: 'bt-us-profile-share' }, range.from
-        ? t('{share}% of all usage from {span}', { share: percent(share, 1), span: spanText(range.from, range.to) })
+        ? t('{share}% of all usage from {span}', { share: percent(share, 1), span: spanText(range.from, range.to!) })
         : t('{share}% of all usage in the last {range}', { share: percent(share, 1), range: rangeLabel(range.id) }))))
 }
 
-const monthOf = ms => Date.UTC(yearOf(ms), new Date(ms).getUTCMonth(), 1)
-const addMonths = (ms, count) => Date.UTC(yearOf(ms), new Date(ms).getUTCMonth() + count, 1)
+const monthOf = (ms: number): number => Date.UTC(yearOf(ms), new Date(ms).getUTCMonth(), 1)
+const addMonths = (ms: number, count: number): number => Date.UTC(yearOf(ms), new Date(ms).getUTCMonth() + count, 1)
 
+interface Span { readonly from: string; readonly to: string }
+interface SpanPickerProps {
+  span: Span | null
+  today: string
+  oldest: number
+  active: ReadonlySet<string>
+  near: RefObject<HTMLElement | null>
+  onPick: (from: string, to: string) => void
+  onClose: () => void
+}
 // Two months of days under the time range. The first press picks one end of the span,
 // the second the other; days with usage carry a dot.
-function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
-  const box = useRef(null)
+function SpanPicker({ span, today, oldest, active, near, onPick, onClose }: SpanPickerProps): ReactElement {
+  const box = useRef<HTMLDivElement | null>(null)
   const todayMs = hourMs(today)
   const thisMonth = monthOf(todayMs)
-  const [right, setRight] = useState(() => Math.max(addMonths(oldest, 1), monthOf(hourMs(span?.to ?? today))))
-  const [anchor, setAnchor] = useState(null)
-  const [hover, setHover] = useState(null)
+  const [right, setRight] = useState<number>(() => Math.max(addMonths(oldest, 1), monthOf(hourMs(span?.to ?? today))))
+  const [anchor, setAnchor] = useState<string | null>(null)
+  const [hover, setHover] = useState<string | null>(null)
   useEffect(() => {
-    const onDown = (event) => { if (![box, near].some(ref => ref.current?.contains(event.target))) onClose() }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }
+    const onDown = (event: MouseEvent): void => {
+      const target = event.target
+      if (!(target instanceof Node) || ![box, near].some(ref => ref.current?.contains(target))) onClose()
+    }
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey, true) }
   }, [])
-  const [low, high] = anchor ? [anchor, hover ?? anchor].sort() : span ? [span.from, span.to] : [null, null]
-  const press = (key) => {
+  let low: string | null = null
+  let high: string | null = null
+  if (anchor) {
+    low = hover !== null && hover < anchor ? hover : anchor
+    high = hover !== null && hover > anchor ? hover : anchor
+  } else if (span) {
+    low = span.from
+    high = span.to
+  }
+  const press = (key: string): void => {
     if (!anchor) {
       setAnchor(key)
       return
     }
-    const [from, to] = [anchor, key].sort()
+    const from = anchor < key ? anchor : key
+    const to = anchor < key ? key : anchor
     onPick(from, to)
   }
   const weekdays = useMemo(() => Array.from({ length: 7 }, (_, at) => dates({ weekday: 'narrow' }).format(Date.UTC(2024, 0, 1 + at))), [])
-  const month = (start, side) => {
+  const month = (start: number, side: 'left' | 'right'): ReactElement => {
     const length = new Date(addMonths(start, 1) - DAY_MS).getUTCDate()
     const lead = (new Date(start).getUTCDay() + 6) % 7
-    const cells = Array.from({ length: lead }, (_, at) => h('span', { key: `b${at}` }))
+    const cells: ReactElement[] = Array.from({ length: lead }, (_, at) => h('span', { key: `b${at}` }))
     for (let day = 1; day <= length; day += 1) {
       const ms = start + (day - 1) * DAY_MS
       const key = dayKey(ms)
       const weekday = (lead + day - 1) % 7
-      const flag = on => (on ? '' : undefined)
+      const flag = (on: boolean): '' | undefined => (on ? '' : undefined)
       cells.push(h('button', {
         key, type: 'button', className: 'bt-us-day', disabled: ms > todayMs,
         'aria-label': dates({ year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' }).format(ms),
         'aria-pressed': key === low || key === high,
-        'data-in': flag(low !== null && key >= low && key <= high), 'data-start': flag(key === low), 'data-end': flag(key === high),
+        'data-in': flag(low !== null && high !== null && key >= low && high >= key), 'data-start': flag(key === low), 'data-end': flag(key === high),
         'data-l': flag(weekday === 0 || day === 1), 'data-r': flag(weekday === 6 || day === length),
         'data-today': flag(key === today), 'data-has': flag(active.has(key)),
         onMouseEnter: () => setHover(key), onClick: () => press(key),
@@ -307,12 +444,12 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
       h('div', { className: 'bt-us-weekdays', 'aria-hidden': true }, weekdays.map((name, at) => h('span', { key: at }, name))),
       h('div', { className: 'bt-us-days', onMouseLeave: () => setHover(null) }, cells))
   }
-  const shortcuts = [
+  const shortcuts: [string, string, string, string][] = [
     ['month', t('This month'), dayKey(thisMonth), today],
     ['last', t('Last month'), dayKey(addMonths(thisMonth, -1)), dayKey(thisMonth - DAY_MS)],
     ['year', t('This year'), `${today.slice(0, 4)}-01-01`, today],
   ]
-  const count = low === null ? 0 : Math.round((hourMs(high) - hourMs(low)) / DAY_MS) + 1
+  const count = low === null || high === null ? 0 : Math.round((hourMs(high) - hourMs(low)) / DAY_MS) + 1
   return h('div', { ref: box, className: 'bt-us-pick', role: 'dialog', 'aria-label': t('Custom range') },
     h('div', { className: 'bt-us-pick-quick' },
       shortcuts.map(([id, label, from, to]) => h('button', {
@@ -321,24 +458,25 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
     h('div', { className: 'bt-us-pick-months' }, month(addMonths(right, -1), 'left'), month(right, 'right')),
     h('div', { className: 'bt-us-pick-foot', role: 'status' },
       h('span', null, anchor ? t('Pick the last day') : t('Pick the first day')),
-      low === null ? null : h('span', null, h('b', null, spanText(low, high)), ` · ${daysText(count)}`)))
+      low === null || high === null ? null : h('span', null, h('b', null, spanText(low, high)), ` · ${daysText(count)}`)))
 }
 
+interface HeatProps { view: UsagePageView; keep: (row: UsageRow) => boolean; paint: string; index: number }
 // Each day of the last year, shaded by its tokens.
-function Heat({ view, keep, paint, index }) {
-  const [hover, setHover] = useState(null)
+function Heat({ view, keep, paint, index }: HeatProps): ReactElement {
+  const [hover, setHover] = useState<{ ms: number; week: number; day: number } | null>(null)
   const today = hourMs(`${view.now.slice(0, 10)} 00`)
   const first = mondayOf(today) - (HEAT_WEEKS - 1) * 7 * DAY_MS
   const from = dayKey(first)
-  const daily = new Map()
+  const daily = new Map<string, number>()
   for (const row of view.rows) {
     const day = row[HOUR].slice(0, 10)
     if (day >= from && keep(row)) daily.set(day, (daily.get(day) ?? 0) + tokensOf(row))
   }
   const most = Math.max(0, ...daily.values())
   const levels = [0.3, 0.52, 0.76, 1]
-  const months = []
-  const cells = []
+  const months: ReactElement[] = []
+  const cells: ReactElement[] = []
   for (let week = 0; week < HEAT_WEEKS; week += 1) {
     const monday = first + week * 7 * DAY_MS
     if (week > 0 && new Date(monday).getUTCMonth() !== new Date(monday - 7 * DAY_MS).getUTCMonth()) {
@@ -356,14 +494,14 @@ function Heat({ view, keep, paint, index }) {
       }, level > 0 ? h('i', { style: { background: soften(paint, levels[level - 1]) } }) : null))
     }
   }
-  const tipSide = hover ? {
+  const tipSide: CSSProperties | undefined = hover ? {
     ...(hover.week >= HEAT_WEEKS / 2
       ? { right: `calc(${((HEAT_WEEKS - hover.week) / HEAT_WEEKS) * 100}% + 8px)` }
       : { left: `calc(${((hover.week + 1) / HEAT_WEEKS) * 100}% + 8px)` }),
     ...(hover.day < 4
       ? { top: `calc(${(hover.day / 7) * 100}% - 2px)` }
       : { top: 'auto', bottom: `calc(${((6 - hover.day) / 7) * 100}% - 2px)` }),
-  } : null
+  } : undefined
   const active = [...daily.values()].filter(value => value > 0).length
   const summary = active === 1 ? t('Active on 1 day in the last year') : t('Active on {count} days in the last year', { count: active })
   return h('section', { className: 'bt-us-card bt-us-heat', style: { '--i': index } },
@@ -379,7 +517,7 @@ function Heat({ view, keep, paint, index }) {
       t('Heavy')))
 }
 
-function Skeleton() {
+function Skeleton(): ReactElement {
   return h('div', { className: 'bt-us', 'aria-busy': true },
     h('div', { className: 'bt-us-skel', style: { height: 32, width: 320, borderRadius: 999 } }),
     h('div', { className: 'bt-us-sheet bt-us-skel-sheet' },
@@ -390,24 +528,58 @@ function Skeleton() {
         h('div', { className: 'bt-us-skel', style: { height: 200 } }))))
 }
 
-const focusOf = id => (typeof id !== 'string' ? null
+const focusOf = (id: string | null | undefined): UsageFocus | null => (id === null || id === undefined ? null
   : id.startsWith('model:') ? { kind: 'model', key: id.slice('model:'.length) }
   : id.startsWith('owner:') ? { kind: 'owner', key: id.slice('owner:'.length) }
   : null)
 
-export function UsagePage({ roster, actions, focusId }) {
-  const [view, setView] = useState(null)
+interface Series {
+  readonly key: string
+  readonly name: string | undefined
+  readonly paint?: string | undefined
+  fill?: string | undefined
+  readonly pick?: UsageFocus | undefined
+}
+type PaintedSeries = Series & { paint: string }
+
+interface Shaped {
+  faces: Face[]
+  models: Face[]
+  ownerAt: number
+  modelAt: number
+  face: Face | null
+  keep: (row: UsageRow) => boolean
+  all: UsageSummary
+  part: UsageSummary
+  series: Series[]
+  tipSeries: ChartSeries[]
+  fillOf: Map<string, string | undefined>
+  columns: ChartColumn[]
+  ranked: (map: Map<string, UsageSum>) => [string, UsageSum][]
+  isBot: (at: string | number) => boolean
+  activeDays: Set<string>
+  oldest: number
+}
+
+export interface UsagePageProps {
+  roster: UsageRoster
+  actions: UsageActions
+  focusId?: string | null
+}
+
+export function UsagePage({ roster, actions, focusId }: UsagePageProps): ReactElement | null {
+  const [view, setView] = useState<UsagePageView | null>(null)
   const [error, setError] = useState('')
   const [rangeId, setRangeId] = useState('7d')
-  const [span, setSpan] = useState(null)
+  const [span, setSpan] = useState<Span | null>(null)
   const [picking, setPicking] = useState(false)
   const [by, setBy] = useState('bot')
-  const tabs = useRef(null)
+  const tabs = useRef<HTMLDivElement | null>(null)
   const focus = focusOf(focusId)
   useEffect(() => {
     let stopped = false
-    let timer
-    const load = async () => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const load = async (): Promise<void> => {
       try {
         const value = await actions.usage()
         if (stopped) return
@@ -418,7 +590,7 @@ export function UsagePage({ roster, actions, focusId }) {
         timer = setTimeout(load, value.scanning ? 3000 : 20000)
       } catch (failure) {
         if (stopped) return
-        setError(failure?.message ?? String(failure))
+        setError((failure as { message?: string } | null)?.message ?? String(failure))
         timer = setTimeout(load, 10000)
       }
     }
@@ -426,18 +598,18 @@ export function UsagePage({ roster, actions, focusId }) {
     return () => { stopped = true; clearTimeout(timer) }
   }, [])
 
-  const today = view?.now.slice(0, 10)
-  const range = rangeId === 'custom' && span
+  const today = view?.now.slice(0, 10) ?? ''
+  const range: PageRange = rangeId === 'custom' && span
     ? { ...spanRange(span.from, span.to), ends: span.to >= today }
-    : RANGES.find(item => item.id === rangeId)
-  const shaped = useMemo(() => {
+    : RANGES.find(item => item.id === rangeId)!
+  const shaped = useMemo<Shaped | null>(() => {
     if (!view) return null
     const faces = view.owners.map(owner => ownerFace(owner, roster))
     // A model keeps its color in every range: colors go by all-time tokens.
-    const lifetime = new Map()
+    const lifetime = new Map<string | number, number>()
     for (const row of view.rows) lifetime.set(row[MODEL], (lifetime.get(row[MODEL]) ?? 0) + tokensOf(row))
-    const modelPaint = new Map([...lifetime].sort((a, b) => b[1] - a[1]).map(([model], rank) => [model, `var(--bt-ink-${MODEL_INKS[rank % MODEL_INKS.length]})`]))
-    const models = view.models.map((model, at) => {
+    const modelPaint = new Map<string | number, string>([...lifetime].sort((a, b) => b[1] - a[1]).map(([model], rank): [string | number, string] => [model, `var(--bt-ink-${MODEL_INKS[rank % MODEL_INKS.length]})`]))
+    const models = view.models.map((model, at): Face => {
       const name = model.name || model.model || t('Unknown model')
       const paint = modelPaint.get(at) ?? 'var(--bt-us-rest)'
       return { kind: 'model', name, sub: model.providerName ?? model.provider, paint, glyph: size => h(ModelGlyph, { name, paint, size }) }
@@ -445,60 +617,68 @@ export function UsagePage({ roster, actions, focusId }) {
     const ownerAt = focus?.kind === 'owner' ? view.owners.findIndex(owner => owner.key === focus.key) : -1
     const modelAt = focus?.kind === 'model' ? view.models.findIndex(model => model.key === focus.key) : -1
     // The DSH Agent stacks with the Bots; only rooms and outside sessions lump into the rest.
-    const isBot = at => ['bot', 'agent'].includes(view.owners[at]?.kind)
+    const isBot = (at: string | number): boolean => ['bot', 'agent'].includes(view.owners[Number(at)]?.kind ?? '')
     const all = summarize(view, range, undefined, row => (by === 'bot' ? (isBot(row[OWNER]) ? `o${row[OWNER]}` : 'rest') : `m${row[MODEL]}`))
-    const keep = ownerAt >= 0 ? row => row[OWNER] === ownerAt : modelAt >= 0 ? row => row[MODEL] === modelAt : () => true
-    const face = ownerAt >= 0 ? faces[ownerAt] : modelAt >= 0 ? models[modelAt] : null
+    const keep: (row: UsageRow) => boolean = ownerAt >= 0 ? row => Number(row[OWNER]) === ownerAt : modelAt >= 0 ? row => Number(row[MODEL]) === modelAt : () => true
+    const face: Face | null = ownerAt >= 0 ? faces[ownerAt] ?? null : modelAt >= 0 ? models[modelAt] ?? null : null
     const part = face ? summarize(view, range, keep) : all
     // The calendar dots the days with usage and opens back to the first of them, or a year.
-    const activeDays = new Set()
+    const activeDays = new Set<string>()
     let first = view.now
     for (const row of view.rows) {
       if (row[HOUR] < first) first = row[HOUR]
       if (keep(row) && tokensOf(row) > 0) activeDays.add(row[HOUR].slice(0, 10))
     }
     const oldest = Math.min(monthOf(hourMs(first)), addMonths(monthOf(hourMs(view.now)), -12))
-    const ranked = map => [...map].filter(([, sum]) => sum.total > 0).sort((a, b) => b[1].total - a[1].total)
+    const ranked = (map: Map<string, UsageSum>): [string, UsageSum][] => [...map].filter(([, sum]) => sum.total > 0).sort((a, b) => b[1].total - a[1].total)
     // One Bot or model draws solid bars in its color; the token kinds show on hover.
-    let series
+    let series: Series[]
     if (face) {
       series = [{ key: 'all', name: face.name, fill: soften(face.paint) }]
     } else {
+      let painted: PaintedSeries[]
       if (by === 'bot') {
         const bots = ranked(all.owners).filter(([at]) => isBot(at))
-        series = bots.slice(0, TOP_SERIES).map(([at]) => ({ key: `o${at}`, name: faces[at].name, paint: faces[at].paint, pick: { kind: 'owner', key: view.owners[at].key } }))
-        if (bots.length > TOP_SERIES) series.push({ key: 'more', name: t('More Bots'), paint: 'var(--bt-us-more)' })
-        if (ranked(all.owners).some(([at]) => !isBot(at))) series.push({ key: 'rest', name: t('Other'), paint: 'var(--bt-us-rest)' })
+        painted = bots.slice(0, TOP_SERIES).map(([at]): PaintedSeries => {
+          const entry = faces[Number(at)]!
+          return { key: `o${at}`, name: entry.name, paint: entry.paint, pick: { kind: 'owner', key: view.owners[Number(at)]!.key } }
+        })
+        if (bots.length > TOP_SERIES) painted.push({ key: 'more', name: t('More Bots'), paint: 'var(--bt-us-more)' })
+        if (ranked(all.owners).some(([at]) => !isBot(at))) painted.push({ key: 'rest', name: t('Other'), paint: 'var(--bt-us-rest)' })
       } else {
         const used = ranked(all.models)
-        series = used.slice(0, TOP_SERIES).map(([at]) => ({ key: `m${at}`, name: models[at].name, paint: models[at].paint, pick: { kind: 'model', key: view.models[at].key } }))
-        if (used.length > TOP_SERIES) series.push({ key: 'more', name: t('More models'), paint: 'var(--bt-us-more)' })
+        painted = used.slice(0, TOP_SERIES).map(([at]): PaintedSeries => {
+          const entry = models[Number(at)]!
+          return { key: `m${at}`, name: entry.name, paint: entry.paint, pick: { kind: 'model', key: view.models[Number(at)]!.key } }
+        })
+        if (used.length > TOP_SERIES) painted.push({ key: 'more', name: t('More models'), paint: 'var(--bt-us-more)' })
       }
       // Bots or models that share a color stay apart: each repeat is lighter.
-      const repeats = new Map()
-      for (const entry of series) {
+      const repeats = new Map<string, number>()
+      for (const entry of painted) {
         const seen = repeats.get(entry.paint) ?? 0
         repeats.set(entry.paint, seen + 1)
         entry.fill = soften(entry.paint, [1, 0.6, 0.36][seen % 3])
       }
+      series = painted
     }
-    const tipSeries = face ? PARTS.map(([key, strength]) => ({ key, name: partLabel(key), fill: soften(face.paint, strength) })) : series
-    const fillOf = new Map(series.map(entry => [entry.key, entry.fill]))
+    const tipSeries: ChartSeries[] = face ? PARTS.map(([key, strength]) => ({ key, name: partLabel(key), fill: soften(face.paint, strength) })) : series
+    const fillOf = new Map(series.map((entry): [string, string | undefined] => [entry.key, entry.fill]))
     const shownKeys = new Set(series.map(entry => entry.key))
-    const columns = part.buckets.map((bucket) => {
-      const parts = face
+    const columns: ChartColumn[] = part.buckets.map((bucket) => {
+      const parts: StackPart[] = face
         ? [['all', bucket.sum.total]]
-        : series.map(entry => [entry.key, entry.key === 'more'
+        : series.map((entry): StackPart => [entry.key, entry.key === 'more'
           ? [...bucket.stacks].filter(([key]) => key !== 'rest' && !shownKeys.has(key)).reduce((sum, [, value]) => sum + value, 0)
           : bucket.stacks.get(entry.key) ?? 0])
-      const tip = face ? PARTS.map(([key]) => [key, bucket.sum[key]]) : parts
+      const tip: StackPart[] = face ? PARTS.map(([key]): StackPart => [key, bucket.sum[key]]) : parts
       return { key: bucket.key, tick: tickOf(range, bucket), title: titleOf(range, bucket), total: bucket.sum.total, parts, tip }
     })
     return { faces, models, ownerAt, modelAt, face, keep, all, part, series, tipSeries, fillOf, columns, ranked, isBot, activeDays, oldest }
   }, [view, rangeId, span, by, focusId, roster])
   // A Bot or model opens at the top of its page, and so does the way back.
-  const root = useRef(null)
-  useEffect(() => { root.current?.closest('.bt-settings-scroll')?.scrollTo?.({ top: 0 }) }, [focusId])
+  const root = useRef<HTMLDivElement | null>(null)
+  useEffect(() => { root.current?.closest<HTMLElement>('.bt-settings-scroll')?.scrollTo?.({ top: 0 }) }, [focusId])
 
   if (!view) {
     return error ? h('div', { className: 'bt-error', role: 'alert', style: { padding: 0 } }, error) : h(Skeleton)
@@ -511,9 +691,10 @@ export function UsagePage({ roster, actions, focusId }) {
         hint: t('Token usage shows up here after a model is called.'),
       }))
   }
+  if (!shaped) return null
   const { faces, models, ownerAt, face, keep, all, part, series, tipSeries, fillOf, columns, ranked, isBot, activeDays, oldest } = shaped
-  const pick = next => actions.openSettings('usage', `${next.kind}:${next.key}`)
-  const chooseRange = (id) => {
+  const pick = (next: UsageFocus): void => actions.openSettings('usage', `${next.kind}:${next.key}`)
+  const chooseRange = (id: string): void => {
     if (id !== 'custom') {
       setRangeId(id)
       setPicking(false)
@@ -522,29 +703,35 @@ export function UsagePage({ roster, actions, focusId }) {
     if (span) setRangeId('custom')
     setPicking(open => !open)
   }
-  const pickSpan = (from, to) => {
+  const pickSpan = (from: string, to: string): void => {
     setSpan({ from, to })
     setRangeId('custom')
     setPicking(false)
   }
-  const rangeOptions = [
-    ...RANGES.map(item => [item.id, rangeLabel(item.id)]),
+  const rangeOptions: TabOption[] = [
+    ...RANGES.map((item): TabOption => [item.id, rangeLabel(item.id)]),
     ['custom', rangeId === 'custom' && span ? spanText(span.from, span.to) : t('Custom'), CalendarIcon],
   ]
   const whole = part.total.total
-  const ownerRow = ([at, sum], index, total = whole) => h(Row, {
-    key: `o${at}`, kind: faces[at].kind, glyph: faces[at].glyph(32), name: faces[at].name, sub: faces[at].sub, sum, whole: total, index,
-    fill: face ? soften(face.paint, 0.8) : fillOf.get(`o${at}`) ?? soften(faces[at].paint),
-    onClick: () => pick({ kind: 'owner', key: view.owners[at].key }),
-  })
-  const modelRow = ([at, sum], index) => h(Row, {
-    key: `m${at}`, kind: 'model', glyph: models[at].glyph(32), name: models[at].name, sub: models[at].sub, sum, whole, index,
-    fill: face ? soften(face.paint, 0.8) : fillOf.get(`m${at}`) ?? soften(models[at].paint),
-    onClick: () => pick({ kind: 'model', key: view.models[at].key }),
-  })
+  const ownerRow = ([at, sum]: readonly [string, UsageSum], index: number, total = whole): ReactElement => {
+    const entry = faces[Number(at)]!
+    return h(Row, {
+      key: `o${at}`, kind: entry.kind, glyph: entry.glyph(32), name: entry.name, sub: entry.sub, sum, whole: total, index,
+      fill: face ? soften(face.paint, 0.8) : fillOf.get(`o${at}`) ?? soften(entry.paint),
+      onClick: () => pick({ kind: 'owner', key: view.owners[Number(at)]!.key }),
+    })
+  }
+  const modelRow = ([at, sum]: readonly [string, UsageSum], index: number): ReactElement => {
+    const entry = models[Number(at)]!
+    return h(Row, {
+      key: `m${at}`, kind: 'model', glyph: entry.glyph(32), name: entry.name, sub: entry.sub, sum, whole, index,
+      fill: face ? soften(face.paint, 0.8) : fillOf.get(`m${at}`) ?? soften(entry.paint),
+      onClick: () => pick({ kind: 'model', key: view.models[Number(at)]!.key }),
+    })
+  }
   const nothing = h('div', { className: 'bt-us-none' }, t('Nothing in this range.'))
 
-  let body
+  let body: ReactElement[]
   if (face) {
     const kinds = ranked(part.kinds)
     const usedModels = ranked(part.models)
@@ -560,7 +747,7 @@ export function UsagePage({ roster, actions, focusId }) {
             : h(ListCard, { title: t('Who used it'), count: owners.length, index: 2 }, owners.length > 0 ? owners.map((entry, index) => ownerRow(entry, index)) : nothing),
           h(ListCard, { title: t('What for'), index: 3 },
             kinds.length > 0
-              ? kinds.map(([at, sum], index) => h(Row, { key: at, name: kindLabel(view.kinds[at], ownerAt >= 0 && isBot(ownerAt)), sum, whole, index, fill: soften(face.paint, 0.8) }))
+              ? kinds.map(([at, sum], index) => h(Row, { key: at, name: kindLabel(view.kinds[Number(at)], ownerAt >= 0 && isBot(ownerAt)), sum, whole, index, fill: soften(face.paint, 0.8) }))
               : nothing)),
         h(Heat, { key: 'heat', view, keep, paint: face.paint, index: 4 })),
     ]

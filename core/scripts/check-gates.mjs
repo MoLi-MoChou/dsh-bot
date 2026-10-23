@@ -44,7 +44,7 @@ const LINE_EXEMPTIONS = [
   // and splits these modules. They are pending, not accepted new debt.
   'src/client/cells.js',
   'src/client/index.js',
-  'src/client/usage-page.js',
+  'src/client/usage-page.ts',
   'src/client/sidebar.js',
   'src/client/browser-pane.js',
   'src/client/bot-browsers.js',

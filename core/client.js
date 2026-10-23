@@ -15986,17 +15986,26 @@ function percent(part, whole) {
   return value < 1 ? "<1" : String(Math.round(value));
 }
 
-// src/client/usage-page.js
+// src/client/usage-page.ts
 var import_react31 = require("react");
 var HEAT_WEEKS = 53;
 var TOP_SERIES = 7;
 var RING_R = 42;
 var RING = 2 * Math.PI * RING_R;
-var rangeLabel = (id) => ({ "24h": t("24 hours"), "7d": t("7 days"), "30d": t("30 days"), "12w": t("12 weeks"), "12m": t("12 months") })[id];
-var unitLabel = (unit) => ({ hour: t("Per hour"), day: t("Per day"), week: t("Per week"), month: t("Per month") })[unit];
+var rangeLabel = (id) => {
+  const labels = { "24h": t("24 hours"), "7d": t("7 days"), "30d": t("30 days"), "12w": t("12 weeks"), "12m": t("12 months") };
+  return labels[id];
+};
+var unitLabel = (unit) => {
+  const labels = { hour: t("Per hour"), day: t("Per day"), week: t("Per week"), month: t("Per month") };
+  return labels[unit];
+};
 var MODEL_INKS = ["deepseek", "tangerine", "green", "violet", "sky", "rose", "yellow", "cyan", "magenta", "brown"];
 var PARTS = [["output", 1], ["input", 0.6], ["cacheRead", 0.32]];
-var partLabel = (part) => ({ output: t("Output"), input: t("Input"), cacheRead: t("Cache hit") })[part];
+var partLabel = (part) => {
+  const labels = { output: t("Output"), input: t("Input"), cacheRead: t("Cache hit") };
+  return labels[part];
+};
 var soften = (paint, strength = 1) => {
   const mix = (color) => `color-mix(in srgb, ${color} ${Math.round(88 * strength)}%, var(--bt-card))`;
   return paint.startsWith("linear-gradient(") ? paint.replace(/#[0-9a-f]{6}/gi, mix) : mix(paint);
@@ -16021,7 +16030,7 @@ function compareText(range) {
 }
 function tickOf(range, bucket) {
   if (range.unit === "hour") {
-    return range.days > 1 && new Date(bucket.start).getUTCHours() === 0 ? dates({ month: "numeric", day: "numeric" }).format(bucket.start) : hourText(bucket.start);
+    return range.days !== void 0 && range.days > 1 && new Date(bucket.start).getUTCHours() === 0 ? dates({ month: "numeric", day: "numeric" }).format(bucket.start) : hourText(bucket.start);
   }
   if (range.unit === "month") return dates({ month: "short" }).format(bucket.start);
   return dates({ month: "numeric", day: "numeric" }).format(bucket.start);
@@ -16044,7 +16053,7 @@ function useTween(value) {
     }
     const begin = from.current;
     const started = performance.now();
-    let frame;
+    let frame = 0;
     const step = (now) => {
       const progress = Math.min(1, (now - started) / 650);
       from.current = begin + (value - begin) * (1 - (1 - progress) ** 3);
@@ -16101,7 +16110,7 @@ function ownerFace(owner, roster) {
 }
 function kindLabel(kind, botFocus) {
   const labels = { chat: botFocus ? t("Own chat") : t("Conversations"), group: t("Group chats"), compaction: t("Compaction and handoff"), image: t("Image reading"), memory: t("Memory"), "session-title": t("Titles"), other: t("Other") };
-  return labels[kind] ?? kind;
+  return labels[kind ?? ""] ?? kind;
 }
 function Tabs({ label, value, options, onChange, boxRef }) {
   const names = options.map(([, text]) => text).join("\n");
@@ -16145,7 +16154,7 @@ function Stats({ range, total, previous }) {
 function niceTop(max) {
   if (!(max > 0)) return 1;
   const step = 10 ** Math.floor(Math.log10(max));
-  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((scale) => scale * step).find((value) => value >= max);
+  return [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10].map((scale) => scale * step).find((value) => value >= max) ?? 10 * step;
 }
 function Chart({ range, columns, series, tipSeries, by, onBy, onPick }) {
   const [hover, setHover] = (0, import_react31.useState)(null);
@@ -16154,7 +16163,7 @@ function Chart({ range, columns, series, tipSeries, by, onBy, onPick }) {
   const fillOf = new Map(series.map((entry) => [entry.key, entry.fill]));
   const tipOf = new Map(tipSeries.map((entry) => [entry.key, entry]));
   const tip = hover === null ? null : columns[hover];
-  const tipSide = hover !== null && hover >= count / 2 ? { right: `calc(${(count - hover) / count * 100}% + 8px)` } : { left: `calc(${(hover + 1) / count * 100}% + 8px)` };
+  const tipSide = hover === null ? {} : hover >= count / 2 ? { right: `calc(${(count - hover) / count * 100}% + 8px)` } : { left: `calc(${(hover + 1) / count * 100}% + 8px)` };
   return (0, import_react31.createElement)(
     "section",
     { className: "bt-us-card bt-us-chart", style: { "--i": 1 } },
@@ -16162,7 +16171,7 @@ function Chart({ range, columns, series, tipSeries, by, onBy, onPick }) {
       "div",
       { className: "bt-us-card-head" },
       (0, import_react31.createElement)("h3", null, t("Tokens over time"), (0, import_react31.createElement)("span", null, unitLabel(range.unit))),
-      onBy ? (0, import_react31.createElement)(Tabs, { label: t("Group usage by"), value: by, onChange: onBy, options: [["bot", t("By Bot")], ["model", t("By model")]] }) : null
+      onBy ? (0, import_react31.createElement)(Tabs, { label: t("Group usage by"), value: by ?? "", onChange: onBy, options: [["bot", t("By Bot")], ["model", t("By model")]] }) : null
     ),
     (0, import_react31.createElement)(
       "div",
@@ -16217,7 +16226,7 @@ function Chart({ range, columns, series, tipSeries, by, onBy, onPick }) {
       series.map((entry) => (0, import_react31.createElement)(entry.pick ? "button" : "span", {
         key: entry.key,
         className: "bt-us-key",
-        ...entry.pick ? { type: "button", onClick: () => onPick(entry.pick) } : {}
+        ...entry.pick ? { type: "button", onClick: () => onPick?.(entry.pick) } : {}
       }, (0, import_react31.createElement)("i", { className: "bt-us-dot", style: { background: entry.fill } }), entry.name))
     ) : null
   );
@@ -16297,7 +16306,8 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
   const [hover, setHover] = (0, import_react31.useState)(null);
   (0, import_react31.useEffect)(() => {
     const onDown = (event) => {
-      if (![box, near].some((ref) => ref.current?.contains(event.target))) onClose();
+      const target = event.target;
+      if (!(target instanceof Node) || ![box, near].some((ref) => ref.current?.contains(target))) onClose();
     };
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -16312,13 +16322,22 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
       window.removeEventListener("keydown", onKey, true);
     };
   }, []);
-  const [low, high] = anchor ? [anchor, hover ?? anchor].sort() : span ? [span.from, span.to] : [null, null];
+  let low = null;
+  let high = null;
+  if (anchor) {
+    low = hover !== null && hover < anchor ? hover : anchor;
+    high = hover !== null && hover > anchor ? hover : anchor;
+  } else if (span) {
+    low = span.from;
+    high = span.to;
+  }
   const press = (key) => {
     if (!anchor) {
       setAnchor(key);
       return;
     }
-    const [from, to] = [anchor, key].sort();
+    const from = anchor < key ? anchor : key;
+    const to = anchor < key ? key : anchor;
     onPick(from, to);
   };
   const weekdays = (0, import_react31.useMemo)(() => Array.from({ length: 7 }, (_, at) => dates({ weekday: "narrow" }).format(Date.UTC(2024, 0, 1 + at))), []);
@@ -16338,7 +16357,7 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
         disabled: ms > todayMs,
         "aria-label": dates({ year: "numeric", month: "long", day: "numeric", weekday: "short" }).format(ms),
         "aria-pressed": key === low || key === high,
-        "data-in": flag(low !== null && key >= low && key <= high),
+        "data-in": flag(low !== null && high !== null && key >= low && high >= key),
         "data-start": flag(key === low),
         "data-end": flag(key === high),
         "data-l": flag(weekday === 0 || day === 1),
@@ -16363,7 +16382,7 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
     ["last", t("Last month"), dayKey(addMonths(thisMonth, -1)), dayKey(thisMonth - DAY_MS)],
     ["year", t("This year"), `${today.slice(0, 4)}-01-01`, today]
   ];
-  const count = low === null ? 0 : Math.round((hourMs(high) - hourMs(low)) / DAY_MS) + 1;
+  const count = low === null || high === null ? 0 : Math.round((hourMs(high) - hourMs(low)) / DAY_MS) + 1;
   return (0, import_react31.createElement)(
     "div",
     { ref: box, className: "bt-us-pick", role: "dialog", "aria-label": t("Custom range") },
@@ -16382,7 +16401,7 @@ function SpanPicker({ span, today, oldest, active, near, onPick, onClose }) {
       "div",
       { className: "bt-us-pick-foot", role: "status" },
       (0, import_react31.createElement)("span", null, anchor ? t("Pick the last day") : t("Pick the first day")),
-      low === null ? null : (0, import_react31.createElement)("span", null, (0, import_react31.createElement)("b", null, spanText(low, high)), ` · ${daysText(count)}`)
+      low === null || high === null ? null : (0, import_react31.createElement)("span", null, (0, import_react31.createElement)("b", null, spanText(low, high)), ` · ${daysText(count)}`)
     )
   );
 }
@@ -16423,7 +16442,7 @@ function Heat({ view, keep, paint, index }) {
   const tipSide = hover ? {
     ...hover.week >= HEAT_WEEKS / 2 ? { right: `calc(${(HEAT_WEEKS - hover.week) / HEAT_WEEKS * 100}% + 8px)` } : { left: `calc(${(hover.week + 1) / HEAT_WEEKS * 100}% + 8px)` },
     ...hover.day < 4 ? { top: `calc(${hover.day / 7 * 100}% - 2px)` } : { top: "auto", bottom: `calc(${(6 - hover.day) / 7 * 100}% - 2px)` }
-  } : null;
+  } : void 0;
   const active = [...daily.values()].filter((value) => value > 0).length;
   const summary = active === 1 ? t("Active on 1 day in the last year") : t("Active on {count} days in the last year", { count: active });
   return (0, import_react31.createElement)(
@@ -16470,7 +16489,7 @@ function Skeleton2() {
     )
   );
 }
-var focusOf = (id) => typeof id !== "string" ? null : id.startsWith("model:") ? { kind: "model", key: id.slice("model:".length) } : id.startsWith("owner:") ? { kind: "owner", key: id.slice("owner:".length) } : null;
+var focusOf = (id) => id === null || id === void 0 ? null : id.startsWith("model:") ? { kind: "model", key: id.slice("model:".length) } : id.startsWith("owner:") ? { kind: "owner", key: id.slice("owner:".length) } : null;
 function UsagePage({ roster, actions, focusId }) {
   const [view, setView] = (0, import_react31.useState)(null);
   const [error, setError] = (0, import_react31.useState)("");
@@ -16502,7 +16521,7 @@ function UsagePage({ roster, actions, focusId }) {
       clearTimeout(timer);
     };
   }, []);
-  const today = view?.now.slice(0, 10);
+  const today = view?.now.slice(0, 10) ?? "";
   const range = rangeId === "custom" && span ? { ...spanRange(span.from, span.to), ends: span.to >= today } : RANGES.find((item) => item.id === rangeId);
   const shaped = (0, import_react31.useMemo)(() => {
     if (!view) return null;
@@ -16517,10 +16536,10 @@ function UsagePage({ roster, actions, focusId }) {
     });
     const ownerAt2 = focus?.kind === "owner" ? view.owners.findIndex((owner) => owner.key === focus.key) : -1;
     const modelAt = focus?.kind === "model" ? view.models.findIndex((model) => model.key === focus.key) : -1;
-    const isBot2 = (at) => ["bot", "agent"].includes(view.owners[at]?.kind);
+    const isBot2 = (at) => ["bot", "agent"].includes(view.owners[Number(at)]?.kind ?? "");
     const all2 = summarize(view, range, void 0, (row) => by === "bot" ? isBot2(row[OWNER]) ? `o${row[OWNER]}` : "rest" : `m${row[MODEL]}`);
-    const keep2 = ownerAt2 >= 0 ? (row) => row[OWNER] === ownerAt2 : modelAt >= 0 ? (row) => row[MODEL] === modelAt : () => true;
-    const face2 = ownerAt2 >= 0 ? faces2[ownerAt2] : modelAt >= 0 ? models2[modelAt] : null;
+    const keep2 = ownerAt2 >= 0 ? (row) => Number(row[OWNER]) === ownerAt2 : modelAt >= 0 ? (row) => Number(row[MODEL]) === modelAt : () => true;
+    const face2 = ownerAt2 >= 0 ? faces2[ownerAt2] ?? null : modelAt >= 0 ? models2[modelAt] ?? null : null;
     const part2 = face2 ? summarize(view, range, keep2) : all2;
     const activeDays2 = /* @__PURE__ */ new Set();
     let first = view.now;
@@ -16534,22 +16553,30 @@ function UsagePage({ roster, actions, focusId }) {
     if (face2) {
       series2 = [{ key: "all", name: face2.name, fill: soften(face2.paint) }];
     } else {
+      let painted;
       if (by === "bot") {
         const bots = ranked2(all2.owners).filter(([at]) => isBot2(at));
-        series2 = bots.slice(0, TOP_SERIES).map(([at]) => ({ key: `o${at}`, name: faces2[at].name, paint: faces2[at].paint, pick: { kind: "owner", key: view.owners[at].key } }));
-        if (bots.length > TOP_SERIES) series2.push({ key: "more", name: t("More Bots"), paint: "var(--bt-us-more)" });
-        if (ranked2(all2.owners).some(([at]) => !isBot2(at))) series2.push({ key: "rest", name: t("Other"), paint: "var(--bt-us-rest)" });
+        painted = bots.slice(0, TOP_SERIES).map(([at]) => {
+          const entry = faces2[Number(at)];
+          return { key: `o${at}`, name: entry.name, paint: entry.paint, pick: { kind: "owner", key: view.owners[Number(at)].key } };
+        });
+        if (bots.length > TOP_SERIES) painted.push({ key: "more", name: t("More Bots"), paint: "var(--bt-us-more)" });
+        if (ranked2(all2.owners).some(([at]) => !isBot2(at))) painted.push({ key: "rest", name: t("Other"), paint: "var(--bt-us-rest)" });
       } else {
         const used = ranked2(all2.models);
-        series2 = used.slice(0, TOP_SERIES).map(([at]) => ({ key: `m${at}`, name: models2[at].name, paint: models2[at].paint, pick: { kind: "model", key: view.models[at].key } }));
-        if (used.length > TOP_SERIES) series2.push({ key: "more", name: t("More models"), paint: "var(--bt-us-more)" });
+        painted = used.slice(0, TOP_SERIES).map(([at]) => {
+          const entry = models2[Number(at)];
+          return { key: `m${at}`, name: entry.name, paint: entry.paint, pick: { kind: "model", key: view.models[Number(at)].key } };
+        });
+        if (used.length > TOP_SERIES) painted.push({ key: "more", name: t("More models"), paint: "var(--bt-us-more)" });
       }
       const repeats = /* @__PURE__ */ new Map();
-      for (const entry of series2) {
+      for (const entry of painted) {
         const seen = repeats.get(entry.paint) ?? 0;
         repeats.set(entry.paint, seen + 1);
         entry.fill = soften(entry.paint, [1, 0.6, 0.36][seen % 3]);
       }
+      series2 = painted;
     }
     const tipSeries2 = face2 ? PARTS.map(([key, strength]) => ({ key, name: partLabel(key), fill: soften(face2.paint, strength) })) : series2;
     const fillOf2 = new Map(series2.map((entry) => [entry.key, entry.fill]));
@@ -16579,6 +16606,7 @@ function UsagePage({ roster, actions, focusId }) {
       })
     );
   }
+  if (!shaped) return null;
   const { faces, models, ownerAt, face, keep, all, part, series, tipSeries, fillOf, columns, ranked, isBot, activeDays, oldest } = shaped;
   const pick2 = (next) => actions.openSettings("usage", `${next.kind}:${next.key}`);
   const chooseRange = (id) => {
@@ -16600,30 +16628,36 @@ function UsagePage({ roster, actions, focusId }) {
     ["custom", rangeId === "custom" && span ? spanText(span.from, span.to) : t("Custom"), CalendarIcon]
   ];
   const whole = part.total.total;
-  const ownerRow = ([at, sum], index, total = whole) => (0, import_react31.createElement)(Row2, {
-    key: `o${at}`,
-    kind: faces[at].kind,
-    glyph: faces[at].glyph(32),
-    name: faces[at].name,
-    sub: faces[at].sub,
-    sum,
-    whole: total,
-    index,
-    fill: face ? soften(face.paint, 0.8) : fillOf.get(`o${at}`) ?? soften(faces[at].paint),
-    onClick: () => pick2({ kind: "owner", key: view.owners[at].key })
-  });
-  const modelRow = ([at, sum], index) => (0, import_react31.createElement)(Row2, {
-    key: `m${at}`,
-    kind: "model",
-    glyph: models[at].glyph(32),
-    name: models[at].name,
-    sub: models[at].sub,
-    sum,
-    whole,
-    index,
-    fill: face ? soften(face.paint, 0.8) : fillOf.get(`m${at}`) ?? soften(models[at].paint),
-    onClick: () => pick2({ kind: "model", key: view.models[at].key })
-  });
+  const ownerRow = ([at, sum], index, total = whole) => {
+    const entry = faces[Number(at)];
+    return (0, import_react31.createElement)(Row2, {
+      key: `o${at}`,
+      kind: entry.kind,
+      glyph: entry.glyph(32),
+      name: entry.name,
+      sub: entry.sub,
+      sum,
+      whole: total,
+      index,
+      fill: face ? soften(face.paint, 0.8) : fillOf.get(`o${at}`) ?? soften(entry.paint),
+      onClick: () => pick2({ kind: "owner", key: view.owners[Number(at)].key })
+    });
+  };
+  const modelRow = ([at, sum], index) => {
+    const entry = models[Number(at)];
+    return (0, import_react31.createElement)(Row2, {
+      key: `m${at}`,
+      kind: "model",
+      glyph: entry.glyph(32),
+      name: entry.name,
+      sub: entry.sub,
+      sum,
+      whole,
+      index,
+      fill: face ? soften(face.paint, 0.8) : fillOf.get(`m${at}`) ?? soften(entry.paint),
+      onClick: () => pick2({ kind: "model", key: view.models[Number(at)].key })
+    });
+  };
   const nothing = (0, import_react31.createElement)("div", { className: "bt-us-none" }, t("Nothing in this range."));
   let body;
   if (face) {
@@ -16644,7 +16678,7 @@ function UsagePage({ roster, actions, focusId }) {
           (0, import_react31.createElement)(
             ListCard,
             { title: t("What for"), index: 3 },
-            kinds.length > 0 ? kinds.map(([at, sum], index) => (0, import_react31.createElement)(Row2, { key: at, name: kindLabel(view.kinds[at], ownerAt >= 0 && isBot(ownerAt)), sum, whole, index, fill: soften(face.paint, 0.8) })) : nothing
+            kinds.length > 0 ? kinds.map(([at, sum], index) => (0, import_react31.createElement)(Row2, { key: at, name: kindLabel(view.kinds[Number(at)], ownerAt >= 0 && isBot(ownerAt)), sum, whole, index, fill: soften(face.paint, 0.8) })) : nothing
           )
         ),
         (0, import_react31.createElement)(Heat, { key: "heat", view, keep, paint: face.paint, index: 4 })
