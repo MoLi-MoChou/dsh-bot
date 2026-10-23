@@ -17410,7 +17410,7 @@ body:not([data-bt-motion=quiet]) .bt-about-mark:hover .bt-mark[data-live][data-s
 @media (prefers-reduced-motion:reduce){.bt-star:hover .bt-star-icon,.bt-star-count{animation:none}}
 `;
 
-// src/client/providers-page.js
+// src/client/providers-page.ts
 var import_react35 = require("react");
 var PROTOCOL_NAMES = { "openai-completions": "OpenAI Chat Completions", "openai-responses": "OpenAI Responses", "anthropic-messages": "Anthropic Messages" };
 var ENDPOINT_HINTS = { "anthropic-messages": "https://gateway.example" };
@@ -17523,13 +17523,13 @@ function KeyEditor({ provider, apply: apply2, actions }) {
   return (0, import_react35.createElement)(
     "div",
     { className: "bt-secret-edit-block" },
-    (0, import_react35.createElement)("div", { className: "bt-secret-edit-label" }, provider.key.configured ? t("Replace the API key") : t("API key")),
+    (0, import_react35.createElement)("div", { className: "bt-secret-edit-label" }, provider.key?.configured ? t("Replace the API key") : t("API key")),
     (0, import_react35.createElement)(
       "div",
       { className: "bt-secret-inline" },
       (0, import_react35.createElement)("label", { className: "bt-q-field bt-secret-field" }, (0, import_react35.createElement)(KeyIcon), (0, import_react35.createElement)(MaskedInput, { value, onChange: edit, onEnter: save, label })),
       (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: !ready, onClick: save }, t("Save")),
-      provider.key.configured ? (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-secret-danger", onClick: () => apply2(actions.setProviderKey(provider.id, null)) }, t("Remove key")) : null
+      provider.key?.configured ? (0, import_react35.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-secret-danger", onClick: () => void apply2(actions.setProviderKey(provider.id, null)) }, t("Remove key")) : null
     ),
     saved ? (0, import_react35.createElement)("div", { className: "bt-set-hint bt-secret-ok", role: "status" }, (0, import_react35.createElement)(CheckIcon), t("Saved.")) : null
   );
@@ -17579,7 +17579,7 @@ function KnownForm({ view, apply: apply2, actions, onDone }) {
   );
 }
 function CustomForm({ view, apply: apply2, actions, onDone }) {
-  const [draft, setDraft] = (0, import_react35.useState)({ provider: "", name: "", baseURL: "", api: view.protocols[0], key: "", typed: "" });
+  const [draft, setDraft] = (0, import_react35.useState)({ provider: "", name: "", baseURL: "", api: view.protocols[0] ?? "", key: "", typed: "" });
   const [found, setFound] = (0, import_react35.useState)(null);
   const [picked, setPicked] = (0, import_react35.useState)([]);
   const [asking, setAsking] = (0, import_react35.useState)(false);

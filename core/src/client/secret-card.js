@@ -36,6 +36,11 @@ const scopeLabel = (scope, roster) => {
 }
 const when = time => (Number.isFinite(time) ? new Date(time).toLocaleString(dateLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
 
+/**
+ * A secret input that shows dots until asked otherwise. The props a caller varies are
+ * typed here until this file migrates.
+ * @param {{ value: string, onChange: (value: string) => void, onEnter?: () => void, label: string, autoFocus?: boolean }} props
+ */
 export function MaskedInput({ value, onChange, onEnter, label, autoFocus = false }) {
   return h('input', {
     className: 'bt-secret-input',

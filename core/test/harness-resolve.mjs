@@ -4,7 +4,7 @@
 // folder above ds-bot, else the same search from ds-bot's place in the main worktree (a git
 // worktree has no checkout of its own).
 import { execFileSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
 import { registerHooks } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -15,7 +15,13 @@ import { pathToFileURL } from 'node:url'
 // machine rather than for the code. It must not fall back to the real home under ~ either,
 // which holds the user's own DSH data, so it names a home of its own beside the temp
 // folders it makes.
-process.env.DSH_HOME = join(tmpdir(), `ds-bot-test-dsh-home-${process.pid}`)
+const testHome = join(tmpdir(), `ds-bot-test-dsh-home-${process.pid}`)
+process.env.DSH_HOME = testHome
+// One home per run keeps parallel runs apart; it goes when the run ends, so a machine
+// that runs the suite all day does not collect a folder per run.
+process.on('exit', () => {
+  try { rmSync(testHome, { recursive: true, force: true }) } catch { /* best effort */ }
+})
 
 const plugin = resolve(import.meta.dirname, '..')
 const above = (start) => {

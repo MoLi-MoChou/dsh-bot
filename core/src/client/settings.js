@@ -18,7 +18,7 @@ import { CapabilitiesPage } from './capability-settings.ts'
 import { SchedulesPage } from './schedules.js'
 import { FeedbackIcon, FeedbackPage } from './feedback.ts'
 import { AboutPage } from './about.js'
-import { ProvidersPage } from './providers-page.js'
+import { ProvidersPage } from './providers-page.ts'
 import { FolderMenu } from './folder-menu.ts'
 import { t } from './i18n.ts'
 
