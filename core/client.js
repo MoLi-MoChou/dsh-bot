@@ -15316,7 +15316,7 @@ function ExchangeDialog({ pair, roster, actions }) {
   );
 }
 
-// src/client/voice.js
+// src/client/voice.ts
 var import_react29 = require("react");
 var plainSpeech = (text) => stripHeader(text).replace(/```[\s\S]*?```/g, " ").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[*_`#>|~-]+/g, " ").replace(/\s+/g, " ").trim();
 var VOICE_LABELS = {
@@ -15372,13 +15372,14 @@ function useMicLevel(enabled) {
 }
 function VoiceMode({ sessionId, roster, actions, useSessions, useSessionStatus }) {
   const bot = roster.byId[sessionId];
-  const room2 = roster.roomsById[sessionId];
+  const room2 = roster.roomsById?.[sessionId];
   const name = bot?.name ?? room2?.name ?? t("Bot");
   const running = useSessionStatus((map) => map.get(sessionId)?.running === true);
   const lastReply = useSessions((list) => {
     const outline = list.projectionsBySession?.[sessionId]?.values?.turnOutline ?? list.byId[sessionId]?.projectionValues?.turnOutline;
-    const entry = Array.isArray(outline) ? outline[outline.length - 1] : void 0;
-    return entry ? `${outline.length}|${entry.response ?? ""}` : "0|";
+    const count = outline?.length ?? 0;
+    const entry = outline === void 0 ? void 0 : outline[count - 1];
+    return entry ? `${count}|${entry.response ?? ""}` : "0|";
   });
   const [speech] = (0, import_react29.useState)(() => actions.speech());
   const [phase, setPhase] = (0, import_react29.useState)(speech ? "starting" : speechApi() ? "listening" : "unsupported");
@@ -15459,7 +15460,7 @@ function VoiceMode({ sessionId, roster, actions, useSessions, useSessionStatus }
         else setPhase("listening");
       } catch (error) {
         if (turn.current !== own) return;
-        setNote(t(CAPTURE_NOTES[error?.kind] ?? "Couldn't hear that"));
+        setNote(t(CAPTURE_NOTES[error?.kind ?? ""] ?? "Couldn't hear that"));
         setPhase("listening");
       }
     };
@@ -15472,15 +15473,14 @@ function VoiceMode({ sessionId, roster, actions, useSessions, useSessionStatus }
       const began = performance.now();
       const tick = () => {
         const now = performance.now();
-        const level2 = capture.level();
+        const level2 = opened.level();
         smooth = smooth * 0.8 + level2 * 0.2;
         setServiceLevel(Math.round(smooth * 100) / 100);
         const state = detect(level2, now);
         if (state === "done" || state === "speech" && now - began >= limit) {
-          const current = capture;
           capture = null;
           setServiceLevel(0);
-          void finish(current);
+          void finish(opened);
           return;
         }
         if (state === "waiting" && now - began >= limit) {
@@ -15536,7 +15536,7 @@ function VoiceMode({ sessionId, roster, actions, useSessions, useSessionStatus }
     window.speechSynthesis?.cancel();
     setPhase("paused");
   };
-  const openSetup = phase === "setup" ? actions.voiceSetup() : null;
+  const openSetup = phase === "setup" ? actions.voiceSetup : null;
   const caption = phase === "speaking" ? said : heard;
   const shownNote = note || dictation.note;
   return (0, import_react29.createElement)(

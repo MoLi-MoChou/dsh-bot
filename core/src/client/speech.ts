@@ -11,6 +11,8 @@ export interface SpeechProvider {
 
 export interface SpeechCatalogValue {
   readonly providers: readonly SpeechProvider[]
+  /** How long one recording may run, in seconds. */
+  readonly maxDurationSeconds: number
   readonly selection: { readonly providerId: string; readonly [key: string]: unknown }
   readonly maxAudioBytes: number
 }
