@@ -16,7 +16,7 @@ const { outputFiles } = await build({
       export { ChatWelcome, welcomeCopy } from './src/client/chat-welcome.ts'
       export { CommandPalette } from './src/client/palette.ts'
       export { TeamSidebar } from './src/client/sidebar.js'
-      export { installFilesPanel } from './src/client/files-panel.js'
+      export { installFilesPanel } from './src/client/files-panel.ts'
     `,
     resolveDir: PLUGIN,
   },

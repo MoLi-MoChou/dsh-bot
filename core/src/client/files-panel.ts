@@ -9,14 +9,56 @@
 // Bytes come over the api/bot channel, so it works in the web build behind its password.
 import { t } from './i18n.ts'
 
+/** What the host answers for a file the panel downloads. */
+export interface DownloadFile {
+  readonly name: string
+  readonly mime: string
+  readonly data: string
+}
+
+/** What the host knows about a file the panel cannot preview. */
+export interface FileInfo {
+  readonly name?: string | undefined
+  readonly mime?: string | undefined
+  readonly size?: number | undefined
+  readonly downloadable?: boolean | undefined
+  readonly error?: string | undefined
+}
+
+/** The channel call the panel makes; the endpoint decides the answer it gets. */
+export interface FilesPanelCall {
+  <T>(endpoint: string, args: { readonly path: string }): Promise<T>
+}
+
+export interface FilesPanelOptions {
+  readonly call: FilesPanelCall
+  readonly notify?: ((message: string) => void) | undefined
+  readonly onPickFolder?: (() => void) | undefined
+}
+
+interface EmptyStateAction {
+  readonly label: string
+  onClick(): void
+}
+
+interface EmptyStateOptions {
+  readonly icon?: Node | string | undefined
+  readonly title?: string | undefined
+  readonly hint?: string | undefined
+  readonly action?: EmptyStateAction | undefined
+  readonly compact?: boolean | undefined
+}
+
+const messageOf = (error: unknown): string => (error as { readonly message?: string } | undefined)?.message ?? String(error)
+
 // The shared empty-state DOM (.bt-es), built without React so this file stays importable
 // in Node tests that check its pure helpers.
-function emptyStateNode({ icon: glyph, title, hint, action, compact = false }) {
+function emptyStateNode({ icon: glyph, title, hint, action, compact = false }: EmptyStateOptions): HTMLDivElement {
   const root = document.createElement('div')
   root.className = 'bt-es'
   root.setAttribute('role', 'status')
   if (compact) root.dataset.compact = ''
-  const part = (tag, className, child) => {
+  const part = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, child?: Node | string): HTMLElementTagNameMap[K] => {
     const node = document.createElement(tag)
     node.className = className
     if (typeof child === 'string') node.textContent = child
@@ -35,7 +77,7 @@ function emptyStateNode({ icon: glyph, title, hint, action, compact = false }) {
   return root
 }
 
-export const PREVIEW_KINDS = [
+export const PREVIEW_KINDS: readonly (readonly [string, string])[] = [
   ['Images', 'png, jpg, gif, webp, svg, bmp'],
   ['PDF', 'pdf'],
   ['Word & PowerPoint', 'docx, doc, pptx, ppt, odt, rtf'],
@@ -47,9 +89,9 @@ export const PREVIEW_KINDS = [
 ]
 const AUDIO = /\.(mp3|wav|ogg|oga|opus|m4a|aac|flac)$/i
 const VIDEO = /\.(mp4|m4v|webm|mov|ogv)$/i
-export const mediaKind = name => (AUDIO.test(name) ? 'audio' : VIDEO.test(name) ? 'video' : null)
+export const mediaKind = (name: string): 'audio' | 'video' | null => (AUDIO.test(name) ? 'audio' : VIDEO.test(name) ? 'video' : null)
 
-export function formatBytes(size) {
+export function formatBytes(size: number): string {
   if (!Number.isFinite(size)) return ''
   if (size < 1024) return `${size} B`
   const units = ['KB', 'MB', 'GB']
@@ -60,7 +102,7 @@ export function formatBytes(size) {
 }
 
 // A readable type: "MP3 audio", "ZIP archive", "BIN file".
-export function typeLabel(name, mime = '') {
+export function typeLabel(name: string, mime = ''): string {
   const ext = (/\.([^./]+)$/.exec(name)?.[1] ?? '').toUpperCase()
   const kind = mime.startsWith('audio/') ? t('audio') : mime.startsWith('video/') ? t('video') : mime.startsWith('image/') ? t('image')
     : /zip|tar|gzip|7z|rar/.test(mime) ? t('archive') : t('file')
@@ -68,7 +110,7 @@ export function typeLabel(name, mime = '') {
 }
 
 const SVG = 'http://www.w3.org/2000/svg'
-function icon(paths, size = 14) {
+function icon(paths: readonly string[], size = 14): SVGSVGElement {
   const svg = document.createElementNS(SVG, 'svg')
   svg.setAttribute('width', String(size)); svg.setAttribute('height', String(size)); svg.setAttribute('viewBox', '0 0 20 20')
   svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.6')
@@ -81,34 +123,34 @@ const FOLDER = ['M3 6a1.5 1.5 0 0 1 1.5-1.5h3.6l1.7 1.8h5.7A1.5 1.5 0 0 1 17 7.8
 const FILE = ['M5.5 2.5h6l4 4v10a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1z', 'M11.5 2.5v4h4']
 const ARCHIVE = [...FILE, 'M9 5.5h1M9 8h1M9 10.5h1', 'M8.5 12.5h2v2h-2z']
 
-const toBlob = ({ data, mime }) => {
+const toBlob = ({ data, mime }: DownloadFile): Blob => {
   const binary = atob(data)
   const bytes = new Uint8Array(binary.length)
   for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index)
   return new Blob([bytes], { type: mime })
 }
-export function saveBlob(blob, name) {
+export function saveBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob)
   const link = Object.assign(document.createElement('a'), { href: url, download: name })
   document.body.append(link); link.click(); link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
-export function installFilesPanel({ call, notify = message => console.warn(message), onPickFolder }) {
+export function installFilesPanel({ call, notify = message => console.warn(message), onPickFolder }: FilesPanelOptions): () => void {
   if (typeof MutationObserver === 'undefined') return () => {}
-  const download = async (path, button) => {
+  const download = async (path: string, button: HTMLButtonElement | undefined): Promise<void> => {
     if (button?.dataset.busy) return
     if (button) button.dataset.busy = ''
     try {
-      const file = await call('workspace-download', { path })
+      const file = await call<DownloadFile>('workspace-download', { path })
       saveBlob(toBlob(file), file.name)
     } catch (error) {
-      notify(error?.message ?? String(error))
+      notify(messageOf(error))
     } finally {
       if (button) delete button.dataset.busy
     }
   }
-  const downloadButton = (path, label, className) => {
+  const downloadButton = (path: string, label: string, className: string): HTMLButtonElement => {
     const button = document.createElement('button')
     button.type = 'button'
     button.className = className
@@ -120,9 +162,9 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
   }
 
   // The fallback card, filled in once the host describes the file.
-  async function fillCard(card, path) {
-    let info
-    try { info = await call('workspace-describe', { path }) } catch (error) { info = { name: path.split(/[\\/]/).pop(), error: error?.message } }
+  async function fillCard(card: HTMLDivElement, path: string): Promise<void> {
+    let info: FileInfo
+    try { info = await call<FileInfo>('workspace-describe', { path }) } catch (error) { info = { name: path.split(/[\\/]/).pop(), error: messageOf(error) } }
     card.replaceChildren()
     const media = mediaKind(info.name ?? '')
     const head = document.createElement('div'); head.className = 'bt-fcard-head'
@@ -131,13 +173,13 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
     const text = document.createElement('div'); text.className = 'bt-fcard-text'
     const name = document.createElement('div'); name.className = 'bt-fcard-name'; name.textContent = info.name ?? ''
     const meta = document.createElement('div'); meta.className = 'bt-fcard-meta'
-    meta.textContent = [formatBytes(info.size), typeLabel(info.name ?? '', info.mime)].filter(Boolean).join(' · ')
+    meta.textContent = [formatBytes(info.size ?? Number.NaN), typeLabel(info.name ?? '', info.mime)].filter(Boolean).join(' · ')
     text.append(name, meta); head.append(glyph, text); card.append(head)
     if (media && info.downloadable && !info.error) {
       const player = document.createElement(media)
       player.className = `bt-fcard-${media}`; player.controls = true; player.preload = 'metadata'
       card.append(player)
-      call('workspace-download', { path }).then((file) => {
+      call<DownloadFile>('workspace-download', { path }).then((file) => {
         const url = URL.createObjectURL(toBlob(file))
         player.src = url
         card.dataset.ready = ''
@@ -154,30 +196,32 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
       card.append(button)
     }
     const kinds = document.createElement('details'); kinds.className = 'bt-fcard-kinds'
-    kinds.addEventListener('keydown', (event) => { if (event.key === 'Escape' && kinds.open) { event.preventDefault(); event.stopPropagation(); kinds.open = false; summary.focus() } })
     const summary = document.createElement('summary'); summary.textContent = t('What can be previewed')
+    kinds.addEventListener('keydown', (event) => { if (event.key === 'Escape' && kinds.open) { event.preventDefault(); event.stopPropagation(); kinds.open = false; summary.focus() } })
     const list = document.createElement('ul')
     for (const [kind, exts] of PREVIEW_KINDS) { const item = document.createElement('li'); const b = document.createElement('b'); b.textContent = t(kind); item.append(b, document.createTextNode(` ${exts}`)); list.append(item) }
     kinds.append(summary, list); card.append(kinds)
   }
 
-  const sweep = () => {
-    for (const item of document.querySelectorAll('li[data-files-entry][data-files-path]')) {
+  const sweep = (): void => {
+    for (const item of document.querySelectorAll<HTMLLIElement>('li[data-files-entry][data-files-path]')) {
       if (item.querySelector(':scope > .bt-frow-dl')) continue
+      const path = item.dataset.filesPath
+      if (path === undefined) continue
       const folder = item.dataset.filesEntry === 'directory'
-      const button = downloadButton(item.dataset.filesPath, folder ? t('Download as .zip') : t('Download'), 'bt-frow-dl')
+      const button = downloadButton(path, folder ? t('Download as .zip') : t('Download'), 'bt-frow-dl')
       item.append(button)
     }
-    for (const preview of document.querySelectorAll('[data-textpreview-state]')) {
+    for (const preview of document.querySelectorAll<HTMLElement>('[data-textpreview-state]')) {
       const path = preview.querySelector('[data-textpreview-path]')?.getAttribute('title')
       if (!path) continue
-      const actions = preview.querySelector('[data-slot="sidebar.right.tab.document.actions"]')
+      const actions = preview.querySelector<HTMLElement>('[data-slot="sidebar.right.tab.document.actions"]')
       if (actions && actions.dataset.btPath !== path) {
         actions.querySelector(':scope > .bt-fpreview-dl')?.remove()
         actions.prepend(downloadButton(path, t('Download'), 'bt-fpreview-dl'))
         actions.dataset.btPath = path
       }
-      const empty = preview.querySelector('[data-textpreview-unsupported]')
+      const empty = preview.querySelector<HTMLElement>('[data-textpreview-unsupported]')
       if (empty && empty.dataset.btPath !== path) {
         empty.dataset.btPath = path
         empty.querySelector(':scope > .bt-fcard')?.remove()
@@ -186,9 +230,9 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
         void fillCard(card, path)
       }
     }
-    for (const row of document.querySelectorAll('[data-files-body] > ul > li[data-files-row="empty"]')) {
+    for (const row of document.querySelectorAll<HTMLElement>('[data-files-body] > ul > li[data-files-row="empty"]')) {
       if (row.querySelector(':scope > .bt-es')) continue
-      const reload = row.closest('[data-files-state]')?.querySelector('[data-files-reload]')
+      const reload = row.closest('[data-files-state]')?.querySelector<HTMLElement>('[data-files-reload]')
       row.append(emptyStateNode({
         compact: true, icon: icon(FOLDER, 18),
         title: t('No files in this folder yet'),
@@ -196,7 +240,7 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
         action: reload ? { label: t('Reload'), onClick: () => reload.click() } : undefined,
       }))
     }
-    for (const box of document.querySelectorAll('[data-files-state="no-workspace"]')) {
+    for (const box of document.querySelectorAll<HTMLElement>('[data-files-state="no-workspace"]')) {
       if (box.querySelector(':scope > .bt-es')) continue
       box.append(emptyStateNode({
         compact: true, icon: icon(FOLDER, 18),

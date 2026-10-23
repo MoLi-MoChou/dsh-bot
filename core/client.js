@@ -20633,7 +20633,8 @@ var WELCOME_CSS = `
 .bt-welcome .bt-es{padding:12px 16px 20px}
 `;
 
-// src/client/files-panel.js
+// src/client/files-panel.ts
+var messageOf = (error) => error?.message ?? String(error);
 function emptyStateNode({ icon: glyph, title, hint, action, compact: compact2 = false }) {
   const root = document.createElement("div");
   root.className = "bt-es";
@@ -20738,7 +20739,7 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
       const file = await call2("workspace-download", { path });
       saveBlob(toBlob(file), file.name);
     } catch (error) {
-      notify(error?.message ?? String(error));
+      notify(messageOf(error));
     } finally {
       if (button) delete button.dataset.busy;
     }
@@ -20762,7 +20763,7 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
     try {
       info = await call2("workspace-describe", { path });
     } catch (error) {
-      info = { name: path.split(/[\\/]/).pop(), error: error?.message };
+      info = { name: path.split(/[\\/]/).pop(), error: messageOf(error) };
     }
     card.replaceChildren();
     const media = mediaKind(info.name ?? "");
@@ -20778,7 +20779,7 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
     name.textContent = info.name ?? "";
     const meta = document.createElement("div");
     meta.className = "bt-fcard-meta";
-    meta.textContent = [formatBytes(info.size), typeLabel(info.name ?? "", info.mime)].filter(Boolean).join(" · ");
+    meta.textContent = [formatBytes(info.size ?? Number.NaN), typeLabel(info.name ?? "", info.mime)].filter(Boolean).join(" · ");
     text.append(name, meta);
     head.append(glyph, text);
     card.append(head);
@@ -20812,6 +20813,8 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
     }
     const kinds = document.createElement("details");
     kinds.className = "bt-fcard-kinds";
+    const summary = document.createElement("summary");
+    summary.textContent = t("What can be previewed");
     kinds.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && kinds.open) {
         event.preventDefault();
@@ -20820,8 +20823,6 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
         summary.focus();
       }
     });
-    const summary = document.createElement("summary");
-    summary.textContent = t("What can be previewed");
     const list = document.createElement("ul");
     for (const [kind, exts] of PREVIEW_KINDS) {
       const item = document.createElement("li");
@@ -20836,8 +20837,10 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
   const sweep = () => {
     for (const item of document.querySelectorAll("li[data-files-entry][data-files-path]")) {
       if (item.querySelector(":scope > .bt-frow-dl")) continue;
+      const path = item.dataset.filesPath;
+      if (path === void 0) continue;
       const folder = item.dataset.filesEntry === "directory";
-      const button = downloadButton(item.dataset.filesPath, folder ? t("Download as .zip") : t("Download"), "bt-frow-dl");
+      const button = downloadButton(path, folder ? t("Download as .zip") : t("Download"), "bt-frow-dl");
       item.append(button);
     }
     for (const preview of document.querySelectorAll("[data-textpreview-state]")) {

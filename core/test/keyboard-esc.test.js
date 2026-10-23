@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
-import { FILES_PANEL_CSS } from '../src/client/files-panel.js'
+import { FILES_PANEL_CSS } from '../src/client/files-panel.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 

@@ -46,7 +46,7 @@ import { listedOpener } from './open-listed.ts'
 import { EMPTY_STATE_CSS } from './empty-state.ts'
 import { ChatWelcome, WELCOME_CSS } from './chat-welcome.ts'
 import { PROCESS_CSS } from './work-process.ts'
-import { installFilesPanel, FILES_PANEL_CSS } from './files-panel.js'
+import { installFilesPanel, FILES_PANEL_CSS } from './files-panel.ts'
 import { RetryCell, RETRY_CSS } from './retry-cell.ts'
 import { StarterChips, STARTERS_CSS } from './starters.tsx'
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']

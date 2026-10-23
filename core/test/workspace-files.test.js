@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { inflateRawSync } from 'node:zlib'
 import { install, isInside, mimeOf, readForDownload, zip } from '../src/host/workspace-files.ts'
-import { formatBytes, mediaKind, typeLabel } from '../src/client/files-panel.js'
+import { formatBytes, mediaKind, typeLabel } from '../src/client/files-panel.ts'
 
 const folder = (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'moon-files-'))
