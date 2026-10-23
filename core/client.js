@@ -17703,10 +17703,11 @@ var PROVIDERS_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-provider-add{animation:none}}
 `;
 
-// src/client/settings.js
+// src/client/settings.ts
 var import_react36 = require("react");
-var capitalize2 = (word) => word[0].toUpperCase() + word.slice(1);
-var SETTINGS_PAGES = [["general", "General"], ["models", "Models"], ["bots", "Bots"], ["groups", "Group chats"], ["connectors", "Connectors"], ["capabilities", "Capabilities"], ["schedules", "Scheduled tasks"], ["usage", "Usage"], ["secrets", "Secrets"], ["feedback", "Feedback"], ["about", "About DS Bot"]].filter(([id]) => (id !== "groups" || LEAN.groups) && (id !== "schedules" || LEAN.schedules));
+var capitalize2 = (word) => word.charAt(0).toUpperCase() + word.slice(1);
+var ALL_SETTINGS_PAGES = [["general", "General"], ["models", "Models"], ["bots", "Bots"], ["groups", "Group chats"], ["connectors", "Connectors"], ["capabilities", "Capabilities"], ["schedules", "Scheduled tasks"], ["usage", "Usage"], ["secrets", "Secrets"], ["feedback", "Feedback"], ["about", "About DS Bot"]];
+var SETTINGS_PAGES = ALL_SETTINGS_PAGES.filter(([id]) => (id !== "groups" || LEAN.groups) && (id !== "schedules" || LEAN.schedules));
 var PAGE_ICONS = { ...SETTINGS_ICONS, models: SlidersIcon, connectors: ConnectorIcon, capabilities: PlugIcon, schedules: ClockIcon, secrets: KeyIcon, feedback: FeedbackIcon, about: InfoIcon };
 function SetSection({ title, className = "", children }) {
   return (0, import_react36.createElement)("section", { className: `bt-set-section ${className}`.trim() }, (0, import_react36.createElement)("h3", null, title), (0, import_react36.createElement)("div", { className: "bt-set-card" }, children));
@@ -17746,21 +17747,23 @@ function ThemePicker({ themes, current, onPick }) {
         onClick: () => onPick(id)
       },
       (0, import_react36.createElement)("span", { className: "bt-theme-preview", "aria-hidden": true }, half(theme.light, "light"), half(theme.dark, "dark")),
-      (0, import_react36.createElement)("span", { className: "bt-theme-name" }, t(theme.label))
+      (0, import_react36.createElement)("span", { className: "bt-theme-name" }, t(theme.label ?? ""))
     ))
   );
 }
 function GeneralPage({ roster, actions, run }) {
   const prefs = roster.prefs ?? {};
   const themes = allThemes();
-  const current = resolveThemeId(themes, prefs.theme);
+  const current = resolveThemeId(themes, prefs.theme ?? "");
   const [custom, setCustom] = (0, import_react36.useState)(prefs.accent ?? "#4d6bfe");
-  const timer = (0, import_react36.useRef)(0);
+  const timer = (0, import_react36.useRef)(void 0);
   (0, import_react36.useEffect)(() => () => clearTimeout(timer.current), []);
   const pickCustom = (value) => {
     setCustom(value);
     clearTimeout(timer.current);
-    timer.current = setTimeout(() => run(actions.setPrefs({ accent: value })), 350);
+    timer.current = setTimeout(() => {
+      void run(actions.setPrefs({ accent: value }));
+    }, 350);
   };
   return [
     (0, import_react36.createElement)(
@@ -17777,20 +17780,22 @@ function GeneralPage({ roster, actions, run }) {
         (0, import_react36.createElement)(
           "div",
           { className: "bt-swatches" },
-          (0, import_react36.createElement)("button", { type: "button", className: "bt-swatch bt-swatch-default", title: t("Theme accent"), "aria-label": t("Theme accent"), "aria-pressed": !prefs.accent, onClick: () => run(actions.setPrefs({ accent: null })) }),
+          (0, import_react36.createElement)("button", { type: "button", className: "bt-swatch bt-swatch-default", title: t("Theme accent"), "aria-label": t("Theme accent"), "aria-pressed": !prefs.accent, onClick: () => {
+            void run(actions.setPrefs({ accent: null }));
+          } }),
           ACCENT_INKS.map((ink) => (0, import_react36.createElement)("button", {
             key: ink,
             type: "button",
             className: "bt-swatch",
             title: t(capitalize2(ink)),
             "aria-label": t(capitalize2(ink)),
-            "aria-pressed": prefs.accent === INKS[ink][0],
-            style: { background: INKS[ink][0] },
-            onClick: () => run(actions.setPrefs({ accent: INKS[ink][0] }))
+            "aria-pressed": prefs.accent === INKS[ink]?.[0],
+            style: { background: INKS[ink]?.[0] },
+            onClick: () => run(actions.setPrefs({ accent: INKS[ink]?.[0] }))
           })),
           (0, import_react36.createElement)(
             "label",
-            { className: "bt-swatch bt-swatch-custom", title: t("Custom accent"), "data-on": Boolean(prefs.accent) && !ACCENT_INKS.some((ink) => INKS[ink][0] === prefs.accent) },
+            { className: "bt-swatch bt-swatch-custom", title: t("Custom accent"), "data-on": Boolean(prefs.accent) && !ACCENT_INKS.some((ink) => INKS[ink]?.[0] === prefs.accent) },
             (0, import_react36.createElement)("input", { type: "color", value: custom, "aria-label": t("Custom accent"), onChange: (event) => pickCustom(event.target.value) })
           )
         )
@@ -17802,14 +17807,14 @@ function GeneralPage({ roster, actions, run }) {
       (0, import_react36.createElement)(
         SetRow,
         { label: t("Classic Agent mode") },
-        (0, import_react36.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.setSurface("agent") }, t("Switch"))
+        (0, import_react36.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => actions.setSurface?.("agent") }, t("Switch"))
       )
     ) : null,
     (0, import_react36.createElement)(LocationsSection, { key: "places", actions, run })
   ];
 }
 function LocationsSection({ actions, run }) {
-  const app = globalThis.dsBotApp;
+  const app = window.dsBotApp;
   const [team, setTeam] = (0, import_react36.useState)(null);
   const [data, setData] = (0, import_react36.useState)(null);
   const [moving, setMoving] = (0, import_react36.useState)(false);
@@ -17840,7 +17845,7 @@ function LocationsSection({ actions, run }) {
       { label: t("Team workspace"), hint: t("Where Bots without a folder of their own work.") },
       team === null ? null : (0, import_react36.createElement)(FolderMenu, { value: team, team: true, actions, run, onPick: pickTeam, disabled: moving })
     ),
-    data === null ? null : (0, import_react36.createElement)(
+    data === null || app === void 0 ? null : (0, import_react36.createElement)(
       SetRow,
       { label: t("Data location"), hint: data.path },
       data.fixed ? null : (0, import_react36.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", disabled: moving, onClick: () => {
@@ -17850,7 +17855,7 @@ function LocationsSection({ actions, run }) {
   );
 }
 function MainBotsSection({ roster, actions, run }) {
-  const mains = (roster.mainBotIds ?? []).map((id) => roster.byId[id]).filter(Boolean);
+  const mains = (roster.mainBotIds ?? []).map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   const [first, ...others] = mains;
   const candidates = roster.bots.filter((bot) => !isMainOf(roster, bot.id));
   return (0, import_react36.createElement)(
@@ -17891,7 +17896,8 @@ function MainBotsSection({ roster, actions, run }) {
 }
 var MOTIONS = [["quiet", "Quiet"], ["normal", "Normal"], ["lively", "Lively"]];
 function MotionSection({ roster, actions, run }) {
-  const motion = roster.prefs?.motion === "quiet" || roster.prefs?.motion === "lively" ? roster.prefs.motion : "normal";
+  const stored = roster.prefs?.motion;
+  const motion = stored === "quiet" || stored === "lively" ? stored : "normal";
   return (0, import_react36.createElement)(
     SetSection,
     { title: t("Animation") },
@@ -17903,7 +17909,7 @@ function MotionSection({ roster, actions, run }) {
         type: "button",
         "aria-pressed": motion === id,
         onClick: () => {
-          if (motion !== id) run(actions.setPrefs({ motion: id }));
+          if (motion !== id) void run(actions.setPrefs({ motion: id }));
         }
       }, t(label))))
     )
@@ -17914,7 +17920,7 @@ function BotsPage({ roster, actions, run }) {
   return [
     (0, import_react36.createElement)(MainBotsSection, { key: "main", roster, actions, run }),
     (0, import_react36.createElement)(MotionSection, { key: "motion", roster, actions, run }),
-    creating ? (0, import_react36.createElement)(CreateBot, { key: "create", roster, actions, inline: true, onBack: () => setCreating(false), onCreated: (bot) => actions.openSettings("bots", bot.id) }) : (0, import_react36.createElement)(
+    creating ? (0, import_react36.createElement)(CreateBot, { key: "create", roster, actions, inline: true, canGoBack: false, onBack: () => setCreating(false), onCreated: (bot) => actions.openSettings("bots", bot.id) }) : (0, import_react36.createElement)(
       "div",
       { key: "new", className: "bt-actions" },
       (0, import_react36.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-with-icon", onClick: () => setCreating(true) }, (0, import_react36.createElement)(PlusIcon), t("New Bot"))
@@ -17957,7 +17963,7 @@ function GroupsPage({ roster, actions, run }) {
         hint: t("A group chat lets several Bots work on one thing with you."),
         action: roster.bots.length >= 2 ? { icon: (0, import_react36.createElement)(PlusIcon), label: t("Create group chat"), onClick: () => setCreating(true) } : { icon: (0, import_react36.createElement)(PlusIcon), label: t("Create Bot"), onClick: () => actions.openSettings("bots") }
       }) : roster.rooms.map((room2) => {
-        const admin = roster.byId[room2.admin];
+        const admin = room2.admin ? roster.byId[room2.admin] : void 0;
         return (0, import_react36.createElement)(
           "button",
           { key: room2.id, type: "button", className: "bt-set-row", onClick: () => actions.openSettings("groups", room2.id) },
@@ -17984,15 +17990,16 @@ function SettingsDialog({ page, id, roster, actions, useUpdate, leaving = false 
     setError("");
     return true;
   }).catch((failure) => {
-    setError(failure?.message ?? String(failure));
+    setError(failureMessage3(failure));
     return false;
   });
   const bot = page === "bots" && id ? roster.byId[id] : void 0;
   const room2 = page === "groups" && id ? roster.roomsById[id] : void 0;
   const pages = SETTINGS_PAGES.filter(([key]) => key !== "models" || actions.providers !== void 0);
-  const shown = pages.some(([key]) => key === page) ? page : "general";
+  const shown = page !== void 0 && pages.some(([key]) => key === page) ? page : "general";
   const usageFocus = shown === "usage" && id ? id : null;
-  const label = t(pages.find(([key]) => key === shown)[1]);
+  const pageTitle = pages.find(([key]) => key === shown)?.[1];
+  const label = pageTitle === void 0 ? "" : t(pageTitle);
   const back = bot ? t("Back to Bots") : room2 ? t("Back to group chats") : usageFocus ? t("All usage") : null;
   useEscape(() => actions.openSettings(shown), Boolean(bot || room2 || usageFocus));
   const nav = useGlide(shown, { axis: "y" });
@@ -18022,14 +18029,14 @@ function SettingsDialog({ page, id, roster, actions, useUpdate, leaving = false 
           className: "bt-settings-item",
           "aria-current": shown === key ? "page" : void 0,
           onClick: () => actions.openSettings(key)
-        }, (0, import_react36.createElement)(PAGE_ICONS[key]), t(text))),
+        }, (0, import_react36.createElement)(PAGE_ICONS[key] ?? InfoIcon), t(text))),
         actions.openHarnessSettings ? (0, import_react36.createElement)("button", {
           type: "button",
           className: "bt-settings-item bt-settings-shell",
           title: t("Models, providers, and the rest of DeepSeek Harness"),
           onClick: () => {
             close();
-            actions.openHarnessSettings();
+            actions.openHarnessSettings?.();
           }
         }, (0, import_react36.createElement)(SlidersIcon), t("Harness settings")) : null
       ),
@@ -18050,7 +18057,7 @@ function SettingsDialog({ page, id, roster, actions, useUpdate, leaving = false 
           shown === "models" ? (0, import_react36.createElement)(ProvidersPage, { actions, run, Section: SetSection }) : null,
           bot ? (0, import_react36.createElement)("div", { className: "bt-settings-form" }, (0, import_react36.createElement)(BotSettingsForm, { key: bot.id, bot, roster, actions, run })) : null,
           shown === "bots" && !bot ? (0, import_react36.createElement)(BotsPage, { roster, actions, run }) : null,
-          room2 ? (0, import_react36.createElement)("div", { className: "bt-settings-form" }, (0, import_react36.createElement)(GroupSettingsForm, { key: room2.id, room: room2, roster, actions, run })) : null,
+          room2 ? (0, import_react36.createElement)("div", { className: "bt-settings-form" }, (0, import_react36.createElement)(GroupSettingsForm, { key: room2.id, room: room2, roster, actions, run, onDeleted: void 0 })) : null,
           shown === "groups" && !room2 ? (0, import_react36.createElement)(GroupsPage, { roster, actions, run }) : null,
           shown === "connectors" ? (0, import_react36.createElement)(ConnectorsPage, { roster, actions }) : null,
           shown === "capabilities" ? (0, import_react36.createElement)(CapabilitiesPage, { roster, actions, run }) : null,
@@ -18070,6 +18077,7 @@ function SettingsDialog({ page, id, roster, actions, useUpdate, leaving = false 
     )
   );
 }
+var failureMessage3 = (failure) => failure?.message ?? String(failure);
 
 // src/client/context-menu.ts
 var import_react37 = require("react");

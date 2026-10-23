@@ -1,6 +1,5 @@
 // The Desktop bridge the window may carry; the Web build has no such member.
-interface Window { dshDesktop?: unknown }
-
+interface Window { dshDesktop?: DshDesktopBridge; dsBotApp?: DsBotAppBridge }
 // The Web Speech API, which the composer's dictation uses. TypeScript's DOM lib does
 // not declare it; only the members this client reads are named.
 interface SpeechRecognitionAlternativeLike { readonly transcript: string }
@@ -33,6 +32,19 @@ interface SpeechRecognitionCtor { new (): SpeechRecognitionLike }
 interface Window {
   SpeechRecognition?: SpeechRecognitionCtor
   webkitSpeechRecognition?: SpeechRecognitionCtor
+}
+
+// The desktop app bridge: where its data lives, and the engine it downloads.
+interface DsDataLocation {
+  path: string
+  fixed: boolean
+}
+interface DsBotAppBridge {
+  dataLocation: () => Promise<DsDataLocation>
+  moveData: (workspace?: string) => Promise<unknown>
+  teamWorkspaceChanged: (path: string) => void
+  engine?: unknown
+  updates?: unknown
 }
 
 // One Bot's browser lease. `partition` keeps its cookies and logins apart from every
