@@ -12,9 +12,17 @@ import { BotPanel } from './browser-pane.ts'
 import type { BrowserPagesHook, BrowserTabsHook, PanelActions } from './browser-pane.ts'
 import { MemoryDialog } from './memory-panel.ts'
 import type { MemoryActions } from './memory-panel.ts'
-import { DIALOG_EXIT_MS, MENU_EXIT_MS, PANEL_LINGER_MS, reducedMotion, useLinger } from './motion.js'
+import { DIALOG_EXIT_MS, MENU_EXIT_MS, PANEL_LINGER_MS, reducedMotion, useLinger } from './motion.ts'
 import type { ExchangeActions } from './exchange.ts'
 import type { ContextMenuActions, ContextRoster } from './context-menu.ts'
+
+// A context menu the user opened: what it is about, and where it was opened.
+interface MenuState {
+  readonly kind?: string | undefined
+  readonly id?: string | undefined
+  readonly x: number
+  readonly y: number
+}
 
 // A store hook from the plugin's inject: it selects from one source and re-renders on
 // change. Every field the overlay root reads is optional, because each hook selects
@@ -28,7 +36,7 @@ interface OverlayValue {
   tab?: string
   settings?: { page?: string; id?: string } | null
   memory?: string | null
-  menu?: unknown
+  menu?: MenuState | null
   newChat?: string | null
   palette?: { token: string; query?: string } | null
   exchange?: [string, string] | null

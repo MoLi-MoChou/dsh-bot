@@ -4,7 +4,7 @@
 import { createElement as h, useEffect, useState } from 'react'
 import { CheckIcon, TrashIcon } from './icons.ts'
 import { KeyIcon, MaskedInput } from './secret-card.ts'
-import { Segmented, SPRING_SHAPE } from './motion.js'
+import { Segmented, SPRING_SHAPE } from './motion.ts'
 import { hostText, t } from './i18n.ts'
 
 // A model provider as DSH reports it: its models, its key state, and whether it can go.

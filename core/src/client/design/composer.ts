@@ -1,7 +1,7 @@
 // The conversation's input surfaces: the new-chat card, the docked composer and the
 // plugin controls seated in it, and the user-side bubbles and jump-to-latest controls
 // that sit around it.
-import { spring, SPRING_POP, SPRING_SHAPE, SPRING_TAP } from '../motion.js'
+import { spring, SPRING_POP, SPRING_SHAPE, SPRING_TAP } from '../motion.ts'
 
 // The new-chat surface: recipient field, Bot picker and create card.
 export const NEW_CHAT_CSS = `

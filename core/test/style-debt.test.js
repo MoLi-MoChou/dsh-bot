@@ -36,8 +36,8 @@ test('corner radii stay on the steps', () => {
   check('radii', `Round corners with one of ${RADII.join(' ')}, or with a variable.`)
 })
 
-test('springs come from motion.js', () => {
-  check('springs', 'Use a spring that motion.js exports, or add the new one there.')
+test('springs come from motion.ts', () => {
+  check('springs', 'Use a spring that motion.ts exports, or add the new one there.')
 })
 
 test('the checks catch what they look for and pass what they allow', () => {
@@ -56,7 +56,7 @@ test('the checks catch what they look for and pass what they allow', () => {
   assert.deepEqual(checks.radii('x.js', "node.style.borderRadius = '3px'; node.style.setProperty('border-radius', '5px')"), ['3px', '5px'])
   assert.deepEqual(checks.radii('x.js', '.a{border-radius:var(--r, 3px) 50%}'), [])
   assert.deepEqual(checks.springs('x.js', 'const GLIDE = springEasing(\n  1000,\n  63,\n)'), ['springEasing(1000,63,)'])
-  assert.deepEqual(checks.springs('motion.js', 'export const SPRING = springEasing(400, 31.2)'), [])
+  assert.deepEqual(checks.springs('motion.ts', 'export const SPRING = springEasing(400, 31.2)'), [])
 })
 
 test('the scan reaches TypeScript files and still exempts the palettes', () => {

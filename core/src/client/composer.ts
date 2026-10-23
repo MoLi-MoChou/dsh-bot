@@ -3,7 +3,7 @@ import { LEAN } from './lean.ts'
 import { createPortal } from 'react-dom'
 import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, WaveIcon } from './icons.ts'
 import { BotMark } from './mark.ts'
-import { useLinger } from './motion.js'
+import { useLinger } from './motion.ts'
 import { useMenuKeys } from './overlay-hooks.ts'
 import { t } from './i18n.ts'
 

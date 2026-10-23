@@ -9,7 +9,7 @@ import { FolderMenu } from './folder-menu.ts'
 import { BotSchedules } from './schedules.js'
 import { BotCapabilitiesCard } from './capability-settings.ts'
 import { useMemoryCount } from './memory-panel.ts'
-import { SPRING_SHAPE, SPRING_TAP, spring, useGlide } from './motion.js'
+import { SPRING_SHAPE, SPRING_TAP, spring, useGlide } from './motion.ts'
 import { t } from './i18n.ts'
 import type { AvatarEditorProps, BotPatch, BotSettingsFormProps, CardProps, CharacterGridProps, InlineTextProps, RowProps, SettingsActions, SettingsBot, SettingsRoster, SwitchProps, SwitchRowProps } from './settings-types.ts'
 

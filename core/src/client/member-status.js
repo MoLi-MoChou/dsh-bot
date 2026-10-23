@@ -1,7 +1,7 @@
 import { createElement as h, useLayoutEffect, useRef, useState } from 'react'
 import { BotMark, toolState } from './mark.ts'
 import { Elapsed, Shimmer, workPhrase } from './cells.js'
-import { SPRING_SHAPE, SPRING_TAP, spring, useLinger } from './motion.js'
+import { SPRING_SHAPE, SPRING_TAP, spring, useLinger } from './motion.ts'
 import { t } from './i18n.ts'
 
 // -------------------------------------------------------------------------

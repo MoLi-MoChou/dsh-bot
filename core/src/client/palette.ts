@@ -6,7 +6,7 @@ import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.t
 import { BotAvatar, RoomAvatar } from './mark.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
-import { DIALOG_EXIT_MS, QUICK_EDGES, reducedMotion, useFlip, useGlide } from './motion.js'
+import { DIALOG_EXIT_MS, QUICK_EDGES, reducedMotion, useFlip, useGlide } from './motion.ts'
 import type { ReactNode } from 'react'
 import { t } from './i18n.ts'
 

@@ -2,7 +2,7 @@
 // question cards the Bot asks, and the cells that report a turn's progress (thinking,
 // events, the activity row).
 import { DEFAULT_MASK } from '../characters.ts'
-import { EASE_OUT, MOTION_PRESETS, spring, SPRING_POP, SPRING_SHAPE, SPRING_TAP } from '../motion.js'
+import { EASE_OUT, MOTION_PRESETS, spring, SPRING_POP, SPRING_SHAPE, SPRING_TAP } from '../motion.ts'
 import { MENTION_ORIGIN } from '../text.ts'
 
 // Assistant bubbles, group rows and the question card.

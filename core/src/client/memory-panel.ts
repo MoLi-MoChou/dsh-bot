@@ -9,7 +9,7 @@ import { EmptyState } from './empty-state.ts'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.ts'
 import { dateLocale, hostText, t } from './i18n.ts'
 import { summaryBlocks } from './text.ts'
-import { useLinger } from './motion.js'
+import { useLinger } from './motion.ts'
 
 const POLL_MS = 1500
 const MENU_EXIT_MS = 120

@@ -1,13 +1,22 @@
 import { createElement as h, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { ReactNode, RefObject } from 'react'
 
-export const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+export const reducedMotion = (): boolean => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+
+/** One spring sampled into a CSS `linear()` easing, with the numbers it came from. */
+export interface SpringCurve {
+  readonly duration: number
+  readonly easing: string
+  readonly stiffness: number
+  readonly damping: number
+}
 
 // A damped spring (mass 1) sampled into a CSS linear() easing, for WAAPI glides
 // and CSS transitions alike.
-export function springEasing(stiffness, damping) {
+export function springEasing(stiffness: number, damping: number): SpringCurve {
   const w0 = Math.sqrt(stiffness)
   const zeta = damping / (2 * w0)
-  const at = (t) => {
+  const at = (t: number): number => {
     if (zeta >= 1) return 1 - (1 + w0 * t) * Math.exp(-w0 * t)
     const wd = w0 * Math.sqrt(1 - zeta * zeta)
     return 1 - Math.exp(-zeta * w0 * t) * (Math.cos(wd * t) + (zeta * w0 / wd) * Math.sin(wd * t))
@@ -33,13 +42,18 @@ export const SPRING_POP = springEasing(500, 22)
 // within about a quarter second.
 export const SPRING_LEAD = springEasing(784, 48.2)
 export const SPRING_TRAIL = springEasing(289, 29.2)
+/** The two edges of a thumb that stretches into a move. */
+export interface SpringEdges {
+  readonly lead: SpringCurve
+  readonly trail: SpringCurve
+}
 // A highlight that follows the keyboard and pointer down a list keeps up on stiffer
 // edges (ω=30 and ω=20).
-export const QUICK_EDGES = { lead: springEasing(900, 51), trail: springEasing(400, 34) }
+export const QUICK_EDGES: SpringEdges = { lead: springEasing(900, 51), trail: springEasing(400, 34) }
 // Sidebar rows glide to new places on a stiffer spring (ω≈31.6, ζ≈1).
 export const SPRING_ROW_GLIDE = springEasing(1000, 63)
 // Browser panel tab indicator edges: leading edge stretches ahead, trailing edge settles.
-export const PANEL_TAB_EDGES = { lead: springEasing(576, 39.4), trail: springEasing(144, 19.7) }
+export const PANEL_TAB_EDGES: SpringEdges = { lead: springEasing(576, 39.4), trail: springEasing(144, 19.7) }
 
 // Unified exit durations (ms) and easing curves across menus, dialogs, sheets and panels.
 export const MENU_EXIT_MS = 120
@@ -50,7 +64,16 @@ export const EASE_OUT = 'cubic-bezier(.16,1,.3,1)'
 export const EASE_IN = 'cubic-bezier(.4,0,1,1)'
 export const EASE_PANEL = 'cubic-bezier(.2,0,0,1)'
 
-export const MOTION_PRESETS = Object.freeze({
+/** The springs, durations and curves each kind of surface moves on. */
+export interface MotionPresets {
+  readonly sidebar: { readonly shape: SpringCurve; readonly rowGlide: SpringCurve; readonly easeOut: string }
+  readonly overlay: { readonly enter: SpringCurve; readonly exitMs: number; readonly sheetExitMs: number; readonly easeIn: string; readonly easeOut: string }
+  readonly menu: { readonly enter: SpringCurve; readonly exitMs: number; readonly easeIn: string }
+  readonly panel: { readonly shape: SpringCurve; readonly lingerMs: number; readonly ease: string; readonly tabEdges: SpringEdges }
+  readonly message: { readonly enter: SpringCurve; readonly collapseMs: number; readonly easeOut: string }
+}
+
+export const MOTION_PRESETS: MotionPresets = Object.freeze({
   sidebar: Object.freeze({ shape: SPRING_SHAPE, rowGlide: SPRING_ROW_GLIDE, easeOut: EASE_OUT }),
   overlay: Object.freeze({ enter: SPRING_SHAPE, exitMs: DIALOG_EXIT_MS, sheetExitMs: SHEET_EXIT_MS, easeIn: EASE_IN, easeOut: EASE_OUT }),
   menu: Object.freeze({ enter: SPRING_TAP, exitMs: MENU_EXIT_MS, easeIn: EASE_IN }),
@@ -58,27 +81,42 @@ export const MOTION_PRESETS = Object.freeze({
   message: Object.freeze({ enter: SPRING_SHAPE, collapseMs: 240, easeOut: EASE_OUT }),
 })
 
-export const spring = (curve, ...properties) => properties.map(property => `${property} ${curve.duration}ms ${curve.easing}`).join(',')
+export const spring = (curve: SpringCurve, ...properties: readonly string[]): string => properties.map(property => `${property} ${curve.duration}ms ${curve.easing}`).join(',')
+
+interface SpringValue {
+  x: number
+  v: number
+  to: number
+  k: number
+  c: number
+}
+
+/** Springs stepped once per frame, shared by every thumb a hook drives. */
+interface LiveSprings {
+  target(): Record<string, number> | null
+  set(targets: Record<string, number>, curves: Record<string, SpringCurve>, jump: boolean): void
+  stop(): void
+}
 
 // Springs stepped once per frame. A new target keeps the current velocity, so a thumb
 // that is sent somewhere else mid-move turns smoothly instead of starting over. Each
 // frame covers the whole time since the last one, like a CSS transition, so a busy
 // page delays the thumb instead of slowing it down.
-function liveSprings(apply) {
-  const values = new Map()
+function liveSprings(apply: (values: Record<string, number>) => void): LiveSprings {
+  const values = new Map<string, SpringValue>()
   let frame = 0
   let last = 0
-  const read = () => Object.fromEntries([...values].map(([key, value]) => [key, value.x]))
-  const step = (now) => {
+  const read = (): Record<string, number> => Object.fromEntries([...values].map(([key, value]) => [key, value.x]))
+  const step = (now: number): void => {
     const dt = Math.min(0.5, Math.max(0.001, (now - last) / 1000))
     last = now
     const steps = Math.ceil(dt * 240)
-    const h = dt / steps
+    const slice = dt / steps
     let moving = false
     for (const value of values.values()) {
       for (let index = 0; index < steps; index += 1) {
-        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h
-        value.x += value.v * h
+        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * slice
+        value.x += value.v * slice
       }
       if (Math.abs(value.x - value.to) < 0.05 && Math.abs(value.v) < 1) { value.x = value.to; value.v = 0 } else moving = true
     }
@@ -89,9 +127,11 @@ function liveSprings(apply) {
     target: () => (values.size ? Object.fromEntries([...values].map(([key, value]) => [key, value.to])) : null),
     set(targets, curves, jump) {
       for (const [key, to] of Object.entries(targets)) {
+        const curve = curves[key]
+        if (curve === undefined) continue
         const value = values.get(key)
-        const { stiffness: k, damping: c } = curves[key]
-        if (!value || jump) values.set(key, { x: to, v: 0, to, k, c })
+        const { stiffness: k, damping: c } = curve
+        if (value === undefined || jump) values.set(key, { x: to, v: 0, to, k, c })
         else Object.assign(value, { to, k, c })
       }
       if (jump) { cancelAnimationFrame(frame); frame = 0; apply(read()); return }
@@ -103,27 +143,47 @@ function liveSprings(apply) {
 
 const CHOSEN = '[aria-pressed="true"],[aria-selected="true"],[aria-current="page"]'
 
+/** How a glide finds its container, its chosen item, and the springs it runs on. */
+export interface GlideOptions {
+  readonly axis?: 'x' | 'y' | undefined
+  readonly selector?: string | undefined
+  readonly lead?: SpringCurve | undefined
+  readonly trail?: SpringCurve | undefined
+  readonly box?: RefObject<HTMLElement | null> | undefined
+}
+
+/** The container and thumb refs a glide drives. */
+export interface Glide {
+  readonly box: RefObject<HTMLElement | null>
+  readonly thumb: RefObject<HTMLElement | null>
+}
+
+interface GlideState {
+  key: string | undefined
+  node: HTMLElement | null
+  observer: ResizeObserver | null
+  springs: LiveSprings
+}
+
 // One thumb for a row (or column) of choices that glides to the chosen one. Attach
 // `box` to the positioned container and `thumb` to an absolutely placed child; the
 // thumb appears in place with a new box, then springs on every change of `key`. The
 // box gets data-glide once the thumb is placed, so its CSS can drop the chosen item's
 // own fill. `selector` finds the chosen item; with none the thumb gets data-hidden.
 // `box` takes a ref the caller already holds for the container.
-/**
- * @param {string} key
- * @param {{ axis?: 'x' | 'y', selector?: string, lead?: { duration: number, easing: string }, trail?: { duration: number, easing: string }, box?: import('react').RefObject<HTMLElement | null> | undefined }} [options]
- */
-export function useGlide(key, { axis = 'x', selector = CHOSEN, lead = SPRING_LEAD, trail = SPRING_TRAIL, box: given } = {}) {
-  const ownBox = useRef(null)
+export function useGlide(key: string | undefined, { axis = 'x', selector = CHOSEN, lead = SPRING_LEAD, trail = SPRING_TRAIL, box: given }: GlideOptions = {}): Glide {
+  const ownBox = useRef<HTMLElement | null>(null)
   const box = given ?? ownBox
-  const thumb = useRef(null)
-  const own = useRef(null)
+  const thumb = useRef<HTMLElement | null>(null)
+  const own = useRef<GlideState | null>(null)
   if (own.current === null) {
     own.current = {
       key: undefined, node: null, observer: null,
-      springs: liveSprings(({ start, end }) => {
+      springs: liveSprings(values => {
         const knob = thumb.current
         if (!knob) return
+        const start = values['start'] ?? 0
+        const end = values['end'] ?? 0
         knob.style.transform = axis === 'x' ? `translateX(${start}px)` : `translateY(${start}px)`
         knob.style[axis === 'x' ? 'width' : 'height'] = `${Math.max(0, end - start)}px`
       }),
@@ -131,25 +191,27 @@ export function useGlide(key, { axis = 'x', selector = CHOSEN, lead = SPRING_LEA
   }
   // `jump` places without motion, and only when the chosen item moved: a box that
   // resizes while the thumb is under way does not cut the glide short.
-  const place = (jump) => {
+  const place = (jump: boolean): void => {
     const container = box.current
     const knob = thumb.current
     if (!container || !knob) return
-    const chosen = container.querySelector(selector)
+    const chosen = container.querySelector<HTMLElement>(selector)
     if (!chosen) { knob.dataset.hidden = ''; return }
     const start = axis === 'x' ? chosen.offsetLeft : chosen.offsetTop
     const end = start + (axis === 'x' ? chosen.offsetWidth : chosen.offsetHeight)
-    const { springs } = own.current
+    const springs = own.current?.springs
+    if (springs === undefined) return
     const before = springs.target()
     const hidden = knob.dataset.hidden !== undefined
-    if (jump && !hidden && before?.start === start && before?.end === end && container.dataset.glide !== undefined) return
+    if (jump && !hidden && before?.['start'] === start && before['end'] === end && container.dataset.glide !== undefined) return
     delete knob.dataset.hidden
-    const forward = before === null || start >= before.start
+    const forward = before === null || start >= (before['start'] ?? start)
     springs.set({ start, end }, forward ? { start: trail, end: lead } : { start: lead, end: trail }, jump || hidden || before === null || reducedMotion())
     container.dataset.glide = ''
   }
   useLayoutEffect(() => {
     const state = own.current
+    if (state === null) return
     const node = box.current
     if (node === state.node && key === state.key) return
     const fresh = node !== state.node
@@ -157,21 +219,25 @@ export function useGlide(key, { axis = 'x', selector = CHOSEN, lead = SPRING_LEA
     if (fresh) {
       state.observer?.disconnect()
       state.node = node
-      state.observer = node && typeof ResizeObserver === 'function' ? new ResizeObserver(() => place(true)) : null
-      state.observer?.observe(node)
+      state.observer = node !== null && typeof ResizeObserver === 'function' ? new ResizeObserver(() => place(true)) : null
+      if (state.observer !== null && node !== null) state.observer.observe(node)
     }
     place(fresh)
   })
-  useEffect(() => () => { own.current.observer?.disconnect(); own.current.springs.stop() }, [])
+  useEffect(() => () => { own.current?.observer?.disconnect(); own.current?.springs.stop() }, [])
   return { box, thumb }
 }
 
+/** A segmented choice: one pill per value, with the thumb gliding between them. */
+export interface SegmentedProps {
+  readonly label?: string | undefined
+  readonly value?: string | undefined
+  readonly className?: string | undefined
+  readonly children?: ReactNode
+}
+
 // Buttons side by side over one thumb that glides to the pressed one (aria-pressed).
-/**
- * A segmented choice: one pill per value, with the thumb gliding between them.
- * @param {{ label?: string, value?: string, className?: string, children?: import('react').ReactNode }} props
- */
-export function Segmented({ label, value, className, children }) {
+export function Segmented({ label, value, className, children }: SegmentedProps) {
   const glide = useGlide(value)
   return h('div', { ref: glide.box, className: className ? `bt-seg ${className}` : 'bt-seg', role: 'group', 'aria-label': label },
     h('span', { ref: glide.thumb, className: 'bt-thumb', 'aria-hidden': true }), children)
@@ -181,19 +247,25 @@ export function Segmented({ label, value, className, children }) {
 // `key` put them, on SPRING_LIST, and children that were not there before clear from a
 // blur; `id` names a child across renders. offsetTop ignores transforms, so a slide in
 // flight does not skew the next one.
-export function useFlip(list, key, selector, id = node => node.dataset.flip) {
-  const tops = useRef(null)
+export function useFlip(
+  list: RefObject<HTMLElement | null>,
+  key: unknown,
+  selector: string,
+  id: (node: Element) => string | undefined = node => (node as HTMLElement).dataset.flip,
+): void {
+  const tops = useRef<Map<string | undefined, number> | null>(null)
   useLayoutEffect(() => {
     const container = list.current
     if (!container) return
-    const next = new Map()
-    const moving = tops.current !== null && !reducedMotion()
+    const previous = tops.current
+    const next = new Map<string | undefined, number>()
+    const moving = previous !== null && !reducedMotion()
     for (const node of container.querySelectorAll(selector)) {
       const name = id(node)
-      const top = node.offsetTop
+      const top = (node as HTMLElement).offsetTop
       next.set(name, top)
-      if (!moving) continue
-      const before = tops.current.get(name)
+      if (!moving || previous === null) continue
+      const before = previous.get(name)
       if (before === undefined) {
         node.animate([{ opacity: 0, filter: 'blur(4px)' }, { opacity: 1, filter: 'blur(0)' }], { duration: 180, easing: 'ease-out' })
       } else if (Math.abs(before - top) > 0.5) {
@@ -204,13 +276,20 @@ export function useFlip(list, key, selector, id = node => node.dataset.flip) {
   }, [key])
 }
 
+interface MorphState {
+  key: unknown
+  height: number | null
+  node: HTMLElement | null
+  observer: ResizeObserver | null
+}
+
 // `box` changes height on SPRING_SHAPE when a change of `key` changes its content, so
 // a surface reshapes around what it holds instead of jumping. A change that comes
 // mid-morph starts from the height on screen. The box clips its content meanwhile.
 // The resting height comes from a ResizeObserver: reading it on every render would lay
 // out the page once per render, the panel's whole first frame when it opens.
-export function useMorph(box, key) {
-  const last = useRef({ key, height: null, node: null, observer: null })
+export function useMorph(box: RefObject<HTMLElement | null>, key: unknown): void {
+  const last = useRef<MorphState>({ key, height: null, node: null, observer: null })
   useLayoutEffect(() => {
     const node = box.current
     const state = last.current
@@ -219,7 +298,7 @@ export function useMorph(box, key) {
       Object.assign(state, { key, height: null, node, observer: null })
       if (!node || typeof ResizeObserver !== 'function') return
       state.observer = new ResizeObserver(([entry]) => {
-        if (node.dataset.morph === undefined) state.height = entry.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight
+        if (node.dataset.morph === undefined) state.height = entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight
       })
       state.observer.observe(node)
       return
@@ -241,8 +320,8 @@ export function useMorph(box, key) {
 
 // The last truthy `value` for `ms` after it turns falsy, so a closing layer can play its
 // exit; `leaving` is true meanwhile.
-export function useLinger(value, ms) {
-  const [kept, setKept] = useState(value)
+export function useLinger<T>(value: T, ms: number): readonly [T, boolean] {
+  const [kept, setKept] = useState<T>(value)
   useEffect(() => {
     if (value) { setKept(value); return undefined }
     const timer = setTimeout(() => setKept(value), reducedMotion() ? 0 : ms)

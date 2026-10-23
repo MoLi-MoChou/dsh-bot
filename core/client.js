@@ -2425,7 +2425,7 @@ function runStatsOf(values) {
   return shown;
 }
 
-// src/client/motion.js
+// src/client/motion.ts
 var import_react = require("react");
 var reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
 function springEasing(stiffness, damping) {
@@ -2475,12 +2475,12 @@ function liveSprings(apply2) {
     const dt = Math.min(0.5, Math.max(1e-3, (now - last) / 1e3));
     last = now;
     const steps = Math.ceil(dt * 240);
-    const h43 = dt / steps;
+    const slice = dt / steps;
     let moving = false;
     for (const value of values.values()) {
       for (let index = 0; index < steps; index += 1) {
-        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * h43;
-        value.x += value.v * h43;
+        value.v += (-value.k * (value.x - value.to) - value.c * value.v) * slice;
+        value.x += value.v * slice;
       }
       if (Math.abs(value.x - value.to) < 0.05 && Math.abs(value.v) < 1) {
         value.x = value.to;
@@ -2494,9 +2494,11 @@ function liveSprings(apply2) {
     target: () => values.size ? Object.fromEntries([...values].map(([key, value]) => [key, value.to])) : null,
     set(targets, curves, jump) {
       for (const [key, to] of Object.entries(targets)) {
+        const curve = curves[key];
+        if (curve === void 0) continue;
         const value = values.get(key);
-        const { stiffness: k, damping: c } = curves[key];
-        if (!value || jump) values.set(key, { x: to, v: 0, to, k, c });
+        const { stiffness: k, damping: c } = curve;
+        if (value === void 0 || jump) values.set(key, { x: to, v: 0, to, k, c });
         else Object.assign(value, { to, k, c });
       }
       if (jump) {
@@ -2524,9 +2526,11 @@ function useGlide(key, { axis = "x", selector = CHOSEN, lead = SPRING_LEAD, trai
       key: void 0,
       node: null,
       observer: null,
-      springs: liveSprings(({ start, end }) => {
+      springs: liveSprings((values) => {
         const knob = thumb.current;
         if (!knob) return;
+        const start = values["start"] ?? 0;
+        const end = values["end"] ?? 0;
         knob.style.transform = axis === "x" ? `translateX(${start}px)` : `translateY(${start}px)`;
         knob.style[axis === "x" ? "width" : "height"] = `${Math.max(0, end - start)}px`;
       })
@@ -2543,17 +2547,19 @@ function useGlide(key, { axis = "x", selector = CHOSEN, lead = SPRING_LEAD, trai
     }
     const start = axis === "x" ? chosen.offsetLeft : chosen.offsetTop;
     const end = start + (axis === "x" ? chosen.offsetWidth : chosen.offsetHeight);
-    const { springs } = own.current;
+    const springs = own.current?.springs;
+    if (springs === void 0) return;
     const before = springs.target();
     const hidden = knob.dataset.hidden !== void 0;
-    if (jump && !hidden && before?.start === start && before?.end === end && container.dataset.glide !== void 0) return;
+    if (jump && !hidden && before?.["start"] === start && before["end"] === end && container.dataset.glide !== void 0) return;
     delete knob.dataset.hidden;
-    const forward = before === null || start >= before.start;
+    const forward = before === null || start >= (before["start"] ?? start);
     springs.set({ start, end }, forward ? { start: trail, end: lead } : { start: lead, end: trail }, jump || hidden || before === null || reducedMotion());
     container.dataset.glide = "";
   };
   (0, import_react.useLayoutEffect)(() => {
     const state = own.current;
+    if (state === null) return;
     const node = box.current;
     if (node === state.node && key === state.key) return;
     const fresh = node !== state.node;
@@ -2561,14 +2567,14 @@ function useGlide(key, { axis = "x", selector = CHOSEN, lead = SPRING_LEAD, trai
     if (fresh) {
       state.observer?.disconnect();
       state.node = node;
-      state.observer = node && typeof ResizeObserver === "function" ? new ResizeObserver(() => place(true)) : null;
-      state.observer?.observe(node);
+      state.observer = node !== null && typeof ResizeObserver === "function" ? new ResizeObserver(() => place(true)) : null;
+      if (state.observer !== null && node !== null) state.observer.observe(node);
     }
     place(fresh);
   });
   (0, import_react.useEffect)(() => () => {
-    own.current.observer?.disconnect();
-    own.current.springs.stop();
+    own.current?.observer?.disconnect();
+    own.current?.springs.stop();
   }, []);
   return { box, thumb };
 }
@@ -2586,14 +2592,15 @@ function useFlip(list, key, selector, id = (node) => node.dataset.flip) {
   (0, import_react.useLayoutEffect)(() => {
     const container = list.current;
     if (!container) return;
+    const previous = tops.current;
     const next = /* @__PURE__ */ new Map();
-    const moving = tops.current !== null && !reducedMotion();
+    const moving = previous !== null && !reducedMotion();
     for (const node of container.querySelectorAll(selector)) {
       const name = id(node);
       const top = node.offsetTop;
       next.set(name, top);
-      if (!moving) continue;
-      const before = tops.current.get(name);
+      if (!moving || previous === null) continue;
+      const before = previous.get(name);
       if (before === void 0) {
         node.animate([{ opacity: 0, filter: "blur(4px)" }, { opacity: 1, filter: "blur(0)" }], { duration: 180, easing: "ease-out" });
       } else if (Math.abs(before - top) > 0.5) {
@@ -2613,7 +2620,7 @@ function useMorph(box, key) {
       Object.assign(state, { key, height: null, node, observer: null });
       if (!node || typeof ResizeObserver !== "function") return;
       state.observer = new ResizeObserver(([entry]) => {
-        if (node.dataset.morph === void 0) state.height = entry.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight;
+        if (node.dataset.morph === void 0) state.height = entry?.borderBoxSize?.[0]?.blockSize ?? node.offsetHeight;
       });
       state.observer.observe(node);
       return;

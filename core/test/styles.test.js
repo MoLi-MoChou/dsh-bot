@@ -14,7 +14,7 @@ const requireHarness = createRequire(join(harness, 'package.json'))
 const { JSDOM } = requireHarness('jsdom')
 
 // The style helpers and the CSS they ship, bundled once with a minimal React for
-// motion.js; they run in each test's jsdom document through the vm context.
+// motion.ts; they run in each test's jsdom document through the vm context.
 const { outputFiles } = await build({
   stdin: {
     contents: "export { installStyles, installCompiledStyles } from './src/client/design/index.ts'",

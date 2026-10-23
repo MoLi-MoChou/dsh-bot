@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 import { findStyles } from '../scripts/style-debt.mjs'
 
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../src/client/motion.js', import.meta.url))],
+  entryPoints: [fileURLToPath(new URL('../src/client/motion.ts', import.meta.url))],
   bundle: true, format: 'cjs', platform: 'node', write: false,
   external: ['react'],
 })
@@ -46,7 +46,7 @@ function loadMotion(prefersReduced = false) {
   return { ...mod.exports, timeouts }
 }
 
-test('motion.js is the single source of truth for springs, durations, and presets', () => {
+test('motion.ts is the single source of truth for springs, durations, and presets', () => {
   const m = loadMotion(false)
   assert.equal(m.MENU_EXIT_MS, 120)
   assert.equal(m.DIALOG_EXIT_MS, 160)
@@ -63,7 +63,7 @@ test('motion.js is the single source of truth for springs, durations, and preset
   assert.equal(m.MOTION_PRESETS.message.enter, m.SPRING_SHAPE)
 
   const found = findStyles()
-  assert.deepEqual(found.springs, {}, 'no inline springEasing or linear() outside motion.js')
+  assert.deepEqual(found.springs, {}, 'no inline springEasing or linear() outside motion.ts')
 })
 
 test('reducedMotion and useLinger respect prefers-reduced-motion', () => {

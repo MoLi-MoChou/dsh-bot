@@ -6,7 +6,7 @@ import type { ChangeEvent, ReactNode } from 'react'
 import { clearClientErrors, clientErrors, clientFacts, failureLabel, issueUrl, WHAT_MAX } from './diagnostics.ts'
 import { dateLocale, t } from './i18n.ts'
 import { CloseIcon } from './icons.ts'
-import { SPRING_SHAPE } from './motion.js'
+import { SPRING_SHAPE } from './motion.ts'
 
 export const FeedbackIcon = () => h('svg', { width: 15, height: 15, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
   h('path', { d: 'M4 4.5h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H9l-3.5 3v-3H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z' }), h('path', { d: 'M10 7v2.6M10 11.4h.01' }))

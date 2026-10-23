@@ -2,7 +2,7 @@
 // the team-view overrides on the host shell's chrome (sidebar switch, footer seats),
 // the voice pane, and the connection notice.
 import { LOGO_DARK, LOGO_LIGHT } from '../brand-art.ts'
-import { spring, SPRING_POP, SPRING_SHAPE, SPRING_STRETCH, SPRING_TAP } from '../motion.js'
+import { spring, SPRING_POP, SPRING_SHAPE, SPRING_STRETCH, SPRING_TAP } from '../motion.ts'
 
 // A sidebar skin may seat DSH's footer outlets in a footer of its own; matching the
 // outlets keeps that footer on one row whatever the skin names its boxes. The shell's

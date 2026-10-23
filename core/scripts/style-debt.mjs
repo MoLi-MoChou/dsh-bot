@@ -106,7 +106,7 @@ export const checks = {
   radii: (file, text) => [...text.matchAll(RADIUS)]
     .flatMap(match => steps(match[1] ?? match[2] ?? match[3]))
     .filter(step => !RADII.includes(step) && !step.startsWith('var(')),
-  springs: (file, text) => (file === 'motion.js' ? [] : [...text.matchAll(SPRING)].map(({ 0: call }) => squeeze(call))),
+  springs: (file, text) => (file === 'motion.ts' ? [] : [...text.matchAll(SPRING)].map(({ 0: call }) => squeeze(call))),
 }
 
 // Comments are not styles. A trailing comment follows a space, which a URL's `://` lacks.

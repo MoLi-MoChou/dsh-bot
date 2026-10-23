@@ -15,7 +15,7 @@ import { FolderMenu } from './folder-menu.ts'
 import { MemoryRow } from './memory-panel.ts'
 import { ScheduleSummary } from './schedules.js'
 import { LEAN } from './lean.ts'
-import { useGlide, useMorph } from './motion.js'
+import { useGlide, useMorph } from './motion.ts'
 import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.js'
 import { PermissionPicker, presetDanger, presetName } from './permission-picker.ts'
 import type {

@@ -1,6 +1,6 @@
 import { createElement as h, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
-import { useMorph } from './motion.js'
+import { useMorph } from './motion.ts'
 import { MaskedInput } from './secret-card.ts'
 import { t } from './i18n.ts'
 

@@ -4,7 +4,7 @@
 import { createElement as h, Fragment, useEffect, useState } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.ts'
 import { ClockIcon, PlusIcon, TrashIcon } from './icons.ts'
-import { Segmented } from './motion.js'
+import { Segmented } from './motion.ts'
 import { EmptyState } from './empty-state.ts'
 import { dateLocale, hostText, t } from './i18n.ts'
 
