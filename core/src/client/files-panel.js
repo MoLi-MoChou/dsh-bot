@@ -154,6 +154,7 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
       card.append(button)
     }
     const kinds = document.createElement('details'); kinds.className = 'bt-fcard-kinds'
+    kinds.addEventListener('keydown', (event) => { if (event.key === 'Escape' && kinds.open) { event.preventDefault(); event.stopPropagation(); kinds.open = false; summary.focus() } })
     const summary = document.createElement('summary'); summary.textContent = t('What can be previewed')
     const list = document.createElement('ul')
     for (const [kind, exts] of PREVIEW_KINDS) { const item = document.createElement('li'); const b = document.createElement('b'); b.textContent = t(kind); item.append(b, document.createTextNode(` ${exts}`)); list.append(item) }
@@ -242,4 +243,5 @@ li[data-files-entry]>ul .bt-frow-dl{right:6px}
 .bt-fcard-kinds summary{cursor:pointer;color:var(--bt-ink-2)}
 .bt-fcard-kinds ul{margin:6px 0 0;padding-left:16px}
 .bt-fcard-kinds b{font-weight:500;color:var(--bt-ink-2)}
+:is(.bt-frow-dl,.bt-fpreview-dl,.bt-fcard-download,.bt-fcard-kinds summary):focus-visible{outline:2px solid var(--bt-accent);outline-offset:2px}
 `

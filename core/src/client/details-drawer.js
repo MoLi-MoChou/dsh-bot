@@ -196,6 +196,7 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
   const side = move === 'tab' ? undefined : move
   const close = () => actions.closeOverlay()
   useEscape(close)
+  useEscape(() => setView('overview'), Boolean((bot || room) && view === 'settings'))
   const bot = owner
   const running = useSessionStatus(map => map.get(part)?.running === true)
   const doing = useActivity(map => map[bot?.id ?? sessionId])

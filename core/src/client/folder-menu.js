@@ -14,9 +14,12 @@ const Tick = ({ on }) => h('span', { className: 'bt-model-tick', 'aria-hidden': 
 // gets the chosen path, or '' for that default. `team` is the menu for the team workspace
 // itself, which has no default.
 export function FolderMenu({ value, group = false, team = false, actions, run, onPick, wide = false, disabled = false }) {
-  const { isOpen, shownPlace, leaving, button, menu, open, close } = useAnchoredMenu()
   const [info, setInfo] = useState(null)
   const [view, setView] = useState('list')
+  const { isOpen, shownPlace, leaving, button, menu, open, close } = useAnchoredMenu(() => {
+    if (view !== 'list') { setView('list'); return true }
+    return false
+  })
   const [draft, setDraft] = useState('')
   const [listing, setListing] = useState(null)
   const [problem, setProblem] = useState('')
@@ -60,17 +63,17 @@ export function FolderMenu({ value, group = false, team = false, actions, run, o
     info?.picker === 'browse' ? h('button', { type: 'button', role: 'menuitem', onClick: () => browse(value) }, h(FolderIcon), h('span', { className: 'bt-menu-label' }, t('Browse folders…'))) : null,
     h('button', { type: 'button', role: 'menuitem', onClick: () => { setDraft(value ?? ''); setView('type') } }, h(PencilIcon), h('span', { className: 'bt-menu-label' }, t('Enter a path…'))))
   const typeView = h('div', { key: 'type', className: 'bt-folder-view' },
-    h('button', { type: 'button', className: 'bt-folder-back', onClick: () => setView('list') }, h(ChevronLeftIcon), h('span', { className: 'bt-menu-label' }, t('Back'))),
+    h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-back', onClick: () => setView('list') }, h(ChevronLeftIcon), h('span', { className: 'bt-menu-label' }, t('Back'))),
     h('input', {
       className: 'bt-folder-input', autoFocus: true, value: draft, spellCheck: false, 'aria-label': t('Folder path'), placeholder: t('Full path of a folder'),
       onChange: event => setDraft(event.target.value),
       onKeyDown: (event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) typed() },
     }),
-    h('button', { type: 'button', className: 'bt-folder-use', disabled: draft.trim() === '', onClick: typed }, t('Use this folder')))
+    h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-use', disabled: draft.trim() === '', onClick: typed }, t('Use this folder')))
   const parent = listing?.crumbs?.length > 1 ? listing.crumbs.at(-2) : undefined
   const inside = listing?.entries?.filter(entry => !entry.hidden) ?? []
   const browseView = listing ? h('div', { key: `browse:${listing.path}`, className: 'bt-folder-view' },
-    h('button', { type: 'button', className: 'bt-folder-back', onClick: () => setView('list') }, h(ChevronLeftIcon), h('span', { className: 'bt-menu-label' }, t('Back'))),
+    h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-back', onClick: () => setView('list') }, h(ChevronLeftIcon), h('span', { className: 'bt-menu-label' }, t('Back'))),
     h('div', { className: 'bt-folder-path bt-folder-here' }, listing.path),
     parent ? h('button', { type: 'button', role: 'menuitem', title: parent.path, onClick: () => browse(parent.path) }, h(FolderIcon), h('span', { className: 'bt-menu-label' }, t('Up one level'))) : null,
     inside.map(entry => h('button', { key: entry.path, type: 'button', role: 'menuitem', onClick: () => browse(entry.path) },
@@ -78,13 +81,14 @@ export function FolderMenu({ value, group = false, team = false, actions, run, o
     inside.length === 0 ? h('div', { className: 'bt-model-none' }, t('No folders inside.')) : null,
     listing.truncated ? h('div', { className: 'bt-folder-path bt-folder-here' }, t('Some folders are not shown.')) : null,
     h('div', { className: 'bt-menu-sep', role: 'separator' }),
-    h('button', { type: 'button', className: 'bt-folder-use', onClick: () => choose(listing.path) }, t('Use this folder'))) : null
+    h('button', { type: 'button', role: 'menuitem', className: 'bt-folder-use', onClick: () => choose(listing.path) }, t('Use this folder'))) : null
   const shownView = view === 'type' ? typeView : view === 'browse' && browseView ? browseView : listView
   return h(Fragment, null,
     h('button', {
       ref: button, type: 'button', className: 'bt-model-trigger', 'data-wide': wide || undefined,
       'aria-haspopup': 'menu', 'aria-expanded': isOpen, 'aria-label': team ? t('Team workspace: {folder}', { folder: value ?? '' }) : t('Working folder: {folder}', { folder: value ?? fallback }),
       title: value, onClick: toggle, disabled,
+      onKeyDown: (event) => { if (!isOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) { event.preventDefault(); toggle() } },
     },
     h('span', { className: 'bt-model-copy' },
       h('span', { className: 'bt-model-name' }, value ? folderName(value) : fallback),

@@ -2,12 +2,13 @@
 // quiet line ("已工作 12s · 5 步") stands where DS Bot drew its thinking row; clicking it
 // opens a side panel with the whole process: thinking, tool calls with their
 // arguments, and their outputs, in order.
-import { createElement as h, Fragment, useEffect, useState } from 'react'
+import { createElement as h, Fragment, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { contentText, toolName, elapsedLabel } from './text.js'
 import { callTree } from './cells.js'
 import { t } from './i18n.js'
 import { useTurnRetries } from './retry-cell.js'
+import { useEscape } from './overlay-hooks.js'
 import { framerMotion } from './vendor/framer-motion.js'
 
 // Steps carry no seq; both carry the time they began, which orders them.
@@ -71,11 +72,7 @@ function pretty(raw) {
 const PANEL_SPRING = { type: 'spring', stiffness: 420, damping: 38 }
 
 function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
-  useEffect(() => {
-    const key = (event) => { if (event.key === 'Escape') onClose() }
-    window.addEventListener('keydown', key)
-    return () => window.removeEventListener('keydown', key)
-  }, [onClose])
+  useEscape(onClose)
   const items = []
   for (const step of steps ?? []) {
     for (const [index, block] of (step?.blocks ?? []).entries()) {
@@ -153,4 +150,5 @@ export const PROCESS_CSS = `
 .bt-process li[data-kind=reasoning] .bt-process-text{color:var(--bt-ink-2)}
 .bt-process details summary{cursor:pointer;font-size:12px;color:var(--bt-ink-2);margin:4px 0}
 .bt-process pre{margin:4px 0 0;padding:8px 10px;max-height:320px;overflow:auto;border-radius:8px;background:var(--bt-hover);font-size:12px;white-space:pre-wrap;word-break:break-word}
+:is(.bt-work-line,.bt-work-all,.bt-process-close,.bt-process details summary):focus-visible{outline:2px solid var(--bt-accent);outline-offset:2px}
 `

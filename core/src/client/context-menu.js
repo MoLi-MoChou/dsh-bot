@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useSt
 import { isMainOf } from './sources.js'
 import { currentPart } from './text.js'
 import { GearIcon, PinIcon, UnreadIcon, PencilIcon, StarLineIcon, CopyIcon, HideIcon, TrashIcon, DuplicateIcon } from './icons.js'
-import { useEscape } from './overlay-hooks.js'
+import { useEscape, useMenuKeys } from './overlay-hooks.js'
 import { t } from './i18n.js'
 
 export function ContextMenu({ menu, roster, actions, leaving = false }) {
@@ -13,6 +13,7 @@ export function ContextMenu({ menu, roster, actions, leaving = false }) {
     return () => window.removeEventListener('mousedown', onDown)
   }, [])
   const ref = useRef(null)
+  useMenuKeys(ref, !leaving)
   const [place, setPlace] = useState({ left: menu.x, top: menu.y })
   useLayoutEffect(() => {
     const box = ref.current?.getBoundingClientRect()
@@ -59,6 +60,7 @@ export function ContextMenu({ menu, roster, actions, leaving = false }) {
 // Menus for the DSH Agent row and its Sessions; none of the Bot entries apply.
 function AgentMenu({ menu, roster, actions, leaving }) {
   const ref = useRef(null)
+  useMenuKeys(ref, !leaving)
   const [place, setPlace] = useState({ left: menu.x, top: menu.y })
   useLayoutEffect(() => {
     const box = ref.current?.getBoundingClientRect()
