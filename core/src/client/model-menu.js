@@ -4,10 +4,8 @@ import { currentPart, formatTokens } from './text.js'
 import { CheckIcon, SlidersIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { KeyIcon, MaskedInput } from './secret-card.js'
-import { SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.js'
+import { MENU_EXIT_MS, SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.js'
 import { hostText, t } from './i18n.js'
-
-const MENU_EXIT_MS = 120
 
 // -------------------------------------------------------------------------
 // A Bot's model: the picker in its details panel and settings, and the message its

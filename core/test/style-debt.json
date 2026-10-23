@@ -98,13 +98,5 @@
       "9px": 1
     }
   },
-  "springs": {
-    "browser-pane.js": {
-      "springEasing(144,19.7)": 1,
-      "springEasing(576,39.4)": 1
-    },
-    "sidebar.js": {
-      "springEasing(1000,63)": 1
-    }
-  }
+  "springs": {}
 }

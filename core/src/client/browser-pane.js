@@ -8,11 +8,11 @@ import { createPortal } from 'react-dom'
 import { BotMark } from './mark.js'
 import { STORAGE } from './storage.js'
 import { installStyles } from './styles.js'
-import { SPRING_SHAPE, springEasing } from './motion.js'
+import { EASE_OUT, PANEL_LINGER_MS, PANEL_TAB_EDGES, reducedMotion, SPRING_SHAPE } from './motion.js'
 import { DetailsDrawer } from './details-drawer.js'
 import { t } from './i18n.js'
 
-export const PANEL_LINGER_MS = 300
+export { PANEL_LINGER_MS }
 const WIDTH_KEY = STORAGE.browserWidth
 // One width for the panel, shared by both views. The Bot page keeps it within
 // DETAILS_WIDTH..DETAILS_MAX, so a wider browser comes back to DETAILS_MAX and a
@@ -29,8 +29,7 @@ const EMPTY_PAGE = { url: '', title: '', favicon: null, loading: false, canGoBac
 const EMPTY_TABS = { ids: [], active: null }
 // The indicator's leading edge runs the fast spring, the trailing one the slow
 // spring — the capsule stretches into the move, then settles.
-const SPRING_LEAD = springEasing(576, 39.4)
-const SPRING_TRAIL = springEasing(144, 19.7)
+const { lead: SPRING_LEAD, trail: SPRING_TRAIL } = PANEL_TAB_EDGES
 
 const icon = paths => function BrowserIcon() {
   return h('svg', { width: 16, height: 16, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
@@ -106,7 +105,6 @@ const chatRoom = {
 }
 // The address as the bar shows it while not editing: no scheme, no trailing slash.
 const shortAddress = url => String(url ?? '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '')
-const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 
 const tabLabel = page => page.title || shortAddress(page.url) || t('New tab')
 
@@ -402,7 +400,7 @@ export function BotPanel({ pane, leaving, roster, actions, useSessions, useSessi
     const target = view === 'browser'
       ? root.current?.querySelector('.bt-ptab-bot .bt-mark')
       : root.current?.querySelector('.bt-drawer-id .bt-mark')
-    if (!target || move.from.width === 0) return
+    if (!target || move.from.width === 0 || reducedMotion()) return
     // A strip that has just appeared still grows from zero height; the target is
     // measured where it stands once the strip is full height.
     const growing = root.current.getAnimations({ subtree: true }).filter(animation => animation.animationName === 'bt-strip-in')
@@ -517,7 +515,7 @@ export const BROWSER_CSS = `
 .bt-ptab-close{flex:none;margin-left:2px}
 .bt-panel-ghost{position:absolute;top:calc(44px + var(--bt-caption-band,0px));right:0;bottom:0;overflow:hidden;pointer-events:none;z-index:2}
 .bt-panel-ghost>.bt-panel-view{position:absolute;inset:0}
-.bt-panel-view{flex:1;min-height:0;display:flex;flex-direction:column;animation:bt-panel-view-in .22s cubic-bezier(.16,1,.3,1)}
+.bt-panel-view{flex:1;min-height:0;display:flex;flex-direction:column;animation:bt-panel-view-in .22s ${EASE_OUT}}
 @keyframes bt-panel-view-in{from{opacity:0}}
 /* While the panel changes width its views keep their final width on the right edge, so
    only the panel edge moves and nothing inside reflows frame by frame. */
@@ -544,7 +542,7 @@ export const BROWSER_CSS = `
 .bt-browser-retry{margin-top:6px;height:32px;padding:0 14px;border-radius:999px;border:.5px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font:inherit;font-size:13px;cursor:pointer}
 .bt-browser-retry:hover{background:var(--bt-hover)}
 .bt-bcards{display:flex;flex-direction:column;gap:12px}
-.bt-bcard{position:relative;border:.5px solid var(--bt-line-2);border-radius:12px;overflow:hidden;background:var(--bt-main);animation:bt-bcard-in .24s cubic-bezier(.16,1,.3,1) both;transition:border-color .12s ease,box-shadow .12s ease}
+.bt-bcard{position:relative;border:.5px solid var(--bt-line-2);border-radius:12px;overflow:hidden;background:var(--bt-main);animation:bt-bcard-in .24s ${EASE_OUT} both;transition:border-color .12s ease,box-shadow .12s ease}
 @keyframes bt-bcard-in{from{opacity:0;filter:blur(4px);transform:translateY(4px)}}
 .bt-bcard[data-active]{border-color:var(--bt-accent,#4D6BFE);box-shadow:0 0 0 1px var(--bt-accent,#4D6BFE)}
 .bt-bcard-shot{position:relative;display:block;width:100%;aspect-ratio:16/10;border:0;background:var(--bt-hover);padding:0;cursor:pointer}
@@ -564,5 +562,5 @@ export const BROWSER_CSS = `
 .bt-bcard-new:hover{color:var(--bt-ink);border-color:var(--bt-ink-3)}
 .bt-bcard-new svg{width:14px;height:14px}
 .bt-browser-empty-mark{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
-@media (prefers-reduced-motion:reduce){.bt-ptabs,.bt-panel-view,.bt-bcard,.bt-ptab-name{animation:none}}
+@media (prefers-reduced-motion:reduce){.bt-ptabs,.bt-panel-view,.bt-bcard,.bt-ptab-name,.bt-browser-empty,.bt-browser-progress::after{animation:none}.bt-ptab,.bt-ptab-x,.bt-ptab-ind,.bt-browser-address,.bt-bcard,.bt-bcard-x{transition:none}}
 `

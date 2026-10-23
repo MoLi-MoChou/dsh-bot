@@ -5,13 +5,12 @@ import { currentPart, stripHeader } from './text.js'
 import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.js'
 import { BotAvatar, RoomAvatar } from './mark.js'
 import { useEscape } from './overlay-hooks.js'
-import { QUICK_EDGES, useFlip, useGlide } from './motion.js'
+import { DIALOG_EXIT_MS, QUICK_EDGES, reducedMotion, useFlip, useGlide } from './motion.js'
 import { t } from './i18n.js'
 
 // Search is a command palette: a 560px dialog, a search header, and 49px
 // rows (24px avatar, title, subtitle). Bots and groups match on name and role; past
 // messages match on their text.
-const PALETTE_EXIT_MS = 160
 export function CommandPalette({ start, token, roster, actions, useSessions }) {
   const [query, setQuery] = useState(start ?? '')
   const [cursor, setCursor] = useState(0)
@@ -20,7 +19,7 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
   const close = () => {
     if (leaving) return
     setLeaving(true)
-    setTimeout(() => actions.closePalette(token), PALETTE_EXIT_MS)
+    setTimeout(() => actions.closePalette(token), reducedMotion() ? 0 : DIALOG_EXIT_MS)
   }
   useEscape(close)
   const ids = [...roster.bots.map(currentPart), ...roster.rooms.map(item => item.id)]

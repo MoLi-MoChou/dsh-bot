@@ -4,10 +4,9 @@ import { dayLabel } from './text.js'
 import { colorOf, BotMark } from './mark.js'
 import { Bubbles } from './cells.js'
 import { stripLongNote } from './fold.js'
+import { SHEET_EXIT_MS, reducedMotion } from './motion.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.js'
 import { t } from './i18n.js'
-
-const SHEET_EXIT_MS = 220
 
 export function ExchangeDialog({ pair, roster, actions }) {
   const [entries, setEntries] = useState(null)
@@ -21,7 +20,7 @@ export function ExchangeDialog({ pair, roster, actions }) {
   const close = () => {
     if (leaving) return
     setLeaving(true)
-    setTimeout(() => actions.closeOverlay(), SHEET_EXIT_MS)
+    setTimeout(() => actions.closeOverlay(), reducedMotion() ? 0 : SHEET_EXIT_MS)
   }
   useEscape(close)
   useEffect(() => {

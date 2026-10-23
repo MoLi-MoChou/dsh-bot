@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import { contentText, toolName, elapsedLabel } from './text.js'
 import { callTree } from './cells.js'
 import { t } from './i18n.js'
+import { EASE_PANEL, PANEL_LINGER_MS, SPRING_SHAPE } from './motion.js'
 import { useTurnRetries } from './retry-cell.js'
 import { framerMotion } from './vendor/framer-motion.js'
 
@@ -124,7 +125,7 @@ export const PROCESS_CSS = `
 .bt-work-line:hover{color:var(--bt-ink-2)}
 .bt-work-chev{font-size:14px;line-height:1;transition:transform .2s ease}
 .bt-work-line[aria-expanded=true] .bt-work-chev{transform:rotate(90deg)}
-.bt-work-fold{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s cubic-bezier(.2,.8,.2,1),opacity .2s ease}
+.bt-work-fold{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows ${SPRING_SHAPE.duration}ms ${SPRING_SHAPE.easing},opacity .2s ease}
 .bt-work-fold[data-open]{grid-template-rows:1fr;opacity:1}
 .bt-work-fold-in{overflow:hidden;min-height:0}
 .bt-work-steps{list-style:none;margin:0 0 6px;padding:2px 0 2px 10px;border-left:.5px solid var(--bt-line-2);display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--bt-ink-2)}
@@ -135,9 +136,9 @@ export const PROCESS_CSS = `
 .bt-work-steps li[data-failed] .bt-work-text{color:var(--bt-danger)}
 .bt-work-all{margin:0 0 8px 10px;padding:2px 8px;border:.5px solid var(--bt-line-2);border-radius:999px;background:none;color:var(--bt-ink-2);font:inherit;font-size:12px;cursor:pointer}
 .bt-work-all:hover{background:var(--bt-hover)}
-@media (prefers-reduced-motion:reduce){.bt-work-fold,.bt-work-chev{transition:none}}
-.bt-process-scrim{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.18);display:flex;justify-content:flex-end}
-.bt-process{width:min(480px,92vw);height:100%;display:flex;flex-direction:column;background:var(--bt-main);color:var(--bt-ink);box-shadow:-8px 0 32px rgba(0,0,0,.14);font-size:14px}
+.bt-process-scrim{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.18);display:flex;justify-content:flex-end;animation:bt-fade .18s ease-out}
+.bt-process{width:min(480px,92vw);height:100%;display:flex;flex-direction:column;background:var(--bt-main);color:var(--bt-ink);box-shadow:-8px 0 32px rgba(0,0,0,.14);font-size:14px;animation:bt-pane-in ${PANEL_LINGER_MS}ms ${EASE_PANEL}}
+@media (prefers-reduced-motion:reduce){.bt-work-fold,.bt-work-chev{transition:none}.bt-process-scrim,.bt-process{animation:none}}
 .bt-process header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--bt-line-2)}
 .bt-process header div{display:flex;flex-direction:column;gap:2px}
 .bt-process header span{font-size:12px;color:var(--bt-ink-3)}
