@@ -29,7 +29,7 @@ export function StarterChips({ sessionId, useRoster, useTurnClock, actions }) {
     turns <= 1 ? h('div', { className: 'bt-welcome' },
       h('span', { className: 'bt-welcome-mark' }, h(MoonBotMark, { size: 26 })),
       h('span', { className: 'bt-welcome-text' },
-        h('span', { className: 'bt-welcome-title' }, t('Hi, I am {name}', { name: bot.name })),
+        h('span', { className: 'bt-welcome-title' }, t('What should it work on?')),
         h('span', { className: 'bt-welcome-hint' }, t('Type a message, or pick one of these.')))) : null,
     h('div', { className: 'bt-starters', role: 'group', 'aria-label': t('Try a card') },
       STARTERS.map(([label, text]) => h('button', { key: label, type: 'button', className: 'bt-starter', title: text, onClick: () => pick(text) }, t(label)))))

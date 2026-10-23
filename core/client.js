@@ -985,7 +985,11 @@ var ZH = {
   "Open Harness settings": "打开 Harness 设置",
   "New task": "新建任务",
   "No scheduled tasks yet.": "还没有定时任务。",
-  "Hi, I am {name}": "你好，我是 {name}",
+  "What should it work on?": "想让它做什么？",
+  "No files here yet": "这里还没有文件",
+  "Ask a Bot to write one, or put a file in this folder, and it shows up here.": "让 Bot 写一个，或者把文件放进这个文件夹，就会出现在这里。",
+  "This chat has no folder": "这个对话还没有文件夹",
+  "Its files will be listed here once it has a working folder.": "等它有了工作文件夹，文件会列在这里。",
   "Type a message, or pick one of these.": "说一句话，或者点下面的卡片。",
   "No scheduled tasks yet. Add one": "还没有定时任务，去添加",
   "Automation tasks are off in DSH": "DSH 的「自动化任务」没有打开",
@@ -2416,7 +2420,7 @@ function useLinger(value, ms) {
 // src/client/styles.js
 var SKIN_FOOT = ':is(div,footer):not([class*="_footArea"]):has(> div > [data-slot="sidebar.footer.action"] > .bt-connect-wrap)';
 var SHELL_CSS = `
-body{--bt-ink:#141414;--bt-danger:#e02135;--bt-warn:#d4a72c;--bt-ink-2:rgba(20,20,20,.6);--bt-ink-3:rgba(20,20,20,.36);--bt-bubble:#eeeeee;--bt-sidebar:#f7f7f7;--bt-main:#fcfcfc;--bt-line:rgba(20,20,20,.08);--bt-line-2:rgba(20,20,20,.15);--bt-line-weak:rgba(20,20,20,.1);--bt-hover:rgba(119,119,119,.09);--bt-active:rgba(119,119,119,.17);--bt-card:#ffffff;--bt-accent:#4d6bfe;--bt-green:#00c972;--bt-star:#ff9800;--bt-user:#070707;--bt-user-ink:#fcfcfc;--bt-tag-bg:rgba(20,20,20,.06);--bt-tag-ink:rgba(20,20,20,.56)}
+body{--bt-ink:#141414;--bt-danger:#e02135;--bt-warn:#d4a72c;--bt-ink-2:rgba(20,20,20,.6);--bt-ink-3:rgba(20,20,20,.36);--bt-bubble:#eeeeee;--bt-sidebar:#f7f7f7;--bt-main:#fcfcfc;--bt-line:rgba(20,20,20,.08);--bt-line-2:rgba(20,20,20,.15);--bt-line-weak:rgba(20,20,20,.1);--bt-hover:rgba(119,119,119,.09);--bt-active:rgba(119,119,119,.17);--bt-card:#ffffff;--bt-accent:#4d6bfe;--bt-accent-ink:#fff;--bt-green:#00c972;--bt-star:#ff9800;--bt-user:#070707;--bt-user-ink:#fcfcfc;--bt-tag-bg:rgba(20,20,20,.06);--bt-tag-ink:rgba(20,20,20,.56)}
 body[data-ds-dark-theme]{--bt-ink:#f2f2f2;--bt-ink-2:rgba(242,242,242,.6);--bt-ink-3:rgba(242,242,242,.36);--bt-bubble:#262626;--bt-sidebar:#1b1b1b;--bt-main:#141414;--bt-line:rgba(255,255,255,.08);--bt-line-2:rgba(255,255,255,.15);--bt-line-weak:rgba(255,255,255,.1);--bt-hover:rgba(160,160,160,.12);--bt-active:rgba(160,160,160,.2);--bt-card:#1f1f1f;--bt-user:#f2f2f2;--bt-user-ink:#141414;--bt-tag-bg:rgba(255,255,255,.09);--bt-tag-ink:rgba(242,242,242,.62)}
 ${Object.entries(INKS).map(([name, [light]]) => `body{--bt-ink-${name}:${light}}`).join("")}
 ${Object.entries(INKS).map(([name, [, dark]]) => `body[data-ds-dark-theme]{--bt-ink-${name}:${dark}}`).join("")}
@@ -19902,6 +19906,54 @@ function listedOpener({ list, open, refresh, current }) {
   };
 }
 
+// src/client/empty-state-dom.js
+var SVG_NS = "http://www.w3.org/2000/svg";
+var DOM_GLYPHS = {
+  files: ["M4.5 5.5h4l1.5 1.5h5.5v7a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z", "M4.5 7h11"],
+  search: ["M9 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z", "M13 13l3.5 3.5"]
+};
+function glyphNode(kind) {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 20 20");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "1.7");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.setAttribute("aria-hidden", "true");
+  for (const d of DOM_GLYPHS[kind] ?? []) {
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    svg.append(path);
+  }
+  return svg;
+}
+function emptyStateDom({ title, hint, glyph = "files", action }) {
+  const el = (tag, className, text) => {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== void 0) node.textContent = text;
+    return node;
+  };
+  const root = el("div", "bt-empty-state");
+  const art = el("div", "bt-empty-art");
+  const mark = el("span", "bt-moon-mark");
+  mark.style.width = "44px";
+  mark.style.height = "44px";
+  const badge = el("span", "bt-empty-glyph");
+  badge.append(glyphNode(glyph));
+  art.append(mark, badge);
+  root.append(art, el("div", "bt-empty-title", title));
+  if (hint) root.append(el("div", "bt-empty-hint", hint));
+  if (action) {
+    const button = el("button", "bt-empty-action", action.label);
+    button.type = "button";
+    button.addEventListener("click", action.onClick);
+    root.append(button);
+  }
+  return root;
+}
+
 // src/client/files-panel.js
 var PREVIEW_KINDS = [
   ["Images", "png, jpg, gif, webp, svg, bmp"],
@@ -20066,7 +20118,35 @@ function installFilesPanel({ call: call2, notify = (message) => console.warn(mes
     kinds.append(summary, list);
     card.append(kinds);
   }
+  const sweepEmpty = () => {
+    for (const root of document.querySelectorAll("[data-files-root]")) {
+      const state = root.getAttribute("data-files-state");
+      const emptyFolder = state === "tree" && root.querySelectorAll("[data-files-entry]").length === 0;
+      const noFolder = state === "no-workspace";
+      const shown = root.querySelector(":scope > .bt-files-empty");
+      if (!emptyFolder && !noFolder) {
+        shown?.remove();
+        for (const node of root.querySelectorAll("[data-bt-files-hidden]")) {
+          node.style.display = "";
+          delete node.dataset.btFilesHidden;
+        }
+        continue;
+      }
+      if (!shown) {
+        const card = emptyFolder ? emptyStateDom({ title: t("No files here yet"), hint: t("Ask a Bot to write one, or put a file in this folder, and it shows up here.") }) : emptyStateDom({ title: t("This chat has no folder"), hint: t("Its files will be listed here once it has a working folder.") });
+        card.classList.add("bt-files-empty");
+        root.append(card);
+      }
+      for (const child of root.children) {
+        if (child.classList.contains("bt-files-empty") || /\bheader\b/.test(child.className)) continue;
+        if (!/^(Empty director(y|ies)|空目录)$/.test((child.textContent ?? "").trim())) continue;
+        child.style.display = "none";
+        child.dataset.btFilesHidden = "true";
+      }
+    }
+  };
   const sweep = () => {
+    sweepEmpty();
     for (const item of document.querySelectorAll("li[data-files-entry][data-files-path]")) {
       if (item.querySelector(":scope > .bt-frow-dl")) continue;
       const folder = item.dataset.filesEntry === "directory";
@@ -20178,7 +20258,7 @@ function StarterChips({ sessionId, useRoster, useTurnClock, actions }) {
       (0, import_react43.createElement)(
         "span",
         { className: "bt-welcome-text" },
-        (0, import_react43.createElement)("span", { className: "bt-welcome-title" }, t("Hi, I am {name}", { name: bot.name })),
+        (0, import_react43.createElement)("span", { className: "bt-welcome-title" }, t("What should it work on?")),
         (0, import_react43.createElement)("span", { className: "bt-welcome-hint" }, t("Type a message, or pick one of these."))
       )
     ) : null,

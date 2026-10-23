@@ -8,6 +8,7 @@
 //   a Download button; audio and video play right in it.
 // Bytes come over the api/bot channel, so it works in the web build behind its password.
 import { t } from './i18n.js'
+import { emptyStateDom } from './empty-state-dom.js'
 
 export const PREVIEW_KINDS = [
   ['Images', 'png, jpg, gif, webp, svg, bmp'],
@@ -133,7 +134,38 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
     kinds.append(summary, list); card.append(kinds)
   }
 
+  // The tree says nothing when a folder is empty or a chat has no folder at all.
+  const sweepEmpty = () => {
+    for (const root of document.querySelectorAll('[data-files-root]')) {
+      const state = root.getAttribute('data-files-state')
+      const emptyFolder = state === 'tree' && root.querySelectorAll('[data-files-entry]').length === 0
+      const noFolder = state === 'no-workspace'
+      const shown = root.querySelector(':scope > .bt-files-empty')
+      if (!emptyFolder && !noFolder) {
+        shown?.remove()
+        for (const node of root.querySelectorAll('[data-bt-files-hidden]')) { node.style.display = ''; delete node.dataset.btFilesHidden }
+        continue
+      }
+      if (!shown) {
+        const card = emptyFolder
+          ? emptyStateDom({ title: t('No files here yet'), hint: t('Ask a Bot to write one, or put a file in this folder, and it shows up here.') })
+          : emptyStateDom({ title: t('This chat has no folder'), hint: t('Its files will be listed here once it has a working folder.') })
+        card.classList.add('bt-files-empty')
+        root.append(card)
+      }
+      // DSH's own "Empty directory" line says the same thing in plainer type; this card
+      // is the one to read. The note can arrive after the card, so this runs every sweep.
+      for (const child of root.children) {
+        if (child.classList.contains('bt-files-empty') || /\bheader\b/.test(child.className)) continue
+        if (!/^(Empty director(y|ies)|空目录)$/.test((child.textContent ?? '').trim())) continue
+        child.style.display = 'none'
+        child.dataset.btFilesHidden = 'true'
+      }
+    }
+  }
+
   const sweep = () => {
+    sweepEmpty()
     for (const item of document.querySelectorAll('li[data-files-entry][data-files-path]')) {
       if (item.querySelector(':scope > .bt-frow-dl')) continue
       const folder = item.dataset.filesEntry === 'directory'
