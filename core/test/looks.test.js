@@ -40,7 +40,7 @@ test('Bot settings is the only settings entry; nothing is called Team settings',
   assert.match(text('palette.ts'), /title: t\('Bot settings'\), run: \(\) => actions\.openSettings\('general'\)/)
   // One Bot's own entries open that Bot, so they read Edit Bot instead.
   assert.match(text('context-menu.ts'), /\[t\('Edit Bot'\), GearIcon, \(\) => actions\.openSettings\('bots', bot\.id\)\]/)
-  assert.match(text('details-drawer.js'), /'aria-label': bot \? t\('Edit Bot'\) : t\('Group settings'\), title: bot \? t\('Edit Bot'\) : t\('Group settings'\)/)
+  assert.match(text('details-drawer.ts'), /'aria-label': bot \? t\('Edit Bot'\) : t\('Group settings'\), title: bot \? t\('Edit Bot'\) : t\('Group settings'\)/)
   // A group chat's entries open its own settings the same way.
   assert.match(text('context-menu.ts'), /\[t\('Group settings'\), GearIcon, \(\) => actions\.openSettings\('groups', room\.id\)\]/)
   assert.ok(!text('mark.ts').includes('WhaleLogo'))

@@ -1,9 +1,11 @@
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { isMainOf } from './sources.ts'
 import { HEADER, currentPart, runStatsOf, stripHeader, usageOf } from './text.ts'
+import type { RunStatsValues } from './text.ts'
 import { PlusIcon, ShareIcon, CloseIcon, ChevronLeftIcon, GearIcon } from './icons.ts'
 import { botState, BotMark, BotAvatar } from './mark.ts'
 import { GlobeIcon, Favicon } from './browser-pane.ts'
+import type { BrowserPagesHook, BrowserTabsHook, ForwardedHook, PanelPage, PanelPages, PanelTabs, PanelView } from './browser-pane.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { BotSettingsForm } from './bot-settings.js'
@@ -16,28 +18,35 @@ import { LEAN } from './lean.ts'
 import { useGlide, useMorph } from './motion.js'
 import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.js'
 import { PermissionPicker, presetDanger, presetName } from './permission-picker.ts'
+import type {
+  ActivityHook, DetailsDrawerActions, DetailsDrawerProps, DetailsDrawerRoster, DrawerBot, DrawerRoom, OutlineEntry, SessionList, SessionStatusHook, SessionsHook,
+} from './details-drawer-types.ts'
 import { t } from './i18n.ts'
+import type { I18nKey } from './i18n.ts'
 
-function transcriptOf(list, id, name, hiddenTurns = []) {
-  const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline
+function transcriptOf(list: SessionList, id: string, name: string, hiddenTurns: readonly number[] | undefined): string {
+  const outline = (list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline) as OutlineEntry[] | undefined
   if (!Array.isArray(outline)) return ''
-  const lines = []
+  const lines: string[] = []
   for (const entry of outline) {
-    if (hiddenTurns.includes(entry.turn)) continue
+    if (hiddenTurns?.includes(entry.turn)) continue
     if (entry.prompt && !HEADER.test(entry.prompt)) lines.push(`**${t('You')}:** ${entry.prompt.trim()}`)
     if (entry.response) lines.push(`**${name}:** ${stripHeader(entry.response).trim()}`)
   }
   return lines.join('\n\n')
 }
 
-const TAB_LABELS = { details: 'Details', browser: 'Browser' }
+const TAB_LABELS: Record<PanelView, I18nKey> = { details: 'Details', browser: 'Browser' }
 
-const hostOf = (url) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return '' } }
-const shortUrl = url => String(url ?? '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '')
-const EMPTY_TABS = { ids: [], active: null }
+const hostOf = (url: string): string => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return '' } }
+const shortUrl = (url: string | undefined): string => String(url ?? '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '')
+const EMPTY_TABS: PanelTabs = { ids: [], active: null }
+const EMPTY_PAGE: Partial<PanelPage> = {}
+
+interface PermissionRowProps { bot: DrawerBot; roster: DetailsDrawerRoster; actions: DetailsDrawerActions; run: (work: Promise<unknown>) => Promise<boolean> }
 
 // The Bot's permission preset, from the presets DeepSeek Harness offers.
-function PermissionRow({ bot, roster, actions, run }) {
+function PermissionRow({ bot, roster, actions, run }: PermissionRowProps) {
   const catalog = roster.permissions
   if (!catalog?.options?.length) return null
   return h('div', { className: 'bt-drawer-permission' },
@@ -46,10 +55,12 @@ function PermissionRow({ bot, roster, actions, run }) {
     h(PermissionPicker, { catalog, saved: bot.permission ?? catalog.defaultPreset, repick: bot.permission === undefined, onPick: permission => run(actions.updateBot(bot.id, { permission })) }))
 }
 
+interface RunStatsProps { bot: DrawerBot; part: string; running: boolean; actions: DetailsDrawerActions }
+
 // The current part's turns, speed, cache hits and context, for a window without DSH's
 // status bar (actions.runStats). It reads them again when a turn starts or ends.
-function RunStats({ bot, part, running, actions }) {
-  const [values, setValues] = useState(null)
+function RunStats({ bot, part, running, actions }: RunStatsProps) {
+  const [values, setValues] = useState<RunStatsValues | null>(null)
   useEffect(() => {
     if (!actions.runStats) return undefined
     let current = true
@@ -60,7 +71,7 @@ function RunStats({ bot, part, running, actions }) {
     )
     return () => { current = false }
   }, [bot.id, part, running])
-  const shown = runStatsOf(values)
+  const shown = runStatsOf(values ?? undefined)
   if (shown.length === 0) return null
   return h('div', { className: 'bt-run-stats' },
     shown.map((entry, index) => h(Fragment, { key: entry.key },
@@ -68,11 +79,20 @@ function RunStats({ bot, part, running, actions }) {
       h('span', { title: entry.title }, entry.text))))
 }
 
+interface BrowserCardsProps {
+  bot: DrawerBot
+  sessionId: string
+  roster: DetailsDrawerRoster
+  actions: DetailsDrawerActions
+  useBrowserTabs: BrowserTabsHook
+  useBrowserPages: BrowserPagesHook
+}
+
 // The Bot's browser inside the details page: its tabs as small window cards on
 // Desktop, a pointer there on web.
-function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrowserPages }) {
+function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrowserPages }: BrowserCardsProps) {
   const state = useBrowserTabs(map => map[bot.id] ?? EMPTY_TABS)
-  const pages = useBrowserPages(map => map)
+  const pages: PanelPages = useBrowserPages(map => map)
   useEffect(() => { actions.browserEnsure?.(bot.id) }, [bot.id])
   if (roster.browser !== true || !actions.browserShow) {
     return h('div', { className: 'bt-muted' }, t('The browser is in the DSH Desktop app.'))
@@ -87,7 +107,7 @@ function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrow
   }
   return h('div', { className: 'bt-bcards' },
     state.ids.map((tabId, index) => {
-      const page = pages[tabId] ?? {}
+      const page = pages[tabId] ?? EMPTY_PAGE
       const label = page.title || shortUrl(page.url) || t('New tab')
       return h('div', { key: tabId, className: 'bt-bcard', 'data-active': state.active === tabId || undefined, style: { animationDelay: `${index * 30}ms` } },
         h('button', { type: 'button', className: 'bt-bcard-shot', 'aria-label': t('Open {title}', { title: label }), title: page.url, onClick: () => actions.browserPick(sessionId, tabId) },
@@ -101,7 +121,7 @@ function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrow
           onClick: () => { void actions.browserCloseTab(bot.id, tabId) },
         }, '×'),
         h('div', { className: 'bt-bcard-row' },
-          h(Favicon, { src: page.favicon, className: 'bt-bcard-fav' }),
+          h(Favicon, { src: page.favicon ?? null, className: 'bt-bcard-fav' }),
           h('span', { className: 'bt-bcard-title' }, label),
           page.url ? h('span', { className: 'bt-bcard-host' }, hostOf(page.url)) : null))
     }),
@@ -109,10 +129,10 @@ function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrow
 }
 
 // About: a Bot's instructions or a group's notice in the overview, folded to five lines.
-function About({ text, title = 'About' }) {
+function About({ text, title = 'About' }: { text: string; title?: I18nKey }) {
   const [open, setOpen] = useState(false)
   const long = text.split('\n').length > 5 || text.length > 240
-  const body = useRef(null)
+  const body = useRef<HTMLDivElement | null>(null)
   useMorph(body, open)
   return h('div', null,
     h('div', { className: 'bt-section-title' }, t(title)),
@@ -123,8 +143,8 @@ function About({ text, title = 'About' }) {
 // A group's face in its details: its first members side by side, each on a disc that
 // cuts into the one before, and how many more there are.
 const PILE_MAX = 4
-function MemberPile({ room, roster }) {
-  const members = room.members.map(id => roster.byId[id]).filter(Boolean)
+function MemberPile({ room, roster }: { room: DrawerRoom; roster: DetailsDrawerRoster }) {
+  const members = room.members.map(id => roster.byId[id]).filter((bot): bot is DrawerBot => bot !== undefined)
   const shown = members.length > PILE_MAX ? members.slice(0, PILE_MAX - 1) : members
   const more = members.length - shown.length
   return h('span', { className: 'bt-pile', 'aria-hidden': true },
@@ -132,11 +152,11 @@ function MemberPile({ room, roster }) {
     more > 0 ? h('span', { key: 'more', className: 'bt-pile-face bt-pile-more', style: { animationDelay: `${shown.length * 40}ms` } }, `+${more}`) : null)
 }
 
-const markOf = entry => (entry?.state === 'ask' ? 'alert' : entry?.state === 'work' ? workState(entry.doing) : 'idle')
+const markOf = (entry: { state?: string; doing?: string } | undefined): string => (entry?.state === 'ask' ? 'alert' : entry?.state === 'work' ? workState(entry.doing) : 'idle')
 
 // One member: its mark, name and what it is doing on one surface that opens its chat;
 // Stop beside it while it works here, and the approvals it waits on below.
-function MemberRow({ member, entry, room, roster, actions }) {
+function MemberRow({ member, entry, room, roster, actions }: { member: DrawerBot; entry: { state?: string; doing?: string } | undefined; room: DrawerRoom; roster: DetailsDrawerRoster; actions: DetailsDrawerActions }) {
   return h('div', { role: 'listitem', className: 'bt-member' },
     h('div', { className: 'bt-member-row' },
       h('button', { type: 'button', className: 'bt-member-open', title: t("Open {name}'s chat", { name: member.name }), onClick: () => actions.openSession(member.id) },
@@ -150,10 +170,19 @@ function MemberRow({ member, entry, room, roster, actions }) {
     h(MemberApprovals, { entry, bot: member, actions }))
 }
 
+interface GroupOverviewProps {
+  room: DrawerRoom
+  roster: DetailsDrawerRoster
+  actions: DetailsDrawerActions
+  usage: string
+  useWork: ForwardedHook
+  openSettings: () => void
+}
+
 // A group's overview: what members read, who is in it, who answers, and what it
 // remembers. Changes are made in its settings.
-function GroupOverview({ room, roster, actions, usage, useWork, openSettings }) {
-  const members = room.members.map(id => roster.byId[id]).filter(Boolean)
+function GroupOverview({ room, roster, actions, usage, useWork, openSettings }: GroupOverviewProps) {
+  const members = room.members.map(id => roster.byId[id]).filter((bot): bot is DrawerBot => bot !== undefined)
   const { entries } = useMemberWork(room, useWork)
   return [
     room.notice
@@ -162,10 +191,10 @@ function GroupOverview({ room, roster, actions, usage, useWork, openSettings }) 
     h('div', { key: 'members' },
       h('div', { className: 'bt-section-title' }, t('Members · {count}', { count: members.length })),
       h('div', { className: 'bt-members', role: 'list' }, members.map(member => h(MemberRow, {
-        key: member.id, member, entry: entries.find(item => item.id === member.id), room, roster, actions,
+        key: member.id, member, entry: entries.find((item: { id: string }) => item.id === member.id), room, roster, actions,
       })))),
     h('div', { key: 'mode' }, h('div', { className: 'bt-section-title' }, t('Who answers')),
-      h('div', { className: 'bt-kv' }, h('span', null, t(ROOM_MODES.find(([id]) => id === shownMode(room, roster))?.[1] ?? 'Everyone')))),
+      h('div', { className: 'bt-kv' }, h('span', null, t(ROOM_MODES.find(([id]) => id === shownMode(room as never, roster as never))?.[1] ?? 'Everyone')))),
     room.permission ? h('div', { key: 'permission' }, h('div', { className: 'bt-section-title' }, t('Permissions')),
       h('div', { className: 'bt-kv' }, h('span', { className: presetDanger(room.permission) ? 'bt-perm-danger' : undefined }, presetName(room.permission, roster.permissions)))) : null,
     roster.memory === false ? null : h(MemoryRow, { key: 'memory', owner: { id: room.id, name: room.name, group: true }, actions }),
@@ -174,22 +203,29 @@ function GroupOverview({ room, roster, actions, usage, useWork, openSettings }) 
   ]
 }
 
-export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages }) {
+export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, actions: givenActions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages }: DetailsDrawerProps) {
+  // The panel forwards the shared action bag through its narrower view; every call the
+  // drawer makes is on that same bag.
+  const actions = givenActions as unknown as DetailsDrawerActions
+  const sessions = useSessions as unknown as SessionsHook
+  const sessionStatus = useSessionStatus as unknown as SessionStatusHook
+  const activity = useActivity as unknown as ActivityHook
   const owner = roster.byId[sessionId]
-  const part = owner ? currentPart(owner) : sessionId
-  const isMainBot = isMainOf(roster, owner?.id)
-  const [tab, setTab] = useState('details')
-  const room = roster.roomsById[sessionId]
+  const bot = owner
+  const part = bot ? currentPart(bot) : sessionId
+  const isMainBot = isMainOf({ mainBotIds: roster.mainBotIds ?? [] }, owner?.id)
+  const [tab, setTab] = useState<PanelView>('details')
+  const room = roster.roomsById?.[sessionId]
   // The info pane swaps its overview for the Bot or group settings view in place.
   const [view, setView] = useState(startTab === 'settings' && (owner || room) ? 'settings' : 'overview')
-  const [editing, setEditing] = useState(Boolean(startRenaming && (roster.byId[sessionId] || roster.roomsById[sessionId])))
-  const [draftName, setDraftName] = useState(roster.byId[sessionId]?.name ?? (roster.roomsById[sessionId]?.named ? roster.roomsById[sessionId].name : ''))
+  const [editing, setEditing] = useState(Boolean(startRenaming && (roster.byId[sessionId] || room)))
+  const [draftName, setDraftName] = useState(roster.byId[sessionId]?.name ?? (room?.named ? room.name : ''))
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const glide = useGlide(tab)
   // The settings view comes in from the right and the overview back from the left; a
   // new tab clears from a blur. The first view arrives with the panel.
-  const last = useRef({ view, tab, move: undefined })
+  const last = useRef<{ view: string; tab: PanelView; move: 'in' | 'out' | 'tab' | undefined }>({ view, tab, move: undefined })
   if (last.current.view !== view) last.current = { view, tab, move: view === 'settings' ? 'in' : 'out' }
   else if (last.current.tab !== tab) last.current = { view, tab, move: 'tab' }
   const move = last.current.move
@@ -197,14 +233,13 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
   const close = () => actions.closeOverlay()
   useEscape(close)
   useEscape(() => setView('overview'), Boolean((bot || room) && view === 'settings'))
-  const bot = owner
-  const running = useSessionStatus(map => map.get(part)?.running === true)
-  const doing = useActivity(map => map[bot?.id ?? sessionId])
-  const transcript = useSessions(list => transcriptOf(list, part, bot?.name ?? room?.name ?? t('Bot'), roster.exchangeTurns[part]))
-  const usage = useSessions(list => usageOf(list, [part, ...(bot?.parts ?? room?.parts ?? [])]))
-  const run = promise => Promise.resolve(promise)
+  const running = sessionStatus(map => map.get(part)?.running === true)
+  const doing = activity(map => map[bot?.id ?? sessionId])
+  const transcript = sessions(list => transcriptOf(list, part, bot?.name ?? room?.name ?? t('Bot'), roster.exchangeTurns?.[part]))
+  const usage = sessions(list => usageOf(list, [part, ...(bot?.parts ?? room?.parts ?? [])]))
+  const run = (promise: Promise<unknown>): Promise<boolean> => Promise.resolve(promise)
     .then(() => { setError(''); return true })
-    .catch(failure => { setError(failure?.message ?? String(failure)); return false })
+    .catch(failure => { setError((failure as { message?: string } | null)?.message ?? String(failure)); return false })
   const share = () => {
     void navigator.clipboard?.writeText(transcript).then(() => {
       setCopied(true)
@@ -219,7 +254,7 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
         h('span', { className: 'bt-subhead-title' }, bot ? t('Settings') : t('Group settings')),
         hasStrip ? null : h('button', { type: 'button', className: 'bt-icon-btn', 'aria-label': t('Close details'), onClick: close }, h(CloseIcon))),
       h('div', { key: 'set-body', className: 'bt-drawer-body bt-set-body', 'data-move': move }, errorLine,
-        bot ? h(BotSettingsForm, { bot, roster, actions, run }) : h(GroupSettingsForm, { room, roster, actions, run, onDeleted: close })),
+        bot ? h(BotSettingsForm, { bot, roster, actions, run }) : h(GroupSettingsForm, { room: room as never, roster: roster as never, actions: actions as never, run, onDeleted: close })),
     ]
   }
   const top = h('div', { className: 'bt-drawer-top', 'data-move': side },
@@ -233,8 +268,8 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
     return [h(Fragment, { key: 'top' }, top),
       h('div', { key: 'body', className: 'bt-drawer-body' }, h('div', { className: 'bt-muted' }, t('This conversation is not part of your Bot team.')))]
   }
-  const current = bot?.name ?? room.name
-  const saveName = async () => {
+  const current = bot?.name ?? room?.name ?? ''
+  const saveName = async (): Promise<void> => {
     setEditing(false)
     const next = draftName.trim()
     if (next === current || (room && !room.named && next === '')) return
@@ -242,13 +277,13 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
     // An empty group name goes back to naming the group after its members.
     if (room) await run(actions.updateRoom(room.id, { name: next }))
   }
-  const subtitle = bot ? bot.role : roomSubtitle(room, roster)
+  const subtitle = bot ? bot.role : roomSubtitle(room as never, roster as never)
   // Tab sets: a 1:1 Bot has Details and Browser; a group has only Details, so no tab row.
-  const tabs = bot ? ['details', 'browser'] : ['details']
+  const tabs: readonly PanelView[] = bot ? ['details', 'browser'] : ['details']
   return [h(Fragment, { key: 'top' }, top),
     h('div', { key: 'id', className: 'bt-drawer-id', 'data-move': side },
       bot ? h(BotAvatar, { bot, size: 64, state: botState(running, doing, roster.questions?.[part] !== undefined), main: isMainBot, badge: false, gaze: true, pokeable: true })
-        : h(MemberPile, { room, roster }),
+        : room ? h(MemberPile, { room, roster }) : null,
       editing
         ? h('input', {
             className: 'bt-drawer-name-input', autoFocus: true, value: draftName, 'aria-label': bot ? t('Bot name') : t('Group name'),

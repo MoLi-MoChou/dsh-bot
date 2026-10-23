@@ -7,6 +7,9 @@ export const NAMESPACE = 'ds-bot'
 import { ZH } from './i18n/zh.ts'
 import type { I18nKey } from './i18n/keys.ts'
 
+// Callers take the key type from here, beside t().
+export type { I18nKey } from './i18n/keys.ts'
+
 // The DSH locale service, as far as this client uses it.
 interface LocaleService {
   register: (namespace: string, language: string, table: Record<string, string>) => unknown

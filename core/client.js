@@ -18398,14 +18398,14 @@ body[data-ds-dark-theme] .bt-member-state.bt-mw-ask{color:#f0b84a}
 @media (prefers-reduced-motion:reduce){.bt-mw-pill,.bt-mw-face,.bt-mw-label,.bt-member,.bt-mw-card{animation:none}.bt-mw-pill{transition:background-color .12s ease}}
 `;
 
-// src/client/details-drawer.js
+// src/client/details-drawer.ts
 var import_react39 = require("react");
-function transcriptOf(list, id, name, hiddenTurns = []) {
+function transcriptOf(list, id, name, hiddenTurns) {
   const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline;
   if (!Array.isArray(outline)) return "";
   const lines = [];
   for (const entry of outline) {
-    if (hiddenTurns.includes(entry.turn)) continue;
+    if (hiddenTurns?.includes(entry.turn)) continue;
     if (entry.prompt && !HEADER.test(entry.prompt)) lines.push(`**${t("You")}:** ${entry.prompt.trim()}`);
     if (entry.response) lines.push(`**${name}:** ${stripHeader(entry.response).trim()}`);
   }
@@ -18421,6 +18421,7 @@ var hostOf = (url) => {
 };
 var shortUrl = (url) => String(url ?? "").replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
 var EMPTY_TABS = { ids: [], active: null };
+var EMPTY_PAGE = {};
 function PermissionRow({ bot, roster, actions, run }) {
   const catalog = roster.permissions;
   if (!catalog?.options?.length) return null;
@@ -18449,7 +18450,7 @@ function RunStats({ bot, part, running, actions }) {
       current = false;
     };
   }, [bot.id, part, running]);
-  const shown = runStatsOf(values);
+  const shown = runStatsOf(values ?? void 0);
   if (shown.length === 0) return null;
   return (0, import_react39.createElement)(
     "div",
@@ -18483,7 +18484,7 @@ function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrow
     "div",
     { className: "bt-bcards" },
     state.ids.map((tabId, index) => {
-      const page = pages[tabId] ?? {};
+      const page = pages[tabId] ?? EMPTY_PAGE;
       const label = page.title || shortUrl(page.url) || t("New tab");
       return (0, import_react39.createElement)(
         "div",
@@ -18510,7 +18511,7 @@ function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrow
         (0, import_react39.createElement)(
           "div",
           { className: "bt-bcard-row" },
-          (0, import_react39.createElement)(Favicon, { src: page.favicon, className: "bt-bcard-fav" }),
+          (0, import_react39.createElement)(Favicon, { src: page.favicon ?? null, className: "bt-bcard-fav" }),
           (0, import_react39.createElement)("span", { className: "bt-bcard-title" }, label),
           page.url ? (0, import_react39.createElement)("span", { className: "bt-bcard-host" }, hostOf(page.url)) : null
         )
@@ -18534,7 +18535,7 @@ function About({ text, title = "About" }) {
 }
 var PILE_MAX = 4;
 function MemberPile({ room: room2, roster }) {
-  const members = room2.members.map((id) => roster.byId[id]).filter(Boolean);
+  const members = room2.members.map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   const shown = members.length > PILE_MAX ? members.slice(0, PILE_MAX - 1) : members;
   const more = members.length - shown.length;
   return (0, import_react39.createElement)(
@@ -18574,7 +18575,7 @@ function MemberRow({ member, entry, room: room2, roster, actions }) {
   );
 }
 function GroupOverview({ room: room2, roster, actions, usage, useWork, openSettings }) {
-  const members = room2.members.map((id) => roster.byId[id]).filter(Boolean);
+  const members = room2.members.map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   const { entries: entries2 } = useMemberWork(room2, useWork);
   return [
     room2.notice ? (0, import_react39.createElement)(About, { key: "notice", title: "Notice", text: room2.notice }) : (0, import_react39.createElement)("button", { key: "notice", type: "button", className: "bt-more", onClick: openSettings }, t("Add a notice in group settings")),
@@ -18612,15 +18613,20 @@ function GroupOverview({ room: room2, roster, actions, usage, useWork, openSetti
     ) : null
   ];
 }
-function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages }) {
+function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, actions: givenActions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages }) {
+  const actions = givenActions;
+  const sessions = useSessions;
+  const sessionStatus = useSessionStatus;
+  const activity = useActivity;
   const owner = roster.byId[sessionId];
-  const part = owner ? currentPart(owner) : sessionId;
-  const isMainBot = isMainOf(roster, owner?.id);
+  const bot = owner;
+  const part = bot ? currentPart(bot) : sessionId;
+  const isMainBot = isMainOf({ mainBotIds: roster.mainBotIds ?? [] }, owner?.id);
   const [tab, setTab] = (0, import_react39.useState)("details");
-  const room2 = roster.roomsById[sessionId];
+  const room2 = roster.roomsById?.[sessionId];
   const [view, setView] = (0, import_react39.useState)(startTab === "settings" && (owner || room2) ? "settings" : "overview");
-  const [editing, setEditing] = (0, import_react39.useState)(Boolean(startRenaming && (roster.byId[sessionId] || roster.roomsById[sessionId])));
-  const [draftName, setDraftName] = (0, import_react39.useState)(roster.byId[sessionId]?.name ?? (roster.roomsById[sessionId]?.named ? roster.roomsById[sessionId].name : ""));
+  const [editing, setEditing] = (0, import_react39.useState)(Boolean(startRenaming && (roster.byId[sessionId] || room2)));
+  const [draftName, setDraftName] = (0, import_react39.useState)(roster.byId[sessionId]?.name ?? (room2?.named ? room2.name : ""));
   const [copied, setCopied] = (0, import_react39.useState)(false);
   const [error, setError] = (0, import_react39.useState)("");
   const glide = useGlide(tab);
@@ -18632,11 +18638,10 @@ function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, a
   const close = () => actions.closeOverlay();
   useEscape(close);
   useEscape(() => setView("overview"), Boolean((bot || room2) && view === "settings"));
-  const bot = owner;
-  const running = useSessionStatus((map) => map.get(part)?.running === true);
-  const doing = useActivity((map) => map[bot?.id ?? sessionId]);
-  const transcript = useSessions((list) => transcriptOf(list, part, bot?.name ?? room2?.name ?? t("Bot"), roster.exchangeTurns[part]));
-  const usage = useSessions((list) => usageOf(list, [part, ...bot?.parts ?? room2?.parts ?? []]));
+  const running = sessionStatus((map) => map.get(part)?.running === true);
+  const doing = activity((map) => map[bot?.id ?? sessionId]);
+  const transcript = sessions((list) => transcriptOf(list, part, bot?.name ?? room2?.name ?? t("Bot"), roster.exchangeTurns?.[part]));
+  const usage = sessions((list) => usageOf(list, [part, ...bot?.parts ?? room2?.parts ?? []]));
   const run = (promise) => Promise.resolve(promise).then(() => {
     setError("");
     return true;
@@ -18682,7 +18687,7 @@ function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, a
       (0, import_react39.createElement)("div", { key: "body", className: "bt-drawer-body" }, (0, import_react39.createElement)("div", { className: "bt-muted" }, t("This conversation is not part of your Bot team.")))
     ];
   }
-  const current = bot?.name ?? room2.name;
+  const current = bot?.name ?? room2?.name ?? "";
   const saveName = async () => {
     setEditing(false);
     const next = draftName.trim();
@@ -18697,7 +18702,7 @@ function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, a
     (0, import_react39.createElement)(
       "div",
       { key: "id", className: "bt-drawer-id", "data-move": side },
-      bot ? (0, import_react39.createElement)(BotAvatar, { bot, size: 64, state: botState(running, doing, roster.questions?.[part] !== void 0), main: isMainBot, badge: false, gaze: true, pokeable: true }) : (0, import_react39.createElement)(MemberPile, { room: room2, roster }),
+      bot ? (0, import_react39.createElement)(BotAvatar, { bot, size: 64, state: botState(running, doing, roster.questions?.[part] !== void 0), main: isMainBot, badge: false, gaze: true, pokeable: true }) : room2 ? (0, import_react39.createElement)(MemberPile, { room: room2, roster }) : null,
       editing ? (0, import_react39.createElement)("input", {
         className: "bt-drawer-name-input",
         autoFocus: true,
@@ -18771,7 +18776,7 @@ var DETAILS_MAX = 520;
 var MIN_WIDTH = 360;
 var MIN_CHAT = 420;
 var READ_FLASH_MS = 2400;
-var EMPTY_PAGE = { url: "", title: "", favicon: null, loading: false, canGoBack: false, canGoForward: false, error: null, excerpt: "" };
+var EMPTY_PAGE2 = { url: "", title: "", favicon: null, loading: false, canGoBack: false, canGoForward: false, error: null, excerpt: "" };
 var EMPTY_TABS2 = { ids: [], active: null };
 var { lead: SPRING_LEAD2, trail: SPRING_TRAIL2 } = PANEL_TAB_EDGES;
 var OPEN_ENTRIES = ["openBrowser", "browserNewTab", "browserPick"];
@@ -18917,7 +18922,7 @@ function PanelStrip({ bot, subject, view, ids, active, reading, onView, actions,
         view === "details" ? (0, import_react40.createElement)("span", { className: "bt-ptab-name" }, bot.name) : null
       ),
       ids.map((tabId) => {
-        const page = pages[tabId] ?? EMPTY_PAGE;
+        const page = pages[tabId] ?? EMPTY_PAGE2;
         const on = view === "browser" && tabId === active;
         return (0, import_react40.createElement)(
           "button",
@@ -18962,7 +18967,7 @@ function PanelStrip({ bot, subject, view, ids, active, reading, onView, actions,
   );
 }
 function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages }) {
-  const page = useBrowserPages((pages) => pages[tabId ?? ""] ?? EMPTY_PAGE) ?? EMPTY_PAGE;
+  const page = useBrowserPages((pages) => pages[tabId ?? ""] ?? EMPTY_PAGE2) ?? EMPTY_PAGE2;
   const frame = (0, import_react40.useRef)(null);
   const input = (0, import_react40.useRef)(null);
   const [draft, setDraft] = (0, import_react40.useState)(null);
@@ -19082,7 +19087,7 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
   useEscape(() => actions.closeOverlay(), !leaving && view === "browser");
   const tabState = useBrowserTabs((map) => bot ? map[bot.id] ?? EMPTY_TABS2 : EMPTY_TABS2);
   const active = tabState.active;
-  const page = useBrowserPages((pages) => (active ? pages[active] : null) ?? EMPTY_PAGE);
+  const page = useBrowserPages((pages) => (active ? pages[active] : null) ?? EMPTY_PAGE2);
   const root = (0, import_react40.useRef)(null);
   const fly = (0, import_react40.useRef)(null);
   const [landed, setLanded] = (0, import_react40.useState)(false);
