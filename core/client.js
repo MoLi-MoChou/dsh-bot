@@ -19464,7 +19464,7 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   );
 }
 
-// src/client/read-page.js
+// src/client/read-page.ts
 var READ_LIMITS = {
   chars: 4e5,
   nodes: 15e4,
@@ -19506,7 +19506,7 @@ function readPage(limits) {
 
 `;
   };
-  const expand = (text2) => text2.replace(/\u0001(\d+)[\u0002\u0003]/g, (_, index) => expand(stash[Number(index)]));
+  const expand = (text2) => text2.replace(/\u0001(\d+)[\u0002\u0003]/g, (_match, index) => expand(stash[Number(index)] ?? ""));
   const flow = (text2) => text2.split("\n").map((line) => line.replace(/[ \t\f\v\u00a0\u2028\u2029]+/g, " ").trim().replace(/^· /, "")).join("\n").replace(/\n{3,}/g, "\n\n").replace(/\u0003\n\n(?=\u0001\d+\u0003)/g, "\n").trim();
   const block = (text2) => expand(flow(text2));
   const oneLine = (text2) => block(text2).replace(/\s*\n+\s*/g, " ").trim();
@@ -19526,7 +19526,7 @@ function readPage(limits) {
     else if (stats.nodes % 512 === 0 && performance.now() - started > limits.ms) stop = `reading took longer than ${limits.ms} ms`;
     return stop !== "";
   };
-  const roleOf = (el) => el.getAttribute("role") || ROLES[el.localName] || (el.localName === "input" ? INPUT_ROLES[el.type] || "textbox" : el.isContentEditable ? "textbox" : el.localName);
+  const roleOf = (el) => el.getAttribute("role") || ROLES[el.localName] || (el.localName === "input" ? INPUT_ROLES[el.type ?? ""] || "textbox" : el.isContentEditable ? "textbox" : el.localName);
   const sized = (el) => {
     const box = el.getBoundingClientRect();
     return box.width > 0 && box.height > 0;
@@ -19536,7 +19536,7 @@ function readPage(limits) {
     const item = { role: roleOf(el) };
     const secret = isSecret(el);
     if (el.href) item.href = String(el.href);
-    if ((el.localName === "input" || el.localName === "textarea") && !secret && !NO_VALUE_TYPES.has(el.type) && el.value) item.value = String(el.value).slice(0, 120);
+    if ((el.localName === "input" || el.localName === "textarea") && !secret && !NO_VALUE_TYPES.has(el.type ?? "") && el.value) item.value = String(el.value).slice(0, 120);
     if (el.localName === "select" && el.selectedOptions?.length) item.value = collapse([...el.selectedOptions].map((option) => option.label || option.text).join(", ")).slice(0, 120);
     if (el.checked) item.checked = true;
     if (el.disabled) item.disabled = true;
@@ -19544,7 +19544,7 @@ function readPage(limits) {
     return { item, number: items.length, secret };
   };
   const nameOf = (el, text2, secret) => collapse(
-    el.getAttribute("aria-label") || text2 || (el.localName === "input" && !secret && NO_VALUE_TYPES.has(el.type) ? el.value : "") || el.getAttribute("placeholder") || el.title || el.getAttribute("alt") || el.querySelector?.("img[alt]")?.alt || el.getAttribute("name") || ""
+    el.getAttribute("aria-label") || text2 || (el.localName === "input" && !secret && NO_VALUE_TYPES.has(el.type ?? "") ? el.value : "") || el.getAttribute("placeholder") || el.title || el.getAttribute("alt") || el.querySelector("img[alt]")?.alt || el.getAttribute("name") || ""
   ).slice(0, 80);
   const fenced = (code, lang) => {
     const longest = Math.max(2, ...(code.match(/`{3,}/g) || []).map((run) => run.length));
@@ -19584,13 +19584,13 @@ ${fence}`;
     const role = table.getAttribute("role");
     if (role === "presentation" || role === "none") return true;
     if (table.querySelector("table")) return true;
-    return !rows.some((row) => row.cells.length > 1);
+    return !rows.some((row) => (row.cells?.length ?? 0) > 1);
   };
   const tableMarkdown = (table, ctx) => {
-    const rows = [...table.rows].filter((row) => styleOf(row).display !== "none");
+    const rows = [...table.rows ?? []].filter((row) => styleOf(row).display !== "none");
     const caption = table.caption ? oneLine(children(table.caption, ctx)) : "";
     if (layoutTable(table, rows)) {
-      return rows.map((row) => [...row.cells].map((cell) => `
+      return rows.map((row) => Array.from(row.cells ?? []).map((cell) => `
 
 ${children(cell, ctx)}
 
@@ -19604,13 +19604,15 @@ ${children(cell, ctx)}
       const line = [];
       let column = 0;
       const place = () => {
-        while (carry[column]?.left > 0) {
-          line[column] = carry[column].text;
-          carry[column].left -= 1;
+        while ((carry[column]?.left ?? 0) > 0) {
+          const held = carry[column];
+          if (held === void 0) break;
+          line[column] = held.text;
+          held.left -= 1;
           column += 1;
         }
       };
-      for (const cell of row.cells) {
+      for (const cell of Array.from(row.cells ?? [])) {
         place();
         if (styleOf(cell).display === "none") continue;
         const text2 = cellText3(cell, ctx);
@@ -19633,7 +19635,7 @@ ${caption}
 
 ` : "";
     const format = (cells) => `| ${Array.from({ length: width }, (_, index) => cells[index] ?? "").join(" | ")} |`;
-    const out = [format(grid[0]), `|${" --- |".repeat(width)}`, ...grid.slice(1).map(format)];
+    const out = [format(grid[0] ?? []), `|${" --- |".repeat(width)}`, ...grid.slice(1).map(format)];
     if (rows.length > limits.tableRows + 1) out.push(`… (table cut: ${rows.length - limits.tableRows - 1} more rows)`);
     return `${caption ? `
 
@@ -19642,7 +19644,7 @@ Table: ${caption}` : ""}${keep(out.join("\n"))}`;
   const frame = (el, ctx) => {
     let doc = null;
     try {
-      doc = el.contentDocument;
+      doc = el.contentDocument ?? null;
     } catch {
       doc = null;
     }

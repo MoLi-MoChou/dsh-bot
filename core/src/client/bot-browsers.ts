@@ -7,7 +7,7 @@
 // it, and the others stay at the same size (their layout, and so what a read sees,
 // stays the same) but hidden.
 
-import { READ_PAGE_SCRIPT } from './read-page.js'
+import { READ_PAGE_SCRIPT } from './read-page.ts'
 import { setEntry, sharedMap } from './shared-map.ts'
 import { STORAGE } from './storage.ts'
 import type { Source } from './sources.ts'
@@ -44,7 +44,7 @@ export interface PanelRect {
   height: number
 }
 
-// The reader's result, from `read-page.js` running inside the guest.
+// The reader's result, from `read-page.ts` running inside the guest.
 export interface BrowserReadItem {
   role: string
   href?: string

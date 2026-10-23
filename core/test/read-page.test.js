@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
-import { READ_LIMITS, READ_PAGE_SCRIPT, readPageScript } from '../src/client/read-page.js'
+import { READ_LIMITS, READ_PAGE_SCRIPT, readPageScript } from '../src/client/read-page.ts'
 
 // jsdom comes from the deepseek-harness checkout next to ds-bot, like the dsh packages.
 const PLUGIN = dirname(dirname(fileURLToPath(import.meta.url)))
@@ -151,7 +151,7 @@ test('a big table is cut at the row limit with a note', () => {
 })
 
 test('the bundled reader reads the same as the source', async () => {
-  const result = await build({ absWorkingDir: PLUGIN, entryPoints: ['src/client/read-page.js'], bundle: true, format: 'esm', platform: 'browser', target: 'es2022', write: false, logLevel: 'silent' })
+  const result = await build({ absWorkingDir: PLUGIN, entryPoints: ['src/client/read-page.ts'], bundle: true, format: 'esm', platform: 'browser', target: 'es2022', write: false, logLevel: 'silent' })
   const bundled = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`)
   assert.deepEqual(read(makePage(), bundled.READ_PAGE_SCRIPT), read(makePage()))
 })

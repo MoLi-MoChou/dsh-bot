@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import '../../test/harness-resolve.mjs'
-import { READ_PAGE_SCRIPT } from '../../src/client/read-page.js'
+import { READ_PAGE_SCRIPT } from '../../src/client/read-page.ts'
 
 // After the resolve hook above: browser.js imports @deepseek-ai/dsh-tools.
 const { pageText } = await import('../../src/host/browser.ts')
