@@ -18,6 +18,9 @@ const ZH = {
   'Collapse sidebar': '收起侧边栏',
   'Expand sidebar': '展开侧边栏',
   'Animation': '动画',
+  'Reconnecting…': '正在重连…',
+  'Chats stay saved; this window catches up when the connection is back.': '对话都还在，连上后这个窗口会自动跟上。',
+  'Back online. Catching up…': '连接恢复了，正在刷新…',
   'Bot animation': 'Bot 动画',
   'Quiet': '安静',
   'Normal': '正常',
@@ -1012,6 +1015,23 @@ const HOST_ERRORS = [
   [/^No entry in [\s\S]* matches "([\s\S]*)"\.[\s\S]*$/, '找不到「$1」这条记忆'],
   [/^"([\s\S]*)" matches (\d+) entries in [\s\S]*$/, '「$1」对应了 $2 条记忆，请说得更具体'],
   [/^Memory cannot change now: [\s\S]*$/, '现在不能修改记忆：另一个 dsh 正在使用这个 Bot 团队'],
+  [/^This file no longer exists$/, '这个文件已经不在原来的位置了'],
+  [/^Only files in this conversation's folder can be downloaded$/, '只能下载这段对话自己文件夹里的文件'],
+  [/^This file is not one this conversation produced$/, '这个文件不是这段对话产出的，不能从这里下载'],
+  [/^This conversation is no longer here$/, '这段对话已经不在了，刷新页面看看'],
+  [/^This conversation has no folder$/, '这段对话没有可用的文件夹'],
+  [/^Only files in the team's folders can be downloaded$/, '只能下载团队文件夹里的文件'],
+  [/^This file cannot be read here$/, '这里读不了这个文件'],
+  [/^Too large to download here \(over (\d+) MB\)$/, '文件太大，这里下载不了（超过 $1 MB）'],
+  [/^No file named$/, '没有指定文件'],
+  [/^This message is no longer kept$/, '这条消息已经不再保留了'],
+  [/^Unknown Bot$/, '找不到这个 Bot'],
+  [/^Nothing to send$/, '没有要发送的内容'],
+  [/^This question is no longer open$/, '这个问题已经关掉了'],
+  [/^This view is no longer open$/, '这个视图已经关掉了'],
+  [/^Bot browsers are off on this host$/, '这台机器上 Bot 的浏览器是关着的'],
+  [/^A browser poll needs a clientId$/, '浏览器轮询缺少 clientId'],
+  [/^Unknown endpoint (.+)$/, '未知的接口 $1'],
 ]
 const HOST_ZH = {
   'Request failed': '请求失败',
@@ -1088,6 +1108,60 @@ export function hostText(message) {
     if (pattern.test(message)) return brand(message.replace(pattern, template))
   }
   return brand(message)
+}
+
+// What an error code means in the user's words, and what to do about it. The host's own
+// text is used only for a code this table does not know, and is translated where it can be.
+const ERROR_COPY = {
+  NETWORK: {
+    en: 'Could not reach Moon Bot: the network dropped or the service restarted.',
+    zh: '连不上 Moon Bot：网络断了，或者服务在重启。',
+    hint: 'Check the network and try again in a moment.',
+    hintZh: '检查一下网络，过几秒再试。',
+  },
+  HTTP_401: { en: 'The sign-in has expired.', zh: '登录状态过期了。', hint: 'Reload the page and sign in again.', hintZh: '刷新页面重新登录。' },
+  HTTP_403: { en: 'This action is not allowed for this window.', zh: '这个窗口没有做这个操作的权限。', hint: 'Reload, or let the Main Bot do it.', hintZh: '刷新页面，或者让主 Bot 来做。' },
+  HTTP_404: { en: 'What it asked for is gone.', zh: '要找的内容不在了。', hint: 'Reload the page and try again.', hintZh: '刷新页面再试一次。' },
+  HTTP_429: { en: 'Too many requests just now.', zh: '刚才的请求太多了。', hint: 'Wait a few seconds and try again.', hintZh: '等几秒再试。' },
+  HTTP_500: { en: 'The server failed.', zh: '服务端出错了。', hint: 'Try again later; if it keeps happening, send the diagnostics from Settings → Feedback.', hintZh: '稍后再试；一直这样的话，到「设置 → 反馈」把诊断发给开发者。' },
+  'bot/invalid': { en: 'The request holds something it cannot accept.', zh: '请求里有不能接受的内容。', hint: 'Change it and try again.', hintZh: '改一下再试。' },
+  'bot/refused': { en: 'That was refused.', zh: '这个操作被拒绝了。', hint: 'Follow the hint and try another way.', hintZh: '按提示换个做法；还不行就到「设置 → 反馈」发诊断。' },
+  'bot/not-found': { en: 'What it asked for is not there any more.', zh: '找不到要操作的对象了。', hint: 'Reload the page and check it is still there.', hintZh: '刷新页面，确认它还在。' },
+  'bot/stale': { en: 'That is no longer open.', zh: '这个已经关掉了。', hint: 'Reload the page and open it again.', hintZh: '刷新页面重新打开一次。' },
+  'bot/read-only': { en: 'This window can only look, not change.', zh: '这个窗口现在只能看，不能改。', hint: 'Close the other dsh window that has this team open, then reload.', hintZh: '关掉另一个打开同一团队的 dsh 窗口，然后刷新。' },
+  'bot/unavailable': { en: 'That is not available here.', zh: '这项内容现在拿不到。', hint: 'Try again in a moment.', hintZh: '稍后再试。' },
+  'bot/browser-off': { en: 'The Bot\'s browser is off.', zh: 'Bot 的浏览器没有打开。', hint: 'Turn it on in the settings, or let the Bot do it another way.', hintZh: '在设置里打开浏览器，或者让 Bot 换一种方式做。' },
+  'bot/internal': { en: 'Moon Bot itself failed.', zh: 'Moon Bot 内部出错了。', hint: 'Restart DS Bot; if it keeps happening, send the diagnostics from Settings → Feedback.', hintZh: '重启 DS Bot；一直这样的话，到「设置 → 反馈」发诊断。' },
+  'bot/error': { en: 'Something went wrong.', zh: '出了点问题。', hint: 'Try again; send the diagnostics if it keeps happening.', hintZh: '再试一次；一直这样就发诊断。' },
+}
+
+// The host's own reason, in the user's language. A message that cannot be translated is
+// left out rather than shown in English: the generic copy already says what happened.
+const detailOf = (message) => {
+  if (typeof message !== 'string' || message.trim() === '') return ''
+  const text = message.trim()
+  if (!language().startsWith('zh')) return text
+  const translated = hostText(text)
+  if (translated !== text) return translated
+  return /[一-鿿]/.test(text) ? text : ''
+}
+
+// What happened and what to do, plus the host's own reason when it can be said in the
+// user's language: the generic copy alone would throw away what the server already knows.
+// A reason equal to the copy, ignoring surrounding space and case, is not repeated.
+const sameText = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase()
+
+export function errorCopy(code, message) {
+  const copy = Object.hasOwn(ERROR_COPY, code ?? '') ? ERROR_COPY[code] : undefined
+  const zh = language().startsWith('zh')
+  const generic = zh ? copy?.zh : copy?.en
+  const detail = detailOf(message)
+  const reason = generic !== undefined && sameText(detail, generic) ? '' : detail
+  if (copy === undefined) {
+    if (reason !== '') return reason
+    return zh ? '出了点问题，请再试一次。' : 'Something went wrong. Try again.'
+  }
+  return [generic, reason, zh ? copy.hintZh : copy.hint].filter(Boolean).join(' ')
 }
 
 // The active DSH language tag, for dates and times.

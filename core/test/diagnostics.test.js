@@ -6,7 +6,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { cleanText, install as installDiagnostics, reportMarkdown } from '../src/host/diagnostics.js'
-import { failureLine, install as installTurns, turnFailure } from '../src/host/turns.js'
+import { failureLine, failureSay, install as installTurns, turnFailure } from '../src/host/turns.js'
 import { errorCode } from '../src/host/channel.js'
 import { SOURCE_KIND } from '../src/host/constants.js'
 
@@ -203,6 +203,12 @@ test('turnFailure drops AUTH messages and keeps the facts', () => {
   assert.deepEqual(turnFailure({ code: 'RATE_LIMIT', message: ' slow down ', requestId: 'r1' }), { code: 'RATE_LIMIT', message: 'slow down', requestId: 'r1' })
   assert.deepEqual(turnFailure(undefined), { code: 'UNKNOWN', message: '' })
   assert.equal(failureLine({ code: 'SERVER', status: 503, message: 'busy' }), 'SERVER 503: busy')
+  // What a group posts for a failed member is words a person reads, in their language.
+  assert.equal(failureSay({ code: 'AUTH' }), 'the model refused the key')
+  assert.equal(failureSay({ code: 'AUTH' }, true), '模型不认这把密钥')
+  assert.equal(failureSay({ code: 'RATE_LIMIT' }, true), '模型请求太频繁')
+  assert.equal(failureSay({ code: 'UNKNOWN' }, true), '模型调用失败')
+  assert.equal(failureSay(undefined), 'the model call failed')
 })
 
 function turnsHost() {
