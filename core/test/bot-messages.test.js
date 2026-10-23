@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { apply } from '../index.js'
 import { fakeAttachments, fakeContext } from './fake-ctx.js'
 import { install as installTurns } from '../src/host/turns.ts'
-import { install as installParts } from '../src/host/parts.js'
+import { install as installParts } from '../src/host/parts.ts'
 import { SOURCE_KIND } from '../src/host/constants.ts'
 
 // A two-Bot team, optionally with b in a group Session 'gb' of room 'Ops'.

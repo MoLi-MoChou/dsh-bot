@@ -225,7 +225,7 @@ export const recordOf = (value: unknown): Readonly<Record<string, unknown>> | un
   value !== null && typeof value === 'object' ? value as Readonly<Record<string, unknown>> : undefined
 
 
-/** A pending question, as `parts.js` stores and answers it. */
+/** A pending question, as `parts.ts` stores and answers it. */
 export interface PendingQuestion {
   readonly id: string
   readonly question?: string
@@ -235,7 +235,7 @@ export interface PendingQuestion {
   readonly callId?: string
 }
 
-/** A pending card, as `parts.js` stores and answers it. */
+/** A pending card, as `parts.ts` stores and answers it. */
 export interface PendingView {
   readonly id: string
   readonly title: string

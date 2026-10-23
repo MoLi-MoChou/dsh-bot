@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { termQuery } from '../src/host/chat-index.ts'
-import { canonicalHeadings, cardText, historyEntry, questionReply, readReply, replyText } from '../src/host/parts.js'
+import { canonicalHeadings, cardText, historyEntry, questionReply, readReply, replyText } from '../src/host/parts.ts'
 
 test('cardText shows a question card as the user saw it', () => {
   const card = { question: ' Start where? ', detail: 'pick one', options: [{ label: 'Plan' }, { label: ' ' }, { label: 'Draft' }] }

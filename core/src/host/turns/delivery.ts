@@ -67,7 +67,7 @@ export interface LongText {
   readonly length?: number | undefined
 }
 
-/** A job in a Bot's move to a fresh part, as `parts.js` records it. */
+/** A job in a Bot's move to a fresh part, as `parts.ts` records it. */
 export interface SwitchJob {
   readonly botId: string
   readonly roomId?: string

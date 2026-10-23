@@ -37,7 +37,7 @@ export interface SwitchAgent {
 }
 export type SwitchFallback = 'whole' | 'failure' | 'overflow' | 'failed'
 /** The record one part leaves for the part that follows it. */
-export interface SwitchSegment { readonly sessionId: string; readonly endedAt: number; readonly tokens?: number | undefined; readonly note?: string | undefined; readonly noteFrom?: number | undefined; readonly fallback?: SwitchFallback | undefined }
+export interface SwitchSegment { readonly sessionId: string; readonly endedAt?: number | undefined; readonly tokens?: number | undefined; readonly note?: string | undefined; readonly noteFrom?: number | undefined; readonly fallback?: SwitchFallback | undefined }
 export interface SwitchPart extends SwitchSegment { readonly number: number; readonly startedAt: number }
 /** A Bot as the switch changes it: its parts gain a segment, its chat a new Session. */
 export interface SwitchBot { readonly id: string; name: string; sessionId?: string | undefined; segments?: SwitchSegment[] | undefined }

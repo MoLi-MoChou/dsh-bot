@@ -408,6 +408,10 @@ export interface LlmModelInfo {
   readonly name?: string
   readonly inputModalities?: readonly string[]
   readonly reasoning?: LlmReasoning
+  /** The window the model declares for context, when it declares one. */
+  readonly context?: { readonly contextWindow?: unknown } | undefined
+  /** The output budget the model serves by default. */
+  readonly defaultMaxTokens?: unknown
 }
 
 /** One chunk of a model stream, as `BlockAssembler` takes it. */

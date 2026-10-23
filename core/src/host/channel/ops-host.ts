@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { validateViewAnswer } from '../../shared/views.ts'
 import type { RpcEndpoint } from '../../shared/rpc.ts'
-import { questionReply as questionReplyJs, viewReply as viewReplyJs } from '../parts.js'
+import { questionReply as questionReplyJs, viewReply as viewReplyJs } from '../parts.ts'
 import type {
   ChannelBody,
   ChannelHandler,
@@ -24,8 +24,8 @@ interface AnsweredReply {
   readonly source: Readonly<Record<string, unknown>>
 }
 
-// `parts.js` is still JavaScript; these are the contracts this module relies on, said
-// once instead of at every call. `views.ts` carries its own types.
+// These are the contracts this module relies on, said once instead of at every call;
+// `parts.ts` re-exports them from `parts-text.ts`. `views.ts` carries its own types.
 const questionReply = questionReplyJs as (question: PendingQuestion, answer: unknown) => AnsweredReply | undefined
 const viewReply = viewReplyJs as (record: PendingView, action: unknown, values: unknown) => AnsweredReply | undefined
 

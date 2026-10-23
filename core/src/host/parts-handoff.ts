@@ -2,9 +2,9 @@
 // word, and where the rest of the record is. Pure text: the caller supplies the lines.
 
 interface NoteSegment {
-  readonly note?: string
-  readonly fallback?: string
-  readonly noteFrom?: number
+  readonly note?: string | undefined
+  readonly fallback?: string | undefined
+  readonly noteFrom?: number | undefined
 }
 
 interface HandoffLines {
@@ -20,9 +20,9 @@ interface HandoffInput {
   readonly lines: HandoffLines
   readonly number: number
   readonly resume: boolean
-  readonly overflow: boolean
+  readonly overflow: boolean | undefined
   readonly failed: string | undefined
-  readonly bare: boolean
+  readonly bare: boolean | undefined
   readonly folder: string | undefined
 }
 

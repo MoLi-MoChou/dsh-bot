@@ -21,7 +21,7 @@ interface ApproveFolderInput {
 // Working folders: where a Bot's Sessions run. A group's folder holds for every member
 // there, else a Bot works in its own folder, else in the team workspace. A Session's
 // folder is fixed when it is made, so a change moves the conversation on to a fresh
-// part (parts.js).
+// part (parts.ts).
 import { mkdir, realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'

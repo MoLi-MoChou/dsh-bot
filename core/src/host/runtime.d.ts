@@ -23,6 +23,12 @@ export interface HostConfig {
   readonly updateRegistry?: string
   readonly github?: Readonly<Record<string, unknown>> | false
   readonly timeZone?: string
+  /** How much of a fresh part the latest messages may take, in tokens. */
+  readonly handoffRecentTokens?: number
+  /** How much of the anchored message list the handoff package may take. */
+  readonly handoffListTokens?: number
+  /** The share of the usable window at which a part makes room. */
+  readonly checkRatio?: number
 }
 
 export interface HostDefaults {
@@ -360,6 +366,7 @@ export interface HostRuntime {
   partLines(sessionId: string, signal: AbortSignal): AsyncIterable<{ readonly text: string; readonly time: number }>
   defaultRef?(): string | undefined
   tagUsage(messages: readonly unknown[], tag: { readonly sessionId: string; readonly kind: string }): readonly unknown[]
+  renewMemory(sessionId: string): void
   carryUsageTag(from: unknown, to: unknown): void
   usageView(options?: UsageViewOptions): Promise<UsageView>
 
