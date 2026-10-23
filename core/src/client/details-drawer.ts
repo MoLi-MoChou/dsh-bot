@@ -10,7 +10,7 @@ import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { BotSettingsForm } from './bot-settings.js'
 import { GroupSettingsForm, ROOM_MODES, roomSubtitle, shownMode } from './group-settings.ts'
-import { ModelMenu, modelOf } from './model-menu.js'
+import { ModelMenu, modelOf } from './model-menu.ts'
 import { FolderMenu } from './folder-menu.ts'
 import { MemoryRow } from './memory-panel.ts'
 import { ScheduleSummary } from './schedules.js'
@@ -303,8 +303,8 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
         h(RunStats, { key: 'stats', bot, part, running, actions }),
         h('div', { key: 'model', className: 'bt-drawer-model' },
           h('div', { className: 'bt-section-title' }, t('Model')),
-          h(ModelMenu, { bot, roster, actions, run, wide: true }),
-          modelOf(bot, roster) ? null : h('div', { className: 'bt-note' }, t('Pick a model and {name} can start.', { name: bot.name }))),
+          h(ModelMenu, { bot: bot as never, roster: roster as never, actions: actions as never, run, wide: true }),
+          modelOf(bot as never, roster as never) ? null : h('div', { className: 'bt-note' }, t('Pick a model and {name} can start.', { name: bot.name }))),
         h(PermissionRow, { key: 'permission', bot, roster, actions, run }),
         h('div', { key: 'folder', className: 'bt-drawer-model' },
           h('div', { className: 'bt-section-title' }, t('Working folder')),

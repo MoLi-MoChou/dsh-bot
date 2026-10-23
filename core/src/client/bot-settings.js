@@ -4,7 +4,7 @@ import { CHARACTERS, PICKER_SHAPES, PICKER_COLUMNS, CHARACTER_COLORS, SHAPES, ha
 import { isMainOf } from './sources.ts'
 import { PencilIcon, ChevronRightIcon } from './icons.ts'
 import { lookOf, BotMark } from './mark.ts'
-import { ModelMenu, modelOf } from './model-menu.js'
+import { ModelMenu, modelOf } from './model-menu.ts'
 import { FolderMenu } from './folder-menu.ts'
 import { BotSchedules } from './schedules.js'
 import { BotCapabilitiesCard } from './capability-settings.ts'

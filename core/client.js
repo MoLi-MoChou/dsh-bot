@@ -12828,24 +12828,24 @@ ${shown}`, { axis: "y", ...QUICK_EDGES });
   );
 }
 
-// src/client/model-menu.js
+// src/client/model-menu.ts
 var import_react19 = require("react");
 var import_react_dom7 = require("react-dom");
 function groupModels(models) {
   const groups = /* @__PURE__ */ new Map();
   for (const model of models ?? []) {
-    const provider = model.provider ?? model.providerName ?? model.ref.split("/")[0];
+    const provider = model.provider ?? model.providerName ?? model.ref.split("/")[0] ?? model.ref;
     if (!groups.has(provider)) groups.set(provider, []);
-    groups.get(provider).push(model);
+    groups.get(provider)?.push(model);
   }
   const names = /* @__PURE__ */ new Map();
   for (const [provider, list] of groups) {
-    const name = list[0].providerName ?? provider;
+    const name = list[0]?.providerName ?? provider;
     names.set(name, (names.get(name) ?? 0) + 1);
   }
   return [...groups].map(([provider, list]) => {
-    const name = list[0].providerName ?? provider;
-    return [names.get(name) > 1 ? `${name} (${provider})` : name, list];
+    const name = list[0]?.providerName ?? provider;
+    return [(names.get(name) ?? 0) > 1 ? `${name} (${provider})` : name, list];
   });
 }
 var servedOf = (roster, ref) => (roster.models ?? []).find((model) => model.ref === ref);
@@ -12853,7 +12853,7 @@ function modelOf(bot, roster) {
   const ref = bot.model ?? bot.appliedModel;
   if (!ref) return void 0;
   const served = servedOf(roster, ref);
-  const [provider, ...rest] = ref.split("/");
+  const [provider = "", ...rest] = ref.split("/");
   return { ref, name: served?.name ?? rest.join("/"), provider: served?.providerName ?? provider, served: served !== void 0 };
 }
 var effortCache = /* @__PURE__ */ new Map();
@@ -12906,7 +12906,7 @@ function EffortRows({ reasoning, current, onPick }) {
 function ModelRows({ roster, current, onPick }) {
   return groupModels(roster.models).map(([provider, list]) => (0, import_react19.createElement)(
     import_react19.Fragment,
-    { key: list[0].provider ?? provider },
+    { key: list[0]?.provider ?? provider },
     (0, import_react19.createElement)("div", { className: "bt-model-group", role: "presentation" }, provider),
     list.map((model) => (0, import_react19.createElement)(
       "button",
@@ -12937,7 +12937,7 @@ function useAnchoredMenu(onEscape) {
   (0, import_react19.useEffect)(() => {
     if (place === null) return void 0;
     const onDown = (event) => {
-      if (menu.current?.contains(event.target) || button.current?.contains(event.target)) return;
+      if (event.target instanceof Node && (menu.current?.contains(event.target) || button.current?.contains(event.target))) return;
       close();
     };
     const onKey = (event) => {
@@ -12950,7 +12950,7 @@ function useAnchoredMenu(onEscape) {
       }
     };
     const onScroll = (event) => {
-      if (!menu.current?.contains(event.target)) close();
+      if (event.target instanceof Node && !menu.current?.contains(event.target)) close();
     };
     window.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey, true);
@@ -12962,7 +12962,9 @@ function useAnchoredMenu(onEscape) {
     };
   }, [place]);
   const open = () => {
-    const rect = button.current.getBoundingClientRect();
+    const node = button.current;
+    if (node === null) return;
+    const rect = node.getBoundingClientRect();
     const width = Math.max(240, rect.width);
     const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
     const below = window.innerHeight - rect.bottom;
@@ -12973,8 +12975,9 @@ function useAnchoredMenu(onEscape) {
 function contextOf(values) {
   const pressure = values?.contextPressure;
   const used = pressure?.projectedTokens ?? pressure?.pressureTokens;
-  if (!Number.isFinite(used) || !(pressure?.contextWindow > 0)) return void 0;
-  return { used, total: pressure.contextWindow, ratio: Math.min(1, used / pressure.contextWindow) };
+  const total = pressure?.contextWindow;
+  if (typeof used !== "number" || !Number.isFinite(used) || total === void 0 || !(total > 0)) return void 0;
+  return { used, total, ratio: Math.min(1, used / total) };
 }
 function ContextGauge({ context }) {
   const r = 7;
@@ -12996,9 +12999,9 @@ function ContextGauge({ context }) {
 function useContext(botId, isOpen, actions) {
   const [context, setContext] = (0, import_react19.useState)(void 0);
   (0, import_react19.useEffect)(() => {
-    if (!isOpen || !actions?.runStats || !botId || botId === "new-bot") return void 0;
+    if (!isOpen || actions?.runStats === void 0 || !botId || botId === "new-bot") return void 0;
     let live = true;
-    actions.runStats(botId).then((values) => {
+    void actions.runStats(botId).then((values) => {
       if (live) setContext(contextOf(values));
     }, () => {
     });
@@ -13008,36 +13011,45 @@ function useContext(botId, isOpen, actions) {
   }, [botId, isOpen]);
   return context;
 }
-function ModelMenu({ bot, roster, actions, run, wide = false, onPick, onPickEffort }) {
+function ModelMenu(props) {
+  const { bot, roster, run, wide = false } = props;
   const { isOpen, shownPlace, leaving, button, menu, open, close } = useAnchoredMenu();
   const shown = modelOf(bot, roster);
   const current = bot.model ?? bot.appliedModel;
   const served = servedOf(roster, current);
-  const reasoning = useEfforts(served, current, actions);
-  const context = useContext(bot.id, isOpen, actions);
+  const reasoning = useEfforts(served, current, props.actions);
+  const context = useContext(bot.id, isOpen, props.actions);
   const picked = reasoning?.efforts?.some((effort) => effort.id === bot.effort) ? bot.effort : void 0;
   const currentEffort = picked ?? reasoning?.defaultEffort;
-  const effortLabel = currentEffort === void 0 ? reasoning?.efforts?.length > 0 ? t("Default") : void 0 : reasoning.efforts.find((effort) => effort.id === currentEffort)?.name ?? currentEffort;
+  const effortLabel = currentEffort === void 0 ? (reasoning?.efforts.length ?? 0) > 0 ? t("Default") : void 0 : reasoning?.efforts.find((effort) => effort.id === currentEffort)?.name ?? currentEffort;
   const toggle = () => {
     if (isOpen) {
       close();
       return;
     }
-    void actions?.refreshModels?.();
+    void props.actions.refreshModels?.();
     open();
   };
   const pick2 = (ref) => {
     close();
-    if (onPick) onPick(ref);
-    else if (ref !== current || !bot.model) void run(actions.updateBot(bot.id, { model: ref }));
+    if (props.onPick) {
+      props.onPick(ref);
+      return;
+    }
+    const updateBot = props.actions.updateBot;
+    if (updateBot !== void 0 && run !== void 0 && (ref !== current || !bot.model)) void run(updateBot(bot.id, { model: ref }));
   };
   const pickEffort = (effort) => {
     close();
-    if (onPickEffort) onPickEffort(effort);
-    else if (effort !== bot.effort) void run(actions.updateBot(bot.id, { effort: effort ?? null }));
+    if (props.onPickEffort) {
+      props.onPickEffort(effort);
+      return;
+    }
+    const updateBot = props.actions.updateBot;
+    if (updateBot !== void 0 && run !== void 0 && effort !== bot.effort) void run(updateBot(bot.id, { effort: effort ?? null }));
   };
   const models = roster.models ?? [];
-  const manage = manageModels(actions);
+  const manage = manageModels(props.actions);
   return (0, import_react19.createElement)(
     import_react19.Fragment,
     null,
@@ -13088,7 +13100,7 @@ function ModelChoiceDock({ sessionId, useRoster, actions }) {
   const bot = roster.byId[sessionId];
   const [busy, setBusy] = (0, import_react19.useState)("");
   const [error, setError] = (0, import_react19.useState)("");
-  const shown = Boolean(bot) && currentPart(bot) === sessionId && roster.ready;
+  const shown = bot !== void 0 && currentPart(bot) === sessionId && roster.ready;
   (0, import_react19.useEffect)(() => {
     if (shown) void actions.refreshModels?.();
   }, [shown, sessionId]);
@@ -13103,15 +13115,15 @@ function ModelChoiceDock({ sessionId, useRoster, actions }) {
     setBusy(ref);
     setError("");
     void Promise.resolve(actions.updateBot(bot.id, { model: ref })).catch((failure) => {
-      setError(failure?.message ?? String(failure));
+      setError(failureMessage(failure));
       void actions.refreshModels?.();
     }).finally(() => setBusy(""));
   };
-  const text = lost ? t("{model} is not available anymore. Pick another model for me.", { model: bot.model.split("/").slice(1).join("/") }) : keyFor ? t("Hi, I'm {name}. I need a {provider} API key before I can start.", { name: bot.name, provider: keyFor.providerName ?? keyFor.provider }) : usable.length === 0 ? t("Hi, I'm {name}. I don't have a model yet. How do you want to set one up?", { name: bot.name }) : t("Hi, I'm {name}. Pick a model for me first. You can change it later in my details.", { name: bot.name });
+  const text = lost ? t("{model} is not available anymore. Pick another model for me.", { model: (bot.model ?? "").split("/").slice(1).join("/") }) : keyFor ? t("Hi, I'm {name}. I need a {provider} API key before I can start.", { name: bot.name, provider: keyFor.providerName ?? keyFor.provider }) : usable.length === 0 ? t("Hi, I'm {name}. I don't have a model yet. How do you want to set one up?", { name: bot.name }) : t("Hi, I'm {name}. Pick a model for me first. You can change it later in my details.", { name: bot.name });
   const choices = usable.length === 0 ? setupChoices(actions).map(([label, run]) => (0, import_react19.createElement)("button", { key: label, type: "button", className: "bt-model-chip", onClick: run }, label)) : [
     ...groupModels(usable).map(([provider, list]) => (0, import_react19.createElement)(
       "div",
-      { key: list[0].provider ?? provider, className: "bt-model-choice-group", role: "group", "aria-label": provider },
+      { key: list[0]?.provider ?? provider, className: "bt-model-choice-group", role: "group", "aria-label": provider },
       (0, import_react19.createElement)("div", { className: "bt-model-choice-provider", "aria-hidden": true }, provider),
       (0, import_react19.createElement)("div", { className: "bt-model-choice-chips" }, list.map((model) => (0, import_react19.createElement)("button", {
         key: model.ref,
@@ -13154,10 +13166,10 @@ function ModelKeyCard({ model, actions }) {
   const label = t("{provider} API key", { provider: model.providerName ?? model.provider });
   const ready = value.trim() !== "" && !busy;
   const save = () => {
-    if (!ready) return;
+    if (!ready || actions.setProviderKey === void 0) return;
     setBusy(true);
     setError("");
-    void Promise.resolve(actions.setProviderKey(model.provider, value)).then(() => setValue(""), (failure) => setError(hostText(failure?.message ?? String(failure)))).finally(() => setBusy(false));
+    void Promise.resolve(actions.setProviderKey(model.provider, value)).then(() => setValue(""), (failure) => setError(hostText(failureMessage(failure)))).finally(() => setBusy(false));
   };
   return (0, import_react19.createElement)(
     "div",
@@ -13175,35 +13187,37 @@ function ModelKeyCard({ model, actions }) {
 }
 var manageModels = (actions) => actions.openModels ?? actions.openHarnessSettings;
 function setupChoices(actions) {
-  return [
-    actions.canSignIn?.() ? [t("Sign in to DeepSeek"), () => actions.signIn()] : null,
-    actions.openHarnessOnboarding ? [t("Enter a DeepSeek API key"), () => actions.openHarnessOnboarding("deepseek-official")] : null,
-    actions.openHarnessSettings ? [t("Open settings to set up a custom model"), () => actions.openHarnessSettings("models")] : null
-  ].filter(Boolean);
+  const choices = [
+    actions.canSignIn?.() ? [t("Sign in to DeepSeek"), () => actions.signIn?.()] : null,
+    actions.openHarnessOnboarding ? [t("Enter a DeepSeek API key"), () => actions.openHarnessOnboarding?.("deepseek-official")] : null,
+    actions.openHarnessSettings ? [t("Open settings to set up a custom model"), () => actions.openHarnessSettings?.("models")] : null
+  ];
+  return choices.filter((choice) => choice !== null);
 }
 function DeepSeekSignIn({ useUi, actions }) {
   const open = useUi((state) => state.signIn);
-  const entry = open ? actions.signInEntry?.() : null;
+  const entry = open ? actions.signInEntry?.() ?? null : null;
   if (!entry) return null;
-  return (0, import_react19.createElement)(SignInHost, { key: open, entry, actions });
+  return (0, import_react19.createElement)(SignInHost, { key: String(open), entry, actions });
 }
 function SignInHost({ entry, actions }) {
   const [ops] = (0, import_react19.useState)(() => entry.inject?.() ?? {});
-  const close = () => actions.closeSignIn();
+  const close = () => actions.closeSignIn?.();
   useEscape(close);
   const useHook = (source) => (selector) => (0, import_react19.useSyncExternalStore)(source.subscribe, () => selector(source.getSnapshot()));
   const [hooks] = (0, import_react19.useState)(() => ({ useAccount: useHook(ops.hooks.account), useTheme: useHook(ops.hooks.theme) }));
   return (0, import_react19.createElement)(entry.component, {
     ...ops,
     ...hooks,
-    t: actions.accountT(),
+    t: actions.accountT?.(),
     complete: close,
     useApiKey: () => {
       close();
-      actions.openHarnessOnboarding("deepseek-official");
+      actions.openHarnessOnboarding?.("deepseek-official");
     }
   });
 }
+var failureMessage = (failure) => failure?.message ?? String(failure);
 var MODEL_CSS = `
 .bt-ctx{display:flex;align-items:center;gap:8px;padding:8px 10px 6px;font-size:12.5px;color:var(--bt-ink-2);font-variant-numeric:tabular-nums}
 .bt-ctx svg{flex:none;color:var(--bt-accent)}

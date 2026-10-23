@@ -50,7 +50,7 @@ const LINE_EXEMPTIONS = [
   'src/client/sidebar.js',
   'src/client/browser-pane.ts',
   'src/client/bot-browsers.ts',
-  'src/client/model-menu.js',
+  'src/client/model-menu.ts',
   'src/client/secret-card.js',
 ]
 
