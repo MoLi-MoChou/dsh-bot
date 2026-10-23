@@ -6,8 +6,16 @@
 //  2. Size: every logical .js/.ts/.tsx file under src is at most 350 lines. Data and
 //     third-party files are exempt; the list of legacy files is explicit below.
 //  3. Floating promises: a Promise-returning call or `new` used as a bare statement without
-//     await, void, or a .then/.catch/.finally chain. oxlint's rule is a silent no-op unless
-//     its type-aware mode is available, so we use the TypeScript compiler API directly.
+//     await, void, or a .then/.catch/.finally chain, and a promise held in a variable and then
+//     dropped the same way. The check unwraps parentheses, `as`,
+//     `satisfies`, `!` and angle-bracket assertions, and looks through comma/logical
+//     operators, conditional branches and assignment, so `(work() as T)`, `work()!`,
+//     `cond && work()` and `cond ? work() : other()` all report. oxlint's rule is a silent
+//     no-op unless its type-aware mode is available, so we use the TypeScript compiler API
+//     directly.
+//  4. Test files may not import `.tsx`: Node's type stripping does not handle JSX, so such a
+//     test dies at load time with a confusing extension error. Failing in lint says what to
+//     do instead, before `npm test` crashes.
 //
 // Usage: node scripts/check-gates.mjs [--root <core-like directory>]
 // `--root` exists so the gates can be pointed at the fixtures in test/fixtures/gates.
@@ -86,7 +94,7 @@ for (let index = 0; index < argv.length; index += 1) {
 const sourceRoot = join(root, 'src')
 if (!existsSync(sourceRoot)) usage(`no src directory under ${root}`)
 
-const findings = { boundaries: [], lines: [], floating: [] }
+const findings = { boundaries: [], lines: [], floating: [], tsx: [] }
 
 // ---------------------------------------------------------------------------
 // Source discovery and path helpers.
@@ -322,21 +330,49 @@ function checkFloatingPromises() {
   }
 
   function checkStatement(statement, sourceFile, fileName) {
-    const visitExpression = expression => {
-      let current = expression
-      while (ts.isParenthesizedExpression(current)) current = current.expression
+    // `mode` is where the value of the expression ends up: `stored` means an assignment keeps
+    // it (awaiting it later is legitimate), `discarded` means the statement drops it.
+    const inspect = (expression, mode) => {
+      let current = unwrap(expression)
+      if (mode === 'stored') return
       if (ts.isAwaitExpression(current) || ts.isVoidExpression(current)) return
-      if (
-        ts.isBinaryExpression(current) &&
-        current.operatorToken.kind === ts.SyntaxKind.CommaToken
-      ) {
-        visitExpression(current.left)
-        visitExpression(current.right)
+      if (ts.isBinaryExpression(current)) {
+        const operator = current.operatorToken.kind
+        if (operator === ts.SyntaxKind.CommaToken) {
+          inspect(current.left, mode)
+          inspect(current.right, mode)
+          return
+        }
+        // The right side of `&&`/`||`/`??` is dropped when the left side decides the result.
+        if (
+          operator === ts.SyntaxKind.AmpersandAmpersandToken ||
+          operator === ts.SyntaxKind.BarBarToken ||
+          operator === ts.SyntaxKind.QuestionQuestionToken
+        ) {
+          inspect(current.left, mode)
+          inspect(current.right, mode)
+          return
+        }
+        // Every other binary expression (including `x = work()`) either stores the value or
+        // combines plain values; it is not a promise dropped on the floor.
         return
       }
-      if (!ts.isCallExpression(current) && !ts.isNewExpression(current)) return
-      if (isHandledChain(current)) return
-      const type = checker.getTypeAtLocation(current)
+      if (ts.isConditionalExpression(current)) {
+        inspect(current.condition, mode)
+        inspect(current.whenTrue, mode)
+        inspect(current.whenFalse, mode)
+        return
+      }
+      // A promise held in a variable and then dropped as a statement leaks the same way, so
+      // a bare identifier statement is a candidate too.
+      let candidate
+      if (ts.isCallExpression(current)) {
+        if (isHandledChain(current)) return
+        candidate = current
+      } else if (ts.isNewExpression(current) || ts.isIdentifier(current)) {
+        candidate = current
+      } else return
+      const type = checker.getTypeAtLocation(candidate)
       // `any`/`unknown` means the type checker could not prove this is a promise. Do not
       // guess: a false positive here would block unrelated code.
       if (!type || type.flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return
@@ -347,14 +383,30 @@ function checkFloatingPromises() {
         return
       }
       if (promised === undefined) return
-      const position = sourceFile.getLineAndCharacterOfPosition(current.getStart(sourceFile))
-      const call = current.getText(sourceFile).replace(/\s+/g, ' ').trim().slice(0, 160)
+      const position = sourceFile.getLineAndCharacterOfPosition(candidate.getStart(sourceFile))
+      const call = candidate.getText(sourceFile).replace(/\s+/g, ' ').trim().slice(0, 160)
       findings.floating.push(
         `${relPath(fileName)}:${position.line + 1} - floating promise: ${call}`,
       )
     }
-    visitExpression(statement.expression)
+    inspect(statement.expression, 'discarded')
   }
+}
+
+// Wrappers that keep the value but hide the call from the checker: `(work())`,
+// `work() as T`, `<T>work()`, `work()!` and `work() satisfies T`.
+function unwrap(node) {
+  let current = node
+  while (
+    ts.isParenthesizedExpression(current) ||
+    ts.isAsExpression(current) ||
+    ts.isTypeAssertionExpression(current) ||
+    ts.isNonNullExpression(current) ||
+    ts.isSatisfiesExpression(current)
+  ) {
+    current = current.expression
+  }
+  return current
 }
 
 function isHandledChain(node) {
@@ -362,6 +414,29 @@ function isHandledChain(node) {
   const callee = node.expression
   if (!ts.isPropertyAccessExpression(callee)) return false
   return callee.name.text === 'then' || callee.name.text === 'catch' || callee.name.text === 'finally'
+}
+
+// ---------------------------------------------------------------------------
+// 4. Test files may not import a `.tsx` module.
+
+function checkTestTsxImports() {
+  const testRoot = join(root, 'test')
+  if (!existsSync(testRoot)) return
+  for (const file of walk(testRoot)) {
+    const rel = relPath(file)
+    // Fixtures are sample input for the gates themselves, not tests of this repo.
+    if (rel.startsWith('test/fixtures/')) continue
+    if (!/\.(?:js|mjs|cjs|ts|tsx)$/.test(file)) continue
+    const text = stripComments(readFileSync(file, 'utf8'))
+    for (const { specifier, position } of importsOf(text)) {
+      if (!specifier.endsWith('.tsx')) continue
+      findings.tsx.push(
+        `${rel}:${lineOf(text, position)} - test imports a .tsx module (${specifier}); ` +
+          'Node type stripping cannot load .tsx — keep the module in .ts, or run that test ' +
+          'through an esbuild loader',
+      )
+    }
+  }
 }
 
 function buildProgram() {
@@ -387,8 +462,9 @@ function main() {
   checkBoundaries()
   checkLineCounts()
   checkFloatingPromises()
+  checkTestTsxImports()
 
-  const all = [...findings.boundaries, ...findings.lines, ...findings.floating]
+  const all = [...findings.boundaries, ...findings.lines, ...findings.floating, ...findings.tsx]
   if (all.length === 0) {
     console.log('gates: ok')
     process.exit(0)
@@ -398,6 +474,7 @@ function main() {
     `${findings.boundaries.length} boundary`,
     `${findings.lines.length} line-count`,
     `${findings.floating.length} floating-promise`,
+    `${findings.tsx.length} tsx-in-test`,
   ].join(', ')
   console.error(`gates: ${all.length} failure(s) (${summary})`)
   process.exit(1)

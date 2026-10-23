@@ -9,8 +9,11 @@
       }
     ],
     "typescript/no-explicit-any": "error",
-    "typescript/ban-ts-comment": "error",
-    "typescript/no-floating-promises": "error"
+    "typescript/ban-ts-comment": "error"
+    // `typescript/no-floating-promises` is deliberately absent. Without type-aware linting
+    // oxlint cannot see a promise type, so the rule silently passed every bare call while
+    // reading as enforced. scripts/check-gates.mjs does that check through the TypeScript
+    // compiler API instead; test/fixtures/gates/floating proves it reports each form.
   },
   "globals": {
     "__MOON_BOT_VERSION__": "readonly"

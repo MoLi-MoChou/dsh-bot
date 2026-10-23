@@ -22,12 +22,38 @@ const runGates = fixture =>
   })
 const output = result => `${result.stdout}${result.stderr}`
 
-test('a floating promise fails with the file, line and call text', () => {
+// Every shape that hid a promise from the old statement-level check. The line numbers are
+// part of the contract: a case that stops being reported moves its expected line.
+const FLOATING_CASES = [
+  [13, 'work()', 'bare call'],
+  [17, 'work()', 'parenthesized call'],
+  [21, 'work()', 'as-expression around the call'],
+  [25, 'work()', 'angle-bracket assertion'],
+  [29, 'work()', 'non-null assertion'],
+  [33, 'work()', 'right side of &&'],
+  [37, 'other()', 'right side of ||'],
+  [41, 'work()', 'right side of ??'],
+  [45, 'work()', 'true branch of a conditional'],
+  [49, 'other()', 'false branch of a conditional'],
+  [53, 'new Promise<void>(resolve => resolve())', 'bare new'],
+  [57, 'work()', 'left of a comma'],
+  [57, 'other()', 'right of a comma'],
+  [62, 'pending', 'promise held in a variable, then dropped'],
+]
+
+test('every floating form fails with its own file, line and call text', () => {
   const result = runGates('floating')
   assert.notEqual(result.status, 0, output(result))
-  assert.match(output(result), /src\/floating\.ts:3 - floating promise: work\(\)/)
-  // Await, void and .then() are the three sanctioned forms; only the bare call is a failure.
-  assert.match(output(result), /1 floating-promise/)
+  const text = output(result)
+  for (const [line, call, label] of FLOATING_CASES) {
+    assert.ok(
+      text.includes(`src/floating.ts:${line} - floating promise: ${call}`),
+      `${label}: expected src/floating.ts:${line} - floating promise: ${call}\n${text}`,
+    )
+  }
+  // Await, void, .then()/.catch()/.finally(), assignment and conditional branches under them
+  // are the sanctioned forms; only the cases above are failures.
+  assert.match(text, /14 floating-promise/)
 })
 
 test('each layer boundary fails with a specific message', () => {
@@ -46,9 +72,19 @@ test('a file one line over the limit fails', () => {
   assert.match(output(result), /src\/long\.ts: 351 lines \(max 350\)/)
 })
 
+test('a test importing a .tsx module fails with the loader hint', () => {
+  const result = runGates('tsx-import')
+  assert.notEqual(result.status, 0, output(result))
+  const text = output(result)
+  assert.match(text, /test\/imports-tsx\.test\.js:3 - test imports a \.tsx module/)
+  assert.match(text, /Node type stripping cannot load \.tsx/)
+  assert.match(text, /1 tsx-in-test/)
+})
+
 test('a clean fixture passes with the one-line success message', () => {
   const result = runGates('clean')
   assert.equal(result.status, 0, output(result))
+  // The clean fixture also has a test importing a `.ts` module: that must stay allowed.
   assert.equal(result.stdout.trim(), 'gates: ok')
 })
 
@@ -56,7 +92,10 @@ test('the any fixture is caught by the configured oxlint rule', t => {
   if (!existsSync(OXLINT)) return t.skip('dev/harness oxlint is not installed')
   // The real config ignores test fixtures so `npm run lint` stays green. Drop only that
   // ignore list for this direct probe; everything else, including the rule itself, is real.
-  const config = JSON.parse(readFileSync(join(PLUGIN, '.oxlintrc.json'), 'utf8'))
+  // The config keeps `//` notes (JSONC), so strip whole-line comments before parsing.
+  const config = JSON.parse(
+    readFileSync(join(PLUGIN, '.oxlintrc.json'), 'utf8').replace(/^\s*\/\/.*$/gm, ''),
+  )
   const directory = mkdtempSync(join(tmpdir(), 'moon-bot-gates-'))
   try {
     const configPath = join(directory, 'oxlint.json')

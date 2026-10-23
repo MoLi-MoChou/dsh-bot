@@ -4,9 +4,9 @@
 // worktree (a git worktree has no deepseek-harness of its own).
 //
 // Then run the gates oxlint cannot express — layer boundaries, the 350-line limit for a
-// migrated logic file, and floating promises — from `check-gates.mjs`. `npm run lint` is
-// therefore one command for both, and the fixtures under test/fixtures/gates exercise the
-// same script.
+// migrated logic file, floating promises, and `.tsx` imports in tests — from
+// `check-gates.mjs`. `npm run lint` is therefore one command for both, and the fixtures
+// under test/fixtures/gates exercise the same script.
 //
 // Usage: npm run lint [-- <oxlint options>]
 import { execFileSync, spawnSync } from 'node:child_process'
