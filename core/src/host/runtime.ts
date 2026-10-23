@@ -5,6 +5,7 @@
 // functions. This interface holds the slice today's TypeScript modules need; it grows a
 // batch at a time as the rest of `src/host` moves over. Nothing here runs: types only.
 import type { Agent, AttachmentRef, DshContext, SessionEvent } from './dsh-types.js'
+import type { UsageView, UsageViewOptions } from './usage/view.js'
 import type { ChildProcess } from 'node:child_process'
 
 export interface HostConfig {
@@ -40,7 +41,7 @@ export interface StoredBot {
   appliedModel?: string
   effort?: string
   appliedEffort?: string
-  segments?: readonly { readonly sessionId: string }[]
+  segments?: readonly { readonly sessionId: string; readonly endedAt?: number }[]
   workDir?: string
   capabilities?: string[]
   color?: string | undefined
@@ -63,7 +64,7 @@ export interface StoredRoom {
   log?: readonly ({ readonly text: string; readonly seq: number; readonly [key: string]: unknown } | Record<string, unknown>)[]
   botRounds?: number
   sessions?: Record<string, string>
-  segments?: Record<string, readonly { readonly sessionId: string }[]>
+  segments?: Record<string, readonly { readonly sessionId: string; readonly endedAt?: number }[]>
   workDir?: string
   readonly [key: string]: unknown
 }
@@ -277,6 +278,7 @@ export interface HostRuntime {
   switchJobs?(): Iterable<{ readonly botId: string; readonly roomId?: string }>
   doingOf?(entry: LiveEntry): { readonly tool?: string; readonly target?: string; readonly said?: string }
   catalog(options?: { readonly fresh?: boolean }): Promise<readonly ModelEntry[]>
+  cachedCatalog(): readonly ModelEntry[]
   missingKeys?(providers: readonly string[]): Promise<ReadonlySet<string>> | ReadonlySet<string>
   dropCatalog(): void
   keepGroupLine?(roomId: string, line: { readonly text: string; readonly seq: number }, text: string): unknown
@@ -285,12 +287,15 @@ export interface HostRuntime {
   capabilitiesStateSaved?(): void
   cancelApprovals?(sessionId: string): void
   ownRequest(options: { readonly sessionId?: string }): boolean
+  ownRequest(options: { readonly sessionId?: string | undefined; readonly messages?: unknown }): boolean
   partsOf(botId: string): readonly { readonly sessionId: string; readonly number: number; readonly startedAt: number; readonly endedAt?: number | undefined }[]
   historyEntry(event: SessionEvent, forDisplay: boolean): { readonly text: string; readonly who?: string; readonly answer?: boolean; readonly keepAnswers?: boolean } | undefined
   clock(time: number | undefined): string
   partLines(sessionId: string, signal: AbortSignal): AsyncIterable<{ readonly text: string; readonly time: number }>
   defaultRef?(): string | undefined
   tagUsage(messages: readonly unknown[], tag: { readonly sessionId: string; readonly kind: string }): readonly unknown[]
+  carryUsageTag(from: unknown, to: unknown): void
+  usageView(options?: UsageViewOptions): Promise<UsageView>
 
   // --- provided by capabilities.ts and tools.ts
   ensureCapabilities(sessionId: string): Promise<unknown>

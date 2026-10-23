@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
-import { foldCalls } from '../src/host/usage.js'
+import { foldCalls } from '../src/host/usage.ts'
 import { fakeContext } from './fake-ctx.js'
 
 const header = (provider, model) => ({ type: 'request/header', data: { header: { config: { provider, model } }, reason: 'change' } })

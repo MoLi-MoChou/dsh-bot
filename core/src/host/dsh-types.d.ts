@@ -126,13 +126,48 @@ export interface SessionPage {
   readonly hasMore: boolean
 }
 
+/** A Session's page address: its own id, or a subagent read through its parent. */
+export type SessionAddress =
+  | { readonly kind: 'session'; readonly sessionId: string }
+  | { readonly kind: 'subagent'; readonly parentSessionId: string; readonly childSessionId: string; readonly mode?: string }
+
+/** A listing row's projection block; only a 'sequenced' block shares the log's seq. */
+export interface SessionProjectionHint {
+  readonly kind?: string
+  readonly asOfSeq?: number
+  readonly values?: Readonly<Record<string, unknown>>
+}
+
+/** One row of `sessionController.list`. */
+export interface SessionListEntry {
+  readonly sessionId: string
+  readonly parentSessionId?: string
+  readonly origin?: string
+  readonly blank?: boolean
+  readonly projections?: SessionProjectionHint
+}
+
+export interface SessionListing {
+  readonly items?: readonly SessionListEntry[]
+}
+
+/** A Session's exact projection watermark, read when the listing carries no hint. */
+export interface SessionProjections {
+  readonly asOfSeq?: number
+  readonly values?: Readonly<Record<string, unknown>>
+}
+
 export interface SessionController {
   create(options: SessionCreateOptions): Promise<{ readonly sessionId: string }>
   resolveAgent(sessionId: string): Promise<
     { readonly agent: Agent } | { readonly error: { readonly code?: string; readonly message?: string } }
   >
+  /** Every Session DSH knows, including archived parts and subagents. */
+  list(options: Readonly<Record<string, unknown>>, signal?: AbortSignal): Promise<SessionListing>
+  /** A Session's projection watermark; null once the Session is gone. */
+  projections(options: { readonly sessionId: string }, signal?: AbortSignal): Promise<SessionProjections | null | undefined>
   page(options: {
-    readonly address: { readonly kind: 'session'; readonly sessionId: string }
+    readonly address: SessionAddress
     readonly throughSeq?: number
     readonly beforeSeq?: number
     readonly maxMessages?: number
