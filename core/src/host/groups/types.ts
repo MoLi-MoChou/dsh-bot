@@ -195,7 +195,7 @@ type ChatPart = ReturnType<HostRuntime['partsOf']>[number]
  * the channel. `runtime.ts` keeps the shared slice; this is the group module's slice of
  * the plugin, as `ChannelRuntime` does for the channel.
  */
-export interface GroupRuntime extends Omit<HostRuntime, 'own' | 'postToRoom' | 'roomWaiters' | 'roomProgress' | 'roomInbox'> {
+export interface GroupRuntime extends Omit<HostRuntime, 'own' | 'postToRoom'> {
   /** `own` accepts a missing table: a group that has no Sessions yet has none. */
   own<T>(record: Readonly<Record<string, T>> | null | undefined, id: string): T | undefined
   roomOf(roomId: string | undefined): GroupRoom | undefined

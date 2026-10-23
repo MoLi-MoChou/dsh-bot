@@ -56,9 +56,6 @@ const LINE_EXEMPTIONS = [
   'src/host/memory.js',
   'src/host/parts.js',
   'src/host/turns.js',
-  'src/host/roster.ts',
-  'src/host/secrets.js',
-  'src/host/capabilities.ts',
 ]
 
 const DEFAULT_COMPILER_OPTIONS = {
@@ -92,7 +89,7 @@ for (let index = 0; index < argv.length; index += 1) {
 const sourceRoot = join(root, 'src')
 if (!existsSync(sourceRoot)) usage(`no src directory under ${root}`)
 
-const findings = { boundaries: [], lines: [], floating: [], tsx: [], typeOnly: [], declarationValues: [] }
+const findings = { boundaries: [], lines: [], floating: [], tsx: [], typeOnly: [], declarationValues: [], staleExemptions: [] }
 
 // ---------------------------------------------------------------------------
 // Source discovery and path helpers.
@@ -533,6 +530,21 @@ function buildProgram() {
 // Run after every declaration above: ESM evaluates the module body top to bottom, so
 // calling this earlier would read the regex/glob constants before they exist.
 
+
+// An exemption is debt: it must point at a real file that the line gate would
+// still refuse. A stale entry hides a file that quietly grew back over the limit.
+const NATURE_EXEMPTIONS = new Set(['src/client/brand-art.ts'])
+
+function checkStaleExemptions() {
+  for (const entry of LINE_EXEMPTIONS) {
+    if (entry.includes('*') || NATURE_EXEMPTIONS.has(entry)) continue
+    const file = join(root, entry)
+    if (!existsSync(file)) { findings.staleExemptions.push(`stale exemption: ${entry} does not exist`); continue }
+    const lines = readFileSync(file, 'utf8').split('\n').length
+    if (lines <= MAX_LINES) findings.staleExemptions.push(`stale exemption: ${entry} is ${lines} lines, the limit no longer needs it`)
+  }
+}
+
 function main() {
   checkBoundaries()
   checkLineCounts()
@@ -540,10 +552,11 @@ function main() {
   checkTestTsxImports()
   checkTypeOnlyImports()
   checkDeclarationValues()
+  checkStaleExemptions()
 
   const all = [
     ...findings.boundaries, ...findings.lines, ...findings.floating, ...findings.tsx,
-    ...findings.typeOnly, ...findings.declarationValues,
+    ...findings.typeOnly, ...findings.declarationValues, ...findings.staleExemptions,
   ]
   if (all.length === 0) {
     console.log('gates: ok')
@@ -557,6 +570,7 @@ function main() {
     `${findings.tsx.length} tsx-in-test`,
     `${findings.typeOnly.length} value-import-of-type-contract`,
     `${findings.declarationValues.length} value-export-in-declaration`,
+    `${findings.staleExemptions.length} stale-exemption`,
   ].join(', ')
   console.error(`gates: ${all.length} failure(s) (${summary})`)
   process.exit(1)

@@ -325,7 +325,7 @@ export interface HostRuntime {
   archiveGroupMemory?(room: StoredRoom): Promise<unknown>
   archiveBotMemory?(botId: string): Promise<unknown>
   readonly roomInbox: Map<string, unknown>
-  readonly roomProgress: ReadonlyMap<string, { readonly roomId?: string }>
+  readonly roomProgress: ReadonlyMap<string | undefined, { readonly roomId?: string }>
   dropGroupLines?(roomId: string): void
   followFolder?(botId: string): void
   uiLanguage?(): string | undefined
