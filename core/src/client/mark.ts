@@ -42,7 +42,7 @@ export { colorOf, lookOf } from './characters.ts'
 // motion. Uploaded images only bob or hop, since they have no parts to move. `waiting`:
 // no turn runs, but work it handed on has not come back yet.
 const STATES = ['idle', 'thinking', 'searching', 'working', 'sending', 'orbit', 'waiting', 'alert', 'done']
-export const botState = (running: boolean, activity: string | undefined, alert: boolean): string => (running ? (typeof activity === 'string' && STATES.includes(activity) && activity !== 'waiting' ? activity : 'working')
+export const botState = (running: boolean, activity: unknown, alert: boolean): string => (running ? (typeof activity === 'string' && STATES.includes(activity) && activity !== 'waiting' ? activity : 'working')
   : alert ? 'alert' : activity === 'waiting' ? 'waiting' : 'idle')
 export const toolState = (name: string): string => (/^(message_bot|stop_bot|create_bot|update_bot|create_group|update_group|delete_group|post_to_group)$/.test(name) ? 'sending'
   : /search|fetch|browse|read|grep|glob|list|recall/i.test(name) ? 'searching' : 'working')

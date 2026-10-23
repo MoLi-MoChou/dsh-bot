@@ -67,7 +67,7 @@
     "settings.ts": {
       "#4d6bfe": 1
     },
-    "sidebar.js": {
+    "sidebar.ts": {
       "#4d6bfe": 3,
       "#e5484d": 1,
       "#fff": 1,
@@ -103,7 +103,7 @@
     "secret-card.ts": {
       "5px": 1
     },
-    "sidebar.js": {
+    "sidebar.ts": {
       "14px": 1
     },
     "usage-page.ts": {

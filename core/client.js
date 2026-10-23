@@ -10832,7 +10832,7 @@ function showsDshRow(dsh, app) {
   return dsh.kind === "app" && app?.phase !== void 0 && APP_OFFER.has(app.phase) && sameVersion(app.version, dsh.verified);
 }
 
-// src/client/sidebar.js
+// src/client/sidebar.ts
 var import_react14 = require("react");
 var import_react_dom3 = require("react-dom");
 function useMarkedUnread(id, active, marked, actions) {
@@ -10856,7 +10856,7 @@ function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessio
   const preview = useSessions((list) => previewOf(list, part, roster.exchangeTurns[part]));
   const running = useSessionStatus((map) => map.get(part)?.running === true);
   const active = useSessionRetainInfo(part, (info) => (info?.retainedBy?.mainView ?? 0) > 0);
-  const unread = useSessionStatus((map) => map.get(part)?.completionUnread === true || map.get(part)?.pendingInteraction !== void 0) || marked && !active;
+  const unread = useSessionStatus((map) => map.get(part)?.completionUnread === true || map.get(part)?.pendingInteraction !== void 0) || marked === true && !active;
   useMarkedUnread(id, active, marked, actions);
   const main = isMainOf(roster, id);
   const tile = roster.mainBotId === id;
@@ -10866,7 +10866,8 @@ function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessio
   const groups = workKeys(useGroupWork(useWork, (rooms) => Object.entries(rooms).flatMap(([roomId, entries2]) => entries2.filter((entry) => entry.botId === id).map((entry) => ({ id: roomId, ...doingOf(entry) })))));
   const away = !running && groups.length > 0;
   const state = botState(running || away, doing, alert);
-  const awayLine = away ? workLine(roster.roomsById[groups[0].id]?.name ?? t("a group chat"), groups[0], groups.length - 1) : null;
+  const lead = groups[0];
+  const awayLine = away ? workLine((lead.id === void 0 ? void 0 : roster.roomsById[lead.id]?.name) ?? t("a group chat"), lead, groups.length - 1) : null;
   const waits = workKeys(useWork ? useWork((work) => JSON.stringify(work.waiting?.[id] ?? null)) : "null");
   const waitsFor = state === "waiting" ? waitingFor(roster, waits) : "";
   if (bot.hidden && !active && !main) return null;
@@ -10922,12 +10923,13 @@ function RoomRow({ room: room2, roster, actions, useSessions, useSessionStatus, 
   const fallback = useSessions((list) => previewOf(list, id));
   const preview = room2.preview?.replace(/\s+/g, " ").trim() || fallback;
   const active = useSessionRetainInfo(id, (info) => (info?.retainedBy?.mainView ?? 0) > 0);
-  const unread = useSessionStatus((map) => map.get(id)?.completionUnread === true) || marked && !active;
+  const unread = useSessionStatus((map) => map.get(id)?.completionUnread === true) || marked === true && !active;
   useMarkedUnread(id, active, marked, actions);
   const approval = useApproval(useWork, (entry) => entry.roomId === id);
   const members = workKeys(useGroupWork(useWork, (rooms) => (rooms[id] ?? []).map((entry) => ({ id: entry.botId, ...doingOf(entry) }))));
-  const first = roster.byId[members[0]?.id];
-  const workingLine = first ? workLine(first.name, members[0], members.length - 1) : null;
+  const leadMember = members[0];
+  const first = leadMember.id === void 0 ? void 0 : roster.byId[leadMember.id];
+  const workingLine = first ? workLine(first.name, leadMember, members.length - 1) : null;
   if (room2.hidden && !active) return null;
   const pinned = room2.pinned === true;
   const label = [room2.name, pinned ? t("Pinned") : "", members.length > 0 ? t("Working") : "", approval ? t("Waiting for your approval") : ""].filter(Boolean).join(", ");
@@ -11040,7 +11042,7 @@ function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, 
   const renaming = useUi((value) => value.renameAgent);
   const active = sessions.some((session) => session.active);
   const running = sessions.some((session) => session.running);
-  const unread = sessions.some((session) => session.unread) || marked && !active;
+  const unread = sessions.some((session) => session.unread === true) || marked === true && !active;
   useMarkedUnread(agent.id, active, marked, actions);
   const preview = sessions[0]?.title ?? t("New session");
   const label = ["DSH Agent", running ? t("Working") : "", unread ? t("Unread activity") : ""].filter(Boolean).join(", ");
@@ -11132,7 +11134,7 @@ var saveOrder = (ids) => {
   }
 };
 function manualSort(entries2, manual) {
-  if (!manual) return entries2;
+  if (!manual) return [...entries2];
   const index = new Map(manual.map((id, at) => [id, at]));
   return [...entries2].sort((a, b) => Number(Boolean(b.item.pinned)) - Number(Boolean(a.item.pinned)) || (index.get(a.item.id) ?? -1) - (index.get(b.item.id) ?? -1));
 }
@@ -11174,7 +11176,7 @@ function TeamSidebar(props) {
       dragging.current = false;
     }, 0);
   };
-  const main = roster.byId[roster.mainBotId];
+  const main = roster.mainBotId === void 0 ? void 0 : roster.byId[roster.mainBotId];
   useListGlide(listRef, wide && !dragging.current, shown.map((entry) => entry.item.id).join(","));
   useLandOnMainBot(roster, useSessions, actions);
   const navigate = (open, id) => {
@@ -11188,6 +11190,7 @@ function TeamSidebar(props) {
   };
   const rowActions = {
     ...actions,
+    // The value the open call returns reaches the row, as it did before.
     openSession: (id) => navigate(actions.openSession, id),
     openAgent: (id) => navigate(actions.openAgent, id),
     openAgentSession: (id) => navigate(actions.openAgentSession, id),
@@ -11283,12 +11286,13 @@ function UpdateButton({ useUpdate, actions }) {
       window.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
-  const phase = update?.phase ?? "idle";
-  const dsh = update?.dsh;
-  const dshPhase = dsh?.phase ?? "idle";
-  const dshRow = showsDshRow(dsh, update?.app);
-  if (update?.source === "web") return null;
-  if (!update?.available && !dshRow && phase === "idle" && dshPhase === "idle") return null;
+  if (update === null) return null;
+  const phase = update.phase ?? "idle";
+  const dsh = update.dsh ?? {};
+  const dshPhase = dsh.phase ?? "idle";
+  const dshRow = showsDshRow(dsh, update.app);
+  if (update.source === "web") return null;
+  if (!update.available && !dshRow && phase === "idle" && dshPhase === "idle") return null;
   const cloudPhase = phase === "installing" || dshPhase === "installing" ? "installing" : phase !== "idle" ? phase : dshPhase;
   const toggle = () => {
     const rect = button.current?.getBoundingClientRect();
@@ -11413,7 +11417,7 @@ var SECTION_NAMES = { models: /^(Models|模型)$/u };
 function showShellSection(section, tries = 40) {
   const name = SECTION_NAMES[section];
   if (!name) return;
-  const row = [...document.querySelectorAll("[role=dialog] button")].find((node) => name.test(node.textContent.trim()));
+  const row = [...document.querySelectorAll("[role=dialog] button")].find((node) => name.test((node.textContent ?? "").trim()));
   if (row) {
     row.click();
     return;
@@ -11429,7 +11433,7 @@ function openHarnessOnboarding(id) {
 }
 function openThroughMenu(trigger) {
   const before = new Set(document.querySelectorAll('[role="menu"]'));
-  trigger.click();
+  if (trigger instanceof HTMLElement) trigger.click();
   let frames = 0;
   const look = () => {
     const menu = [...document.querySelectorAll('[role="menu"]')].find((node) => !before.has(node));
@@ -11555,19 +11559,20 @@ function useLandOnMainBot(roster, useSessions, actions) {
   const lastBot = (0, import_react14.useRef)(null);
   (0, import_react14.useEffect)(() => {
     if (!roster.ready || !roster.mainBotId) return void 0;
-    const [id, blank3] = mainView.split("|");
+    const [id = "", blank3 = ""] = mainView.split("|");
     const bot = id === "" ? void 0 : roster.byId[id];
     if (bot !== void 0) {
       lastBot.current = { botId: bot.id, sessionId: id };
       if (currentPart(bot) !== id) actions.landOn(bot.id);
       return void 0;
     }
-    if (id !== "" && (roster.roomsById[id] || (actions.isAgentSession?.(id) ?? roster.agentOf[id] !== void 0) || blank3 !== "1")) {
+    if (id !== "" && (roster.roomsById[id] !== void 0 || (actions.isAgentSession?.(id) ?? roster.agentOf[id] !== void 0) || blank3 !== "1")) {
       lastBot.current = null;
       return void 0;
     }
     const last = lastBot.current;
-    const timer = setTimeout(() => actions.landOn(roster.mainBotId, last), last ? 0 : 400);
+    const mainBotId = roster.mainBotId;
+    const timer = setTimeout(() => actions.landOn(mainBotId, last), last ? 0 : 400);
     return () => clearTimeout(timer);
   }, [mainView, roster]);
 }

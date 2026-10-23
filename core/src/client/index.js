@@ -9,7 +9,7 @@ import { themeCss, shellTokens, registry, registerShape, registerTheme, allTheme
 import { MENTION_ORIGIN, currentPart } from './text.ts'
 import { SHELL_CSS, CONVERSATION_CSS, installStyles, installCompiledStyles } from './design/index.ts'
 import { lookOf } from './mark.ts'
-import { TeamSidebar, ConnectPlugins, YouAvatar, AccountLauncher, FooterAccount, BrandMark, BrandName, BotReturn, SIDEBAR_CSS, RETURN_CSS, holdShellShortcuts, openHarnessOnboarding, openHarnessSettings } from './sidebar.js'
+import { TeamSidebar, ConnectPlugins, YouAvatar, AccountLauncher, FooterAccount, BrandMark, BrandName, BotReturn, SIDEBAR_CSS, RETURN_CSS, holdShellShortcuts, openHarnessOnboarding, openHarnessSettings } from './sidebar.ts'
 import { HeaderPill } from './header.ts'
 import { ComposerPlus, ComposerVoice, menuIcons } from './composer.ts'
 import { CHATS_SOURCE, atSources } from './at-menu.ts'

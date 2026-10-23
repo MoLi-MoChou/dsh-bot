@@ -16,12 +16,19 @@ import { EASE_OUT, reducedMotion, SPRING_ROW_GLIDE, SPRING_SHAPE } from './motio
 import { hostText, t, productName } from './i18n.ts'
 import { showsDshRow } from './dsh-offer.ts'
 import { useMenuKeys } from './overlay-hooks.ts'
+import type { ReactNode, RefObject } from 'react'
+import type {
+  TSidebarActions, TSidebarAgent, TSidebarBot, TSidebarDoing, TSidebarDoingRow, TSidebarEntry, TSidebarHook,
+  TSidebarProps, TSidebarRoom, TSidebarRoster, TSidebarRowProps, TSidebarSessionList,
+  TSidebarShellShortcuts, TSidebarUpdate, TSidebarWaits, TSidebarWork,
+} from './sidebar-types.js'
+
 
 // -------------------------------------------------------------------------
 // Sidebar
 
 // Manual "Mark as Unread" lasts until the conversation is opened again.
-function useMarkedUnread(id, active, marked, actions) {
+function useMarkedUnread(id: string, active: boolean, marked: boolean | undefined, actions: Pick<TSidebarActions, 'clearUnread'>): void {
   useEffect(() => {
     if (active && marked) actions.clearUnread(id)
   }, [active, marked])
@@ -31,43 +38,44 @@ const PinMark = () => h('span', { className: 'bt-pin', 'aria-hidden': true }, h(
 
 // Whether an approval waits for the user: for a Bot, in any of its Sessions; for a group,
 // from any of its members there.
-const useApproval = (useWork, match) => (useWork ? useWork(work => (work.approvals ?? []).some(match)) : false)
+const useApproval = (useWork: TSidebarHook<TSidebarWork> | undefined, match: (entry: { readonly botId?: string | undefined; readonly roomId?: string | undefined }) => boolean): boolean => (useWork ? useWork(work => (work.approvals ?? []).some(match)) : false)
 
 // Work running in group Sessions, as "botId|tool" keys so a row redraws only when it
 // changes: the groups one Bot works in, or the members at work in one group.
 // Picked as text, so a row redraws only when what it shows changes.
-const useGroupWork = (useWork, pick) => (useWork ? useWork(work => JSON.stringify(pick(work.rooms ?? {}))) : '[]')
-const workKeys = text => JSON.parse(text)
-const doingOf = ({ tool, said, note, target, switching }) => ({ tool, said, note, target, switching })
-const workLine = (lead, doing, more) => h(Shimmer, null, `${lead} · ${workPhrase(doing)}…${more > 0 ? ` +${more}` : ''}`)
+const useGroupWork = (useWork: TSidebarHook<TSidebarWork> | undefined, pick: (rooms: Record<string, readonly TSidebarDoing[]>) => unknown): string => (useWork ? useWork(work => JSON.stringify(pick(work.rooms ?? {}))) : '[]')
+const workKeys = <T,>(text: string): T => JSON.parse(text) as T
+const doingOf = ({ tool, said, note, target, switching }: TSidebarDoing): TSidebarDoingRow => ({ tool, said, note, target, switching })
+const workLine = (lead: string, doing: TSidebarDoingRow, more: number): ReactNode => h(Shimmer, null, `${lead} · ${workPhrase(doing)}…${more > 0 ? ` +${more}` : ''}`)
 // The Bots and groups a Bot waits for (handoffs.ts), by the names they have now.
-const waitingFor = (roster, waits) => {
+const waitingFor = (roster: TSidebarRoster, waits: TSidebarWaits | null): string => {
   const names = [...(waits?.bots ?? []).map(id => roster.byId[id]?.name), ...(waits?.rooms ?? []).map(id => roster.roomsById[id]?.name)].filter(Boolean)
   return names.length === 0 ? '' : t('Waiting for {names}', { names: names.join(t(' and ')) })
 }
 
-function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessionRetainInfo, useActivity, useWork, wide, marked }) {
+function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessionRetainInfo, useActivity, useWork, wide, marked }: TSidebarRowProps & { readonly bot: TSidebarBot; readonly marked: boolean | undefined }) {
   const id = bot.id
   const part = currentPart(bot)
-  const preview = useSessions(list => previewOf(list, part, roster.exchangeTurns[part]))
+  const preview = useSessions(list => previewOf(list as never, part, roster.exchangeTurns[part]))
   const running = useSessionStatus(map => map.get(part)?.running === true)
   const active = useSessionRetainInfo(part, info => (info?.retainedBy?.mainView ?? 0) > 0)
-  const unread = useSessionStatus(map => map.get(part)?.completionUnread === true || map.get(part)?.pendingInteraction !== undefined) || (marked && !active)
+  const unread = useSessionStatus(map => map.get(part)?.completionUnread === true || map.get(part)?.pendingInteraction !== undefined) || (marked === true && !active)
   useMarkedUnread(id, active, marked, actions)
-  const main = isMainOf(roster, id)
+  const main = isMainOf(roster as never, id)
   const tile = roster.mainBotId === id
   const approval = useApproval(useWork, entry => entry.botId === id)
   const alert = roster.questions?.[part] !== undefined || approval
   const doing = useActivity(map => map[id])
   // Work in a group runs in a Session of its own, so the Bot's chat stays idle meanwhile.
-  const groups = workKeys(useGroupWork(useWork, rooms => Object.entries(rooms).flatMap(([roomId, entries]) => entries.filter(entry => entry.botId === id).map(entry => ({ id: roomId, ...doingOf(entry) })))))
+  const groups = workKeys<TSidebarDoingRow[]>(useGroupWork(useWork, rooms => Object.entries(rooms).flatMap(([roomId, entries]) => entries.filter(entry => entry.botId === id).map(entry => ({ id: roomId, ...doingOf(entry) })))))
   const away = !running && groups.length > 0
   const state = botState(running || away, doing, alert)
-  const awayLine = away ? workLine(roster.roomsById[groups[0].id]?.name ?? t('a group chat'), groups[0], groups.length - 1) : null
-  const waits = workKeys(useWork ? useWork(work => JSON.stringify(work.waiting?.[id] ?? null)) : 'null')
+  const lead = groups[0] as TSidebarDoingRow
+  const awayLine = away ? workLine((lead.id === undefined ? undefined : roster.roomsById[lead.id]?.name) ?? t('a group chat'), lead, groups.length - 1) : null
+  const waits = workKeys<TSidebarWaits | null>(useWork ? useWork(work => JSON.stringify(work.waiting?.[id] ?? null)) : 'null')
   const waitsFor = state === 'waiting' ? waitingFor(roster, waits) : ''
   if (bot.hidden && !active && !main) return null
-  const onContextMenu = (event) => {
+  const onContextMenu = (event: React.MouseEvent<HTMLButtonElement>): void => {
     event.preventDefault()
     actions.openMenu({ kind: 'bot', id, x: event.clientX, y: event.clientY })
   }
@@ -99,17 +107,18 @@ function BotRow({ bot, roster, actions, useSessions, useSessionStatus, useSessio
   wide && unread && !active ? h('span', { className: 'bt-unread', 'aria-hidden': true }) : null)
 }
 
-function RoomRow({ room, roster, actions, useSessions, useSessionStatus, useSessionRetainInfo, useWork, wide, marked }) {
+function RoomRow({ room, roster, actions, useSessions, useSessionStatus, useSessionRetainInfo, useWork, wide, marked }: Omit<TSidebarRowProps, 'useUi' | 'useActivity'> & { readonly room: TSidebarRoom; readonly marked: boolean | undefined }) {
   const id = room.id
-  const fallback = useSessions(list => previewOf(list, id))
+  const fallback = useSessions(list => previewOf(list as never, id))
   const preview = room.preview?.replace(/\s+/g, ' ').trim() || fallback
   const active = useSessionRetainInfo(id, info => (info?.retainedBy?.mainView ?? 0) > 0)
-  const unread = useSessionStatus(map => map.get(id)?.completionUnread === true) || (marked && !active)
+  const unread = useSessionStatus(map => map.get(id)?.completionUnread === true) || (marked === true && !active)
   useMarkedUnread(id, active, marked, actions)
   const approval = useApproval(useWork, entry => entry.roomId === id)
-  const members = workKeys(useGroupWork(useWork, rooms => (rooms[id] ?? []).map(entry => ({ id: entry.botId, ...doingOf(entry) }))))
-  const first = roster.byId[members[0]?.id]
-  const workingLine = first ? workLine(first.name, members[0], members.length - 1) : null
+  const members = workKeys<TSidebarDoingRow[]>(useGroupWork(useWork, rooms => (rooms[id] ?? []).map(entry => ({ id: entry.botId, ...doingOf(entry) }))))
+  const leadMember = members[0] as TSidebarDoingRow
+  const first = leadMember.id === undefined ? undefined : roster.byId[leadMember.id]
+  const workingLine = first ? workLine(first.name, leadMember, members.length - 1) : null
   if (room.hidden && !active) return null
   const pinned = room.pinned === true
   const label = [room.name, pinned ? t('Pinned') : '', members.length > 0 ? t('Working') : '', approval ? t('Waiting for your approval') : ''].filter(Boolean).join(', ')
@@ -129,15 +138,31 @@ function RoomRow({ room, roster, actions, useSessions, useSessionStatus, useSess
 
 // One expanded DSH Agent Session row: title, relative stamp, rename field, and a
 // context menu for rename/archive.
-function AgentSessionRow({ session, agent, actions, renaming, index }) {
-  const input = useRef(null)
+/** One Session of the Agent, as its row draws it. */
+interface AgentSessionView {
+  readonly id: string
+  readonly title: string
+  readonly at: number
+  readonly active: boolean
+  readonly running?: boolean | undefined
+  readonly unread?: boolean | undefined
+}
+
+function AgentSessionRow({ session, agent, actions, renaming, index }: {
+  readonly session: AgentSessionView
+  readonly agent: TSidebarAgent
+  readonly actions: TSidebarActions
+  readonly renaming: boolean
+  readonly index: number
+}) {
+  const input = useRef<HTMLInputElement | null>(null)
   useLayoutEffect(() => {
     if (!renaming) return
     input.current?.focus()
     input.current?.select()
   }, [renaming])
   if (renaming) {
-    const commit = (keep) => {
+    const commit = (keep: boolean): void => {
       const value = input.current?.value ?? ''
       if (!keep || value.trim() === '' || value.trim() === session.title) { actions.endAgentRename(); return }
       // The editor closes only after the rename landed; a failure keeps it open.
@@ -176,8 +201,8 @@ function AgentSessionRow({ session, agent, actions, renaming, index }) {
 
 // The DSH Agent row: a plain dsh Session list lives in the Bot workspace, so it
 // sits among the Bots with the harness's own whale mark.
-function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, marked }) {
-  const info = useSessions(list => JSON.stringify(agent.sessions.map((id) => {
+function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, marked }: Omit<TSidebarRowProps, 'roster' | 'useSessionRetainInfo' | 'useActivity' | 'useWork'> & { readonly agent: TSidebarAgent; readonly marked: boolean | undefined }) {
+  const info = useSessions(list => JSON.stringify(agent.sessions.map((id): AgentSessionView => {
     const row = list.byId[id]
     return {
       id,
@@ -191,8 +216,8 @@ function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, 
   const statusInfo = useSessionStatus(map => JSON.stringify(agent.sessions.map(id => ({
     id, running: map.get(id)?.running === true, unread: map.get(id)?.completionUnread === true,
   }))))
-  const statuses = Object.fromEntries(JSON.parse(statusInfo).map(entry => [entry.id, entry]))
-  const sessions = JSON.parse(info).map(session => ({
+  const statuses = Object.fromEntries((JSON.parse(statusInfo) as { id: string; running: boolean; unread: boolean }[]).map(entry => [entry.id, entry])) as Record<string, { running: boolean; unread: boolean }>
+  const sessions = (JSON.parse(info) as AgentSessionView[]).map(session => ({
     ...session,
     running: statuses[session.id]?.running ?? session.running,
     unread: statuses[session.id]?.unread ?? false,
@@ -201,7 +226,7 @@ function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, 
   const renaming = useUi(value => value.renameAgent)
   const active = sessions.some(session => session.active)
   const running = sessions.some(session => session.running)
-  const unread = sessions.some(session => session.unread) || (marked && !active)
+  const unread = sessions.some(session => session.unread === true) || (marked === true && !active)
   useMarkedUnread(agent.id, active, marked, actions)
   const preview = sessions[0]?.title ?? t('New session')
   const label = ['DSH Agent', running ? t('Working') : '', unread ? t('Unread activity') : ''].filter(Boolean).join(', ')
@@ -227,14 +252,14 @@ function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, 
         })))))
 }
 
-function useListGlide(listRef, layout, key) {
+function useListGlide(listRef: RefObject<HTMLDivElement | null>, layout: boolean, key: string): void {
   const tops = useRef({ layout, map: new Map() })
   useLayoutEffect(() => {
     const list = listRef.current
     if (!list) return
     const next = new Map()
     const still = reducedMotion() || tops.current.layout !== layout
-    for (const row of list.querySelectorAll('[data-bot-id],[data-room-id],[data-agent-id]')) {
+    for (const row of list.querySelectorAll<HTMLElement>('[data-bot-id],[data-room-id],[data-agent-id]')) {
       const id = row.dataset.botId ?? row.dataset.roomId ?? row.dataset.agentId
       // offsetTop ignores transforms, so a glide in flight does not skew the next one.
       const top = row.offsetTop
@@ -250,52 +275,52 @@ function useListGlide(listRef, layout, key) {
 
 // Moon Bot: the list sorts by recent activity until the user drags a row; then the
 // dragged order holds (pinned rows still first, new rows on top). Saved per browser.
-const readOrder = () => {
-  try { const value = JSON.parse(localStorage.getItem(STORAGE.sidebarOrder) ?? 'null'); return Array.isArray(value) ? value : null } catch { return null }
+const readOrder = (): string[] | null => {
+  try { const value = JSON.parse(localStorage.getItem(STORAGE.sidebarOrder) ?? 'null') as unknown; return Array.isArray(value) ? value as string[] : null } catch { return null }
 }
-const saveOrder = (ids) => { try { localStorage.setItem(STORAGE.sidebarOrder, JSON.stringify(ids)) } catch {} }
-export function manualSort(entries, manual) {
-  if (!manual) return entries
-  const index = new Map(manual.map((id, at) => [id, at]))
+const saveOrder = (ids: readonly string[]): void => { try { localStorage.setItem(STORAGE.sidebarOrder, JSON.stringify(ids)) } catch {} }
+export function manualSort(entries: readonly TSidebarEntry[], manual: readonly string[] | null): TSidebarEntry[] {
+  if (!manual) return [...entries]
+  const index = new Map(manual.map((id, at) => [id, at] as const))
   return [...entries].sort((a, b) => Number(Boolean(b.item.pinned)) - Number(Boolean(a.item.pinned))
     || (index.get(a.item.id) ?? -1) - (index.get(b.item.id) ?? -1))
 }
 
-export function TeamSidebar(props) {
+export function TeamSidebar(props: TSidebarProps) {
   const { wide, expandSidebar, useRoster, useUi, useSessions, actions } = props
-  const listRef = useRef(null)
+  const listRef = useRef<HTMLDivElement | null>(null)
   const closing = useRef(false)
   useLayoutEffect(() => { closing.current = false })
   const roster = useRoster(value => value)
   const markedUnread = useUi(value => value.unread)
   props.useRegistry(value => value)
   const updated = useSessions(list => {
-    const stamps = {}
+    const stamps: Record<string, number> = {}
     for (const id of list.ids) stamps[id] = list.byId[id]?.updatedAt ?? 0
     return JSON.stringify(stamps)
   })
   const order = useMemo(() => {
-    const stamps = JSON.parse(updated)
-    const entries = [
-      ...roster.bots.filter(bot => bot.id !== roster.mainBotId).map(bot => ({ kind: 'bot', item: bot, at: stamps[currentPart(bot)] ?? bot.createdAt })),
-      ...roster.rooms.map(room => ({ kind: 'room', item: room, at: stamps[room.id] ?? room.createdAt })),
+    const stamps = JSON.parse(updated) as Record<string, number>
+    const entries: TSidebarEntry[] = [
+      ...roster.bots.filter(bot => bot.id !== roster.mainBotId).map(bot => ({ kind: 'bot' as const, item: bot, at: (stamps[currentPart(bot)] ?? bot.createdAt) as number })),
+      ...roster.rooms.map(room => ({ kind: 'room' as const, item: room, at: (stamps[room.id] ?? room.createdAt) as number })),
       // The Agent sorts by its most recent Session, falling back to when it was added.
-      ...(roster.agents ?? []).map(agent => ({ kind: 'agent', item: agent, at: Math.max(0, ...agent.sessions.map(id => stamps[id] ?? 0)) || agent.createdAt })),
+      ...(roster.agents ?? []).map(agent => ({ kind: 'agent' as const, item: agent, at: (Math.max(0, ...agent.sessions.map(id => stamps[id] ?? 0)) || agent.createdAt) as number })),
     ]
     return entries.sort((a, b) => Number(Boolean(b.item.pinned)) - Number(Boolean(a.item.pinned)) || b.at - a.at)
   }, [roster, updated])
-  const [manual, setManual] = useState(readOrder)
+  const [manual, setManual] = useState<string[] | null>(readOrder)
   const shown = useMemo(() => manualSort(order, manual), [order, manual])
   const dragging = useRef(false)
-  const reorder = (ids) => { dragging.current = true; setManual(ids) }
-  const dropped = () => { saveOrder(shown.map(entry => entry.item.id)); setTimeout(() => { dragging.current = false }, 0) }
-  const main = roster.byId[roster.mainBotId]
+  const reorder = (ids: string[]): void => { dragging.current = true; setManual(ids) }
+  const dropped = (): void => { saveOrder(shown.map(entry => entry.item.id)); setTimeout(() => { dragging.current = false }, 0) }
+  const main = roster.mainBotId === undefined ? undefined : roster.byId[roster.mainBotId]
   useListGlide(listRef, wide && !dragging.current, shown.map(entry => entry.item.id).join(','))
   useLandOnMainBot(roster, useSessions, actions)
   // The shell keeps wide content during its collapse fade. Normalize through its
   // public expansion action before toggling; coalesce synchronous activations
   // until React commits the result.
-  const navigate = (open, id) => {
+  const navigate = (open: (id: string) => unknown, id: string): unknown => {
     const result = open(id)
     if (wide && window.innerWidth < 1024 && !closing.current) {
       closing.current = true
@@ -304,16 +329,17 @@ export function TeamSidebar(props) {
     }
     return result
   }
-  const rowActions = {
+  const rowActions: TSidebarActions = {
     ...actions,
-    openSession: id => navigate(actions.openSession, id),
-    openAgent: id => navigate(actions.openAgent, id),
-    openAgentSession: id => navigate(actions.openAgentSession, id),
-    newAgentSession: id => navigate(actions.newAgentSession, id),
+    // The value the open call returns reaches the row, as it did before.
+    openSession: (id) => navigate(actions.openSession, id),
+    openAgent: (id) => navigate(actions.openAgent, id),
+    openAgentSession: (id) => navigate(actions.openAgentSession, id),
+    newAgentSession: (id) => navigate(actions.newAgentSession, id) as Promise<unknown>,
   }
   const rowProps = { roster, actions: rowActions, useSessions, useUi, useSessionStatus: props.useSessionStatus, useSessionRetainInfo: props.useSessionRetainInfo, useActivity: props.useActivity, useWork: props.useWork, wide }
   // Typing while the sidebar has focus starts a search.
-  const typeToSearch = (event) => {
+  const typeToSearch = (event: React.KeyboardEvent<HTMLDivElement>): void => {
     if (event.defaultPrevented || event.key.length !== 1 || event.key === ' ' || event.metaKey || event.ctrlKey || event.altKey || event.nativeEvent.isComposing) return
     if (event.target instanceof Element && event.target.closest('input,textarea,[contenteditable]')) return
     event.preventDefault()
@@ -329,7 +355,7 @@ export function TeamSidebar(props) {
       : h(Fragment, null,
           h(UpdateButton, { useUpdate: props.useUpdate, actions }),
           h('button', { type: 'button', className: 'bt-round', 'aria-label': t('New…'), title: t('New…'), onClick: () => actions.openNewChat('new') }, h(PlusIcon))),
-    wide && roster.readOnly ? h('div', { className: 'bt-hint bt-read-only', role: 'status' }, hostText(roster.readOnly)) : null,
+    wide && roster.readOnly ? h('div', { className: 'bt-hint bt-read-only', role: 'status' }, hostText(roster.readOnly as string)) : null,
     h('div', { ref: listRef, className: 'bt-list', role: 'region', 'aria-label': t('Bot list') },
       main ? h(BotRow, { ...rowProps, bot: main, marked: markedUnread[main.id] === true }) : roster.ready ? null : h('div', { className: 'bt-hint' }, t('Setting up your Main Bot…')),
       h(ReorderList, { shown, wide, reorder, dropped, dragging, render: entry => entry.kind === 'bot'
@@ -344,7 +370,14 @@ export function TeamSidebar(props) {
         action: { icon: h(PlusIcon), label: t('Create Bot'), onClick: () => actions.openNewChat('create') },
       })) : null))
 }
-function ReorderList({ shown, wide, reorder, dropped, dragging, render }) {
+function ReorderList({ shown, wide, reorder, dropped, dragging, render }: {
+  readonly shown: readonly TSidebarEntry[]
+  readonly wide: boolean
+  readonly reorder: (ids: string[]) => void
+  readonly dropped: () => void
+  readonly dragging: { current: boolean }
+  readonly render: (entry: TSidebarEntry) => ReactNode
+}) {
   const Reorder = framerMotion()?.Reorder
   if (!Reorder) return h(Fragment, null, shown.map(entry => h(Fragment, { key: entry.item.id }, render(entry))))
   return h(Reorder.Group, { as: 'div', axis: 'y', values: shown.map(entry => entry.item.id), onReorder: reorder, className: 'bt-reorder' },
@@ -352,7 +385,7 @@ function ReorderList({ shown, wide, reorder, dropped, dragging, render }) {
           key: entry.item.id, value: entry.item.id, as: 'div', className: 'bt-reorder-item',
           dragListener: wide, onDragEnd: dropped,
           whileDrag: { scale: 1.02, boxShadow: '0 6px 18px rgba(0,0,0,.12)', zIndex: 5 },
-          onClickCapture: (event) => { if (dragging.current) { event.stopPropagation(); event.preventDefault() } },
+          onClickCapture: (event: React.MouseEvent) => { if (dragging.current) { event.stopPropagation(); event.preventDefault() } },
         }, render(entry))))
 }
 
@@ -360,43 +393,45 @@ function ReorderList({ shown, wide, reorder, dropped, dragging, render }) {
 // or a newer verified DSH — is available, then the install's progress and
 // result. Its card has one row each for the bot and DSH, with their versions,
 // the release notes link, and each row's own button.
-function UpdateButton({ useUpdate, actions }) {
+function UpdateButton({ useUpdate, actions }: { readonly useUpdate: TSidebarHook<TSidebarUpdate | null>; readonly actions: Pick<TSidebarActions, 'installUpdate' | 'installDshUpdate' | 'openAppUpdates'> }) {
   const update = useUpdate(value => value)
   const [open, setOpen] = useState(false)
-  const [box, setBox] = useState(null)
+  const [box, setBox] = useState<{ left: number; top: number } | null>(null)
   const [error, setError] = useState('')
   const [dshError, setDshError] = useState('')
-  const button = useRef(null)
+  const button = useRef<HTMLButtonElement | null>(null)
   useEffect(() => {
     if (!open) return undefined
-    const onDown = (event) => {
+    const onDown = (event: MouseEvent): void => {
       if (event.target instanceof Element && (event.target.closest('.bt-update-pop') || button.current?.contains(event.target))) return
       setOpen(false)
     }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); button.current?.focus() } }
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); button.current?.focus() } }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey, true) }
   }, [open])
-  const phase = update?.phase ?? 'idle'
-  const dsh = update?.dsh
-  const dshPhase = dsh?.phase ?? 'idle'
-  const dshRow = showsDshRow(dsh, update?.app)
-  if (update?.source === 'web') return null
-  if (!update?.available && !dshRow && phase === 'idle' && dshPhase === 'idle') return null
+  // Nothing to say without an update state at all: the button stays out of the sidebar.
+  if (update === null) return null
+  const phase = update.phase ?? 'idle'
+  const dsh = update.dsh ?? {}
+  const dshPhase = dsh.phase ?? 'idle'
+  const dshRow = showsDshRow(dsh, update.app as never)
+  if (update.source === 'web') return null
+  if (!update.available && !dshRow && phase === 'idle' && dshPhase === 'idle') return null
   const cloudPhase = phase === 'installing' || dshPhase === 'installing' ? 'installing' : phase !== 'idle' ? phase : dshPhase
-  const toggle = () => {
+  const toggle = (): void => {
     const rect = button.current?.getBoundingClientRect()
     if (rect) setBox({ left: Math.max(8, Math.min(rect.left, window.innerWidth - 288)), top: rect.bottom + 6 })
     setOpen(value => !value)
   }
-  const start = () => {
+  const start = (): void => {
     setError('')
-    void actions.installUpdate().catch(failure => setError(hostText(failure?.message ?? String(failure))))
+    void actions.installUpdate().catch((failure: { readonly message?: string } | null | undefined) => setError(hostText(failure?.message ?? String(failure))))
   }
-  const startDsh = () => {
+  const startDsh = (): void => {
     setDshError('')
-    void actions.installDshUpdate().catch(failure => setDshError(hostText(failure?.message ?? String(failure))))
+    void actions.installDshUpdate().catch((failure: { readonly message?: string } | null | undefined) => setDshError(hostText(failure?.message ?? String(failure))))
   }
   const label = phase === 'installing' ? t('Updating DS Bot…')
     : dshPhase === 'installing' ? t('Updating DSH…')
@@ -444,7 +479,7 @@ function UpdateButton({ useUpdate, actions }) {
 }
 
 // The footer entry to the shell's plugin panel.
-export function ConnectPlugins({ wide, actions }) {
+export function ConnectPlugins({ wide, actions }: { readonly wide: boolean; readonly actions: Pick<TSidebarActions, 'selectPanel'> }) {
   if (!wide) return null
   return h('span', { className: 'bt-connect-wrap' },
     h('button', {
@@ -461,11 +496,11 @@ export function YouAvatar() {
     h('span', { style: { position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' } }, t('Settings')))
 }
 
-let openShellSettings = null
-let openShellOnboarding = null
-let shellShortcuts = null
+let openShellSettings: ((page?: string) => void) | null = null
+let openShellOnboarding: ((id?: unknown) => void) | null = null
+let shellShortcuts: TSidebarShellShortcuts | null = null
 
-export function holdShellShortcuts(shortcuts) {
+export function holdShellShortcuts(shortcuts: TSidebarShellShortcuts | null): () => void {
   shellShortcuts = shortcuts
   return () => { if (shellShortcuts === shortcuts) shellShortcuts = null }
 }
@@ -474,7 +509,7 @@ export function holdShellShortcuts(shortcuts) {
 // the Desktop's account menu holds that seat, its first item (Settings) is the way in;
 // the Desktop on Windows and macOS takes shortcuts natively, so a synthetic key press
 // reaches the shell only where the page delivers them (the Web, Linux).
-export function openHarnessSettings(section) {
+export function openHarnessSettings(section?: string): void {
   // A frame first, so a Bot dialog that closes on this click leaves the modal stack.
   requestAnimationFrame(() => {
     if (section) showShellSection(section)
@@ -487,17 +522,17 @@ export function openHarnessSettings(section) {
 
 // Moon Bot patch: the shell's opener takes no section, so its nav row is clicked once the
 // dialog is up (DSH names the models page "Models" / "模型").
-const SECTION_NAMES = { models: /^(Models|模型)$/u }
-function showShellSection(section, tries = 40) {
+const SECTION_NAMES: Record<string, RegExp> = { models: /^(Models|模型)$/u }
+function showShellSection(section: string, tries = 40): void {
   const name = SECTION_NAMES[section]
   if (!name) return
-  const row = [...document.querySelectorAll('[role=dialog] button')].find(node => name.test(node.textContent.trim()))
+  const row = [...document.querySelectorAll<HTMLElement>('[role=dialog] button')].find(node => name.test((node.textContent ?? '').trim()))
   if (row) { row.click(); return }
   if (tries > 0) setTimeout(() => showShellSection(section, tries - 1), 50)
 }
 
 // Opens one of the shell's own onboarding editors, such as the DeepSeek API key form.
-export function openHarnessOnboarding(id) {
+export function openHarnessOnboarding(id?: unknown): void {
   noteSignInAsked()
   requestAnimationFrame(() => {
     if (openShellOnboarding) openShellOnboarding(id)
@@ -505,13 +540,13 @@ export function openHarnessOnboarding(id) {
   })
 }
 
-function openThroughMenu(trigger) {
+function openThroughMenu(trigger: Element): void {
   const before = new Set(document.querySelectorAll('[role="menu"]'))
-  trigger.click()
+  if (trigger instanceof HTMLElement) trigger.click()
   let frames = 0
   const look = () => {
     const menu = [...document.querySelectorAll('[role="menu"]')].find(node => !before.has(node))
-    const item = menu?.querySelector('button[role="menuitem"]')
+    const item = menu?.querySelector<HTMLElement>('button[role="menuitem"]')
     if (item) item.click()
     else if (++frames < 30) requestAnimationFrame(look)
     else pressSettingsShortcut()
@@ -519,7 +554,7 @@ function openThroughMenu(trigger) {
   requestAnimationFrame(look)
 }
 
-function pressSettingsShortcut() {
+function pressSettingsShortcut(): void {
   const binding = shellShortcuts?.catalog.getSnapshot().find(row => row.id === 'settings.open')?.binding
   if (!binding) return
   const held = new Set(binding.modifiers)
@@ -534,16 +569,22 @@ function pressSettingsShortcut() {
 // `seat` is the shell's settings.launcher seat: at priority -10 the whale wins it
 // over a shell account plugin's own launcher (the Desktop's "··· More"), which comes
 // back in Agent mode; FooterAccount stands in while no seat exists at all.
-export function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboarding, actions }) {
+export function AccountLauncher({ seat = true, settingsOpen, openSettings, openOnboarding, actions }: {
+  readonly seat?: boolean
+  readonly settingsOpen?: boolean | undefined
+  readonly openSettings?: (() => void) | undefined
+  readonly openOnboarding?: ((id?: unknown) => void) | undefined
+  readonly actions: TSidebarActions
+}) {
   const [open, setOpen] = useState(false)
   useLayoutEffect(() => {
     if (!seat) return undefined
     actions.seatAccount(true)
     return () => actions.seatAccount(false)
   }, [seat])
-  const [box, setBox] = useState(null)
-  const button = useRef(null)
-  const menu = useRef(null)
+  const [box, setBox] = useState<{ left: number; bottom: number } | null>(null)
+  const button = useRef<HTMLButtonElement | null>(null)
+  const menu = useRef<HTMLDivElement | null>(null)
   useMenuKeys(menu, open)
   useEffect(() => { if (settingsOpen) setOpen(false) }, [settingsOpen])
   // The settings dialog links back to the shell's own settings (models, providers).
@@ -559,11 +600,11 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
   }, [openOnboarding])
   useEffect(() => {
     if (!open) return undefined
-    const onDown = (event) => {
+    const onDown = (event: MouseEvent): void => {
       if (event.target instanceof Element && (event.target.closest('.bt-account-menu') || button.current?.contains(event.target))) return
       setOpen(false)
     }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); button.current?.focus() } }
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); button.current?.focus() } }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey, true) }
@@ -573,15 +614,16 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
     if (rect) setBox({ left: rect.left, bottom: window.innerHeight - rect.top + 5 })
     setOpen(value => !value)
   }
-  const groups = [
+  type MenuItem = readonly [string, () => ReactNode, () => unknown, string?]
+  const groups: MenuItem[][] = [
     [
       [t('Usage'), GaugeIcon, () => actions.openSettings('usage')],
       [t('Connectors'), ConnectorIcon, () => actions.openConnectors()],
-      ...(LEAN.schedules ? [[t('Automation tasks'), ClockIcon, () => actions.selectPanel('schedules')]] : []),
+      ...(LEAN.schedules ? [[t('Automation tasks'), ClockIcon, () => actions.selectPanel('schedules')] as MenuItem] : []),
       [t('Bot settings'), GearIcon, () => actions.openSettings('general')],
     ],
     ...(LEAN.classicMode ? [[
-      [t('Switch to classic Agent mode'), SwitchIcon, () => actions.setSurface('agent')],
+      [t('Switch to classic Agent mode'), SwitchIcon, () => actions.setSurface('agent')] as MenuItem,
     ]] : []),
   ]
   return h(Fragment, null,
@@ -600,15 +642,15 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
 // The view always lands on a Bot rather than an empty New Session page.
 // When a Bot's chat moves on to a fresh part, the shell clears the view of the part
 // it archived; the chat then goes on in the Bot's current part instead.
-function useLandOnMainBot(roster, useSessions, actions) {
+function useLandOnMainBot(roster: TSidebarRoster, useSessions: TSidebarHook<TSidebarSessionList>, actions: TSidebarActions): void {
   const mainView = useSessions((list) => {
     const row = Object.values(list.byId).find(session => (session?.retainedBy?.mainView ?? 0) > 0)
     return row ? `${row.id}|${row.blank ? 1 : 0}` : ''
   })
-  const lastBot = useRef(null)
+  const lastBot = useRef<{ readonly botId: string; readonly sessionId: string } | null>(null)
   useEffect(() => {
     if (!roster.ready || !roster.mainBotId) return undefined
-    const [id, blank] = mainView.split('|')
+    const [id = '', blank = ''] = mainView.split('|')
     const bot = id === '' ? undefined : roster.byId[id]
     if (bot !== undefined) {
       lastBot.current = { botId: bot.id, sessionId: id }
@@ -616,17 +658,18 @@ function useLandOnMainBot(roster, useSessions, actions) {
       return undefined
     }
     // A DSH Agent Session, blank or not, is a real destination: it stays.
-    if (id !== '' && (roster.roomsById[id] || (actions.isAgentSession?.(id) ?? roster.agentOf[id] !== undefined) || blank !== '1')) {
+    if (id !== '' && (roster.roomsById[id] !== undefined || (actions.isAgentSession?.(id) ?? roster.agentOf[id] !== undefined) || blank !== '1')) {
       lastBot.current = null
       return undefined
     }
     const last = lastBot.current
-    const timer = setTimeout(() => actions.landOn(roster.mainBotId, last), last ? 0 : 400)
+    const mainBotId = roster.mainBotId as string
+    const timer = setTimeout(() => actions.landOn(mainBotId, last), last ? 0 : 400)
     return () => clearTimeout(timer)
   }, [mainView, roster])
 }
 
-export function FooterAccount(props) {
+export function FooterAccount(props: TSidebarProps & { readonly settingsOpen?: boolean | undefined; readonly openSettings?: (() => void) | undefined; readonly openOnboarding?: ((id?: unknown) => void) | undefined }) {
   const seated = props.useUi(value => value.accountSeated === true)
   if (seated) return null
   return h('span', { className: 'bt-foot-account' }, h(AccountLauncher, { ...props, seat: false }))
@@ -634,7 +677,7 @@ export function FooterAccount(props) {
 
 // The only entry registered in every mode: in Agent mode the whole Bot surface is
 // withdrawn, and this button in the shell's own footer is the way back.
-export function BotReturn({ wide, useSurface, actions }) {
+export function BotReturn({ wide, useSurface, actions }: { readonly wide: boolean; readonly useSurface: TSidebarHook<{ readonly mode?: string | undefined }>; readonly actions: Pick<TSidebarActions, 'setSurface'> }) {
   const mode = useSurface(value => value.mode)
   if (mode !== 'agent') return null
   return h('button', { type: 'button', className: 'bt-return', 'aria-label': t('DS Bot'), title: t('DS Bot'), onClick: () => actions.setSurface('bot') },
@@ -654,7 +697,7 @@ export const RETURN_CSS = `
 .bt-return-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 `
 
-export function BrandMark({ size = 24 }) {
+export function BrandMark({ size = 24 }: { readonly size?: number }) {
   return h('span', { className: 'bt-brand-whale' }, h(MoonBotMark, { size }))
 }
 export function BrandName() {

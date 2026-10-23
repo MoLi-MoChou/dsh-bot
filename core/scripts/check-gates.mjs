@@ -47,7 +47,7 @@ const LINE_EXEMPTIONS = [
   'src/client/cells.js',
   'src/client/index.js',
   'src/client/usage-page.ts',
-  'src/client/sidebar.js',
+  'src/client/sidebar.ts',
   'src/client/browser-pane.ts',
   'src/client/bot-browsers.ts',
   'src/client/model-menu.ts',
