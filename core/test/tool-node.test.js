@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { relayPart, relaysBefore, toolArgs, toolName } from '../src/client/text.js'
+import { relayPart, relaysBefore, toolArgs, toolName } from '../src/client/text.ts'
 
 const argsRaw = JSON.stringify({ name: 'GITHUB_TOKEN', purpose: 'GitHub', questions: [{ question: 'Which?' }] })
 

@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { currentPart, formatTokens } from './text.js'
+import { currentPart, formatTokens } from './text.ts'
 import { CheckIcon, SlidersIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { KeyIcon, MaskedInput } from './secret-card.js'

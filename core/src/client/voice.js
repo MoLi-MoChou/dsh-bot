@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
-import { stripHeader } from './text.js'
+import { stripHeader } from './text.ts'
 import { MicIcon, CloseIcon } from './icons.js'
 import { BotMark, RoomAvatar } from './mark.js'
 import { speechApi, useDictation } from './composer.js'

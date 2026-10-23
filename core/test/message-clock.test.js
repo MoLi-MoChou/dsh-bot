@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { clockLabel, messageClock } from '../src/client/text.js'
+import { clockLabel, messageClock } from '../src/client/text.ts'
 
 // A time in the machine's own zone, some days back, so the test does not depend on the zone.
 const at = (daysAgo, hour, minute) => {

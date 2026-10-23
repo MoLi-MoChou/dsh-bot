@@ -4,7 +4,7 @@
 // arguments, and their outputs, in order.
 import { createElement as h, Fragment, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { contentText, toolName, elapsedLabel } from './text.js'
+import { contentText, toolName, elapsedLabel } from './text.ts'
 import { callTree } from './cells.js'
 import { t } from './i18n.js'
 import { EASE_PANEL, PANEL_LINGER_MS, SPRING_SHAPE } from './motion.js'

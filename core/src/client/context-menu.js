@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { isMainOf } from './sources.ts'
-import { currentPart } from './text.js'
+import { currentPart } from './text.ts'
 import { GearIcon, PinIcon, UnreadIcon, PencilIcon, StarLineIcon, CopyIcon, HideIcon, TrashIcon, DuplicateIcon } from './icons.js'
 import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { t } from './i18n.js'

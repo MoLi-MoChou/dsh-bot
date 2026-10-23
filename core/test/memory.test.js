@@ -8,7 +8,7 @@ import {
   MEMORY_LIMITS, addLink, cleanEntry, cleanTopic, formatEntry, insertEntry, looksLikeKey,
   looksSecret, matchEntries, parseAsk, parseMemory, parseReview, reviewEntries, removeLink, splitMeta, writtenIn,
 } from '../src/host/memory.js'
-import { latestMemoryChange, summaryBlocks } from '../src/client/text.js'
+import { latestMemoryChange, summaryBlocks } from '../src/client/text.ts'
 import { fakeContext } from './fake-ctx.js'
 
 test('entries carry their metadata at the end of the line, as Agent Memory Repo writes it', () => {

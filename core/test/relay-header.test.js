@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { stripHeader } from '../src/client/text.js'
+import { stripHeader } from '../src/client/text.ts'
 
 test('relay headers with brackets in a Bot or group name leave the body intact', () => {
   const body = 'Hello [team]\n[notes](https://example.test)\n[Keep this line]'

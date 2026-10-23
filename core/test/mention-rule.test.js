@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
 import { mentionSpans, nameProblem, referenceSpans, speakerOf } from '../src/shared/mentions.js'
 import { mentionsIn } from '../src/host/groups.js'
-import { linkMentions, MENTION_ORIGIN } from '../src/client/text.js'
+import { linkMentions, MENTION_ORIGIN } from '../src/client/text.ts'
 
 const bots = [{ id: 'a', name: '新 Bot' }, { id: 'b', name: '新 Bot 2' }, { id: 'c', name: 'Chief' }, { id: 'k', name: 'K' }]
 

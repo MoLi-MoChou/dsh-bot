@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { isMainOf } from './sources.ts'
-import { HEADER, currentPart, runStatsOf, stripHeader, usageOf } from './text.js'
+import { HEADER, currentPart, runStatsOf, stripHeader, usageOf } from './text.ts'
 import { PlusIcon, ShareIcon, CloseIcon, ChevronLeftIcon, GearIcon } from './icons.js'
 import { botState, BotMark, BotAvatar } from './mark.js'
 import { GlobeIcon, Favicon } from './browser-pane.js'

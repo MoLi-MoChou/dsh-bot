@@ -4,7 +4,7 @@
 // Both are sources of the shell's trigger menu; the shell's own file and session
 // rows stay beside them, because a source cannot be hidden for one Session.
 import { t } from './i18n.js'
-import { currentPart, relativeShort } from './text.js'
+import { currentPart, relativeShort } from './text.ts'
 
 export const BOTS_SOURCE = 'ds-bot'
 export const CHATS_SOURCE = 'ds-bot-chats'

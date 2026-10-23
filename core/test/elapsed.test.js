@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { elapsedLabel } from '../src/client/text.js'
+import { elapsedLabel } from '../src/client/text.ts'
 
 test('the work clock counts seconds, then minutes and seconds, then hours, minutes and seconds', () => {
   assert.equal(elapsedLabel(-5_000), '0s')

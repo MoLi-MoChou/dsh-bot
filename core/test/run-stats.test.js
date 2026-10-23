@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { runStatsOf } from '../src/client/text.js'
+import { runStatsOf } from '../src/client/text.ts'
 
 const texts = values => runStatsOf(values).map(entry => entry.text)
 

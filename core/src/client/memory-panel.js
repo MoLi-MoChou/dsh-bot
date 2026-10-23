@@ -7,7 +7,7 @@ import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.js'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.js'
 import { dateLocale, hostText, t } from './i18n.js'
-import { summaryBlocks } from './text.js'
+import { summaryBlocks } from './text.ts'
 import { useLinger } from './motion.js'
 
 const POLL_MS = 1500

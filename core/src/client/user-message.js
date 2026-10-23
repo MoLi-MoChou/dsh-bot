@@ -4,7 +4,7 @@ import { mentionSpans } from '../shared/mentions.js'
 import { BotMark } from './mark.js'
 import { CheckIcon, CopyIcon } from './icons.js'
 import { dateLocale, t } from './i18n.js'
-import { clockLabel, messageClock } from './text.js'
+import { clockLabel, messageClock } from './text.ts'
 import { useFold } from './fold.js'
 
 // -------------------------------------------------------------------------

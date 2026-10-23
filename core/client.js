@@ -2176,7 +2176,7 @@ function mentionSpans(text, bots, { references = [] } = {}) {
   return spans;
 }
 
-// src/client/text.js
+// src/client/text.ts
 var MENTION_ORIGIN = "https://bots.local/";
 function linkMentions(text, bots, selfId) {
   if (!text || !text.includes("@")) return text;
@@ -2191,7 +2191,8 @@ function linkMentions(text, bots, selfId) {
 }
 function mentionTarget(event) {
   const anchor = event.target instanceof Element ? event.target.closest(`a[href^="${MENTION_ORIGIN}"]`) : null;
-  return anchor ? anchor.getAttribute("href").slice(MENTION_ORIGIN.length) : null;
+  const href = anchor?.getAttribute("href");
+  return href === void 0 || href === null ? null : href.slice(MENTION_ORIGIN.length);
 }
 function clock(ms) {
   return new Date(ms).toLocaleTimeString(dateLocale(), { hour: "numeric", minute: "2-digit" });
@@ -2229,14 +2230,16 @@ function elapsedLabel(ms) {
   const hours = Math.floor(total / 3600);
   return `${hours > 0 ? `${hours}h ` : ""}${total >= 60 ? `${Math.floor(total / 60) % 60}m ` : ""}${total % 60}s`;
 }
-var contentText = (content) => (content ?? []).filter((block) => block?.type === "text").map((block) => block.text).join("\n");
+var contentText = (content) => (content ?? []).filter((block) => block?.type === "text").map((block) => block.text ?? "").join("\n");
 var HEADER = /^\[(Message from|Reply from|Group chat|Group post from|Bot team setup|Handoff · part|Secret card)(?:[^\r\n]*\]\r?\n|[^\]\r\n]*\])/;
-var currentPart = (bot) => bot.sessionId ?? bot.id;
+var currentPart = (bot) => bot.sessionId ?? bot.id ?? "";
 function reminderPrompts(text) {
   const one = /^reminder_prompt_json: (.*)$/m.exec(text);
   const batch = /^reminders_json: (.*)$/m.exec(text);
   try {
-    const prompts = [...one ? [JSON.parse(one[1])] : [], ...batch ? JSON.parse(batch[1]).map((entry) => entry.reminder_prompt) : []];
+    const single = one ? [JSON.parse(one[1] ?? "")] : [];
+    const many = batch ? JSON.parse(batch[1] ?? "").map((entry) => entry.reminder_prompt) : [];
+    const prompts = [...single, ...many];
     return prompts.filter((prompt) => typeof prompt === "string" && prompt.trim() !== "");
   } catch {
     return [];
@@ -2244,8 +2247,8 @@ function reminderPrompts(text) {
 }
 var stripHeader = (text) => text.replace(HEADER, "");
 function latestMemoryChange(news, ids) {
-  const at = (id) => news?.[id]?.seen ? news[id].at ?? 0 : 0;
-  return ids.reduce((best, id) => at(id) > at(best) ? id : best, ids[0] ?? null);
+  const at = (id) => news?.[id]?.seen ? news[id]?.at ?? 0 : 0;
+  return ids.reduce((best, id) => at(id) > (best === null ? 0 : at(best)) ? id : best, ids[0] ?? null);
 }
 function summaryBlocks(text) {
   const blocks = [];
@@ -2257,9 +2260,9 @@ function summaryBlocks(text) {
   for (const raw of String(text ?? "").split("\n")) {
     const line = raw.trim().replace(/\*\*|__/g, "");
     const heading = /^#{1,6}\s+(.+)$/.exec(line);
-    if (heading) {
+    if (heading !== null) {
       flush();
-      blocks.push({ kind: "h", text: heading[1].trim() });
+      blocks.push({ kind: "h", text: (heading[1] ?? "").trim() });
     } else if (line === "") {
       flush();
     } else {
@@ -2270,23 +2273,25 @@ function summaryBlocks(text) {
   return blocks;
 }
 function isHiddenTurn(roster, sessionId, turn) {
-  if (sessionId === void 0 || turn === void 0) return false;
-  return (roster.exchangeTurns[sessionId] ?? []).includes(turn);
+  if (sessionId === void 0 || sessionId === null || turn === void 0 || turn === null) return false;
+  return (roster.exchangeTurns?.[sessionId] ?? []).includes(turn);
 }
 var toolName = (root) => root.name || root.call?.name;
 function toolArgs(root) {
   if (typeof root.args?.text === "function") {
-    return { text: (key) => root.args.text(key) ?? void 0, value: (key) => typeof root.args.value === "function" ? root.args.value(key) : void 0 };
+    return { text: (key) => root.args?.text?.(key) ?? void 0, value: (key) => typeof root.args?.value === "function" ? root.args.value(key) : void 0 };
   }
   let parsed;
+  let read = false;
   const object = () => {
-    if (parsed === void 0) {
+    if (!read) {
+      read = true;
       try {
         parsed = JSON.parse(root.argsRaw ?? root.call?.argsRaw ?? "");
       } catch {
         parsed = null;
       }
-      if (typeof parsed !== "object" || Array.isArray(parsed)) parsed = null;
+      if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) parsed = null;
     }
     return parsed;
   };
@@ -2301,9 +2306,9 @@ function toolArgs(root) {
 var RELAY_ROLES = /* @__PURE__ */ new Set(["request", "reply", "stopped"]);
 var isRelayContext = (data) => {
   const source = data?.source;
-  if (source === null || typeof source !== "object" || source.kind !== "bot" || source.handoff === true) return false;
+  if (source === null || source === void 0 || typeof source !== "object" || source.kind !== "bot" || source.handoff === true) return false;
   if (source.deferred === true || source.resumed === true || source.retried === true) return false;
-  return RELAY_ROLES.has(source.role) && typeof source.senderSessionId === "string";
+  return source.role !== void 0 && RELAY_ROLES.has(source.role) && typeof source.senderSessionId === "string";
 };
 var stepShows = (step) => (step?.blocks ?? []).some((block) => {
   if (block === void 0 || block.kind === "tool-call") return false;
@@ -2316,12 +2321,14 @@ function relaysBefore(contexts, steps, step) {
   if (index === -1) return [];
   let prev = -Infinity;
   for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
-    if (stepShows(steps[cursor])) {
-      prev = steps[cursor].time;
+    const candidate = steps[cursor];
+    if (candidate !== void 0 && stepShows(candidate)) {
+      prev = candidate.time ?? 0;
       break;
     }
   }
-  return (contexts ?? []).filter((data) => isRelayContext(data) && typeof data.time === "number" && data.time >= prev && data.time < step.time);
+  const upper = step?.time ?? Infinity;
+  return (contexts ?? []).filter((data) => isRelayContext(data) && typeof data.time === "number" && data.time >= prev && data.time < upper);
 }
 function commRunOf(order, peers, turn, hiddenTurns = []) {
   const turns = [];
@@ -2332,26 +2339,30 @@ function commRunOf(order, peers, turn, hiddenTurns = []) {
     turns.push({ turn: entry, peer, hidden });
   }
   const at = turns.findIndex((entry) => entry.turn === turn);
-  if (at === -1 || turns[at].peer === void 0) return null;
+  if (at === -1) return null;
+  const current = turns[at];
+  if (current?.peer === void 0) return null;
   const previous = turns[at - 1];
   if (previous?.peer !== void 0 && previous.hidden) return "folded";
   let count = 0;
   const peerIds = [];
   for (let index = at; index < turns.length; index += 1) {
     const entry = turns[index];
-    if (entry.peer === void 0 || index > at && !turns[index - 1].hidden) break;
+    if (entry === void 0) break;
+    const before = turns[index - 1];
+    if (entry.peer === void 0 || index > at && before !== void 0 && !before.hidden) break;
     count += entry.hidden ? 2 : 1;
     if (!peerIds.includes(entry.peer)) peerIds.push(entry.peer);
   }
   return { count, peerIds };
 }
 function previewOf(list, id, hiddenTurns = []) {
-  const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline;
+  const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId?.[id]?.projectionValues?.turnOutline;
   if (!Array.isArray(outline)) return "";
   for (let index = outline.length - 1; index >= 0; index -= 1) {
     const entry = outline[index];
-    if (hiddenTurns.includes(entry.turn)) continue;
-    const text = entry.response || entry.prompt || "";
+    if (entry === void 0 || entry.turn !== void 0 && hiddenTurns.includes(entry.turn)) continue;
+    const text = entry.response ?? entry.prompt ?? "";
     if (text !== "") return hostText(stripHeader(text).replace(/\s+/g, " ").trim());
   }
   return "";
@@ -2363,7 +2374,7 @@ function usageOf(list, ids) {
   let output = 0;
   for (const id of ids) {
     const usage = list.projectionsBySession?.[id]?.values?.tokenUsage;
-    if (!usage) continue;
+    if (usage === void 0) continue;
     input += (usage.uncachedInputTokens ?? 0) + (usage.cacheReadTokens ?? 0) + (usage.cacheWriteTokens ?? 0);
     cacheRead += usage.cacheReadTokens ?? 0;
     output += usage.outputTokens ?? 0;
@@ -2385,19 +2396,23 @@ function runStatsOf(values) {
   const usage = values?.tokenUsage;
   const pressure = values?.contextPressure;
   const shown = [];
-  if (stats?.turns > 0) shown.push({ key: "turns", text: stats.turns === 1 ? t("1 turn") : t("{count} turns", { count: stats.turns }) });
-  if (stats?.decodeMs > 0 && stats.decodeTokens > 0) {
-    const speed = stats.decodeTokens / (stats.decodeMs / 1e3);
+  const turns = stats?.turns ?? 0;
+  if (turns > 0) shown.push({ key: "turns", text: turns === 1 ? t("1 turn") : t("{count} turns", { count: turns }) });
+  const decodeMs = stats?.decodeMs ?? 0;
+  const decodeTokens = stats?.decodeTokens ?? 0;
+  if (decodeMs > 0 && decodeTokens > 0) {
+    const speed = decodeTokens / (decodeMs / 1e3);
     shown.push({ key: "speed", text: t("{speed} tok/s", { speed: speed >= 10 ? Math.round(speed) : Math.round(speed * 10) / 10 }) });
   }
   const prompt = (usage?.uncachedInputTokens ?? 0) + (usage?.cacheReadTokens ?? 0) + (usage?.cacheWriteTokens ?? 0);
-  if (prompt > 0) shown.push({ key: "cache", text: t("Cache hit {hit}%", { hit: percentText(usage.cacheReadTokens ?? 0, prompt) }) });
+  if (prompt > 0) shown.push({ key: "cache", text: t("Cache hit {hit}%", { hit: percentText(usage?.cacheReadTokens ?? 0, prompt) }) });
   const used = pressure?.projectedTokens ?? pressure?.pressureTokens;
-  if (Number.isFinite(used) && pressure.contextWindow > 0) {
+  const window2 = pressure?.contextWindow ?? 0;
+  if (used !== void 0 && Number.isFinite(used) && window2 > 0) {
     shown.push({
       key: "context",
-      text: t("Context {percent}%", { percent: Math.min(100, Math.round(used / pressure.contextWindow * 100)) }),
-      title: t("{used} of {total} tokens of context in use", { used: formatTokens(used), total: formatTokens(pressure.contextWindow) })
+      text: t("Context {percent}%", { percent: Math.min(100, Math.round(used / window2 * 100)) }),
+      title: t("{used} of {total} tokens of context in use", { used: formatTokens(used), total: formatTokens(window2) })
     });
   }
   return shown;

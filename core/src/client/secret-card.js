@@ -5,7 +5,7 @@
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { CheckIcon, CloseIcon, TrashIcon } from './icons.js'
 import { BotAvatar, BotMark } from './mark.js'
-import { contentText, currentPart } from './text.js'
+import { contentText, currentPart } from './text.ts'
 import { dateLocale, t } from './i18n.js'
 import { SPRING_POP, SPRING_SHAPE, spring } from './motion.js'
 import { useDockHold } from './card-hold.ts'
