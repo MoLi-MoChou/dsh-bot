@@ -1,9 +1,28 @@
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { LlmUserMessage } from '@deepseek-ai/dsh-llm'
+import type { Agent } from './dsh-types.ts'
+import type { HostRuntime } from './runtime.ts'
 
 const SOURCE = 'ds-bot-time-context'
-const isClock = source => source?.kind === SOURCE || source?.kind === 'time-context'
+const isClock = (source: { readonly kind?: unknown } | undefined): boolean => source?.kind === SOURCE || source?.kind === 'time-context'
 
-export function install(rt) {
+/** The decision a pre-step listener may rewrite. */
+interface PreStepDecision {
+  readonly kind: string
+  readonly messages: readonly LlmUserMessage[]
+}
+
+interface PreStepPayload {
+  readonly agent: Agent
+  readonly signal: AbortSignal
+}
+
+/** DSH's projection state for a Session, by projection key. */
+interface SessionProjectionsService {
+  stateOf(session: unknown, key: string): unknown
+}
+
+export function install(rt: HostRuntime): void {
   const { ctx, config } = rt
   const interval = config.timeRefreshIntervalMs ?? 600_000
   if (!Number.isSafeInteger(interval) || interval < 0) throw new TypeError('timeRefreshIntervalMs must be a non-negative safe integer')
@@ -15,7 +34,7 @@ export function install(rt) {
   })
   const zone = formatter.resolvedOptions().timeZone
 
-  ctx.on('agent/pre-step', async ({ agent, signal }, next) => {
+  ctx.on<PreStepPayload, PreStepDecision>('agent/pre-step', async ({ agent, signal }, next) => {
     const decision = await next()
     if (decision.kind === 'reject' || signal.aborted) return decision
     await rt.load()
@@ -23,15 +42,16 @@ export function install(rt) {
     // A loaded DSH clock covers every step itself. Its listener may run before or
     // after this one (a reload reorders them), so its presence is read from its
     // projection, not from the messages added so far.
-    if (ctx.get?.('sessionProjections')?.stateOf(agent.session, 'timeContext') !== undefined) return decision
+    if (ctx.get<SessionProjectionsService>('sessionProjections')?.stateOf(agent.session, 'timeContext') !== undefined) return decision
     if (decision.messages.some(message => isClock(message.source))) return decision
     const now = Date.now()
     for await (const event of rt.eventsBackwards(agent.id, signal, Infinity)) {
-      if (event.type === 'user/message' && isClock(event.data.source)) {
-        if (now >= event.time && now - event.time < interval) return decision
+      const at = event.time
+      if (event.type === 'user/message' && isClock(event.data?.source)) {
+        if (typeof at === 'number' && now >= at && now - at < interval) return decision
         break
       }
-      if (event.time <= now - interval) break
+      if (typeof at === 'number' && at <= now - interval) break
     }
     if (signal.aborted) return decision
     const text = `Current time: ${formatter.format(now)} (${zone}).`

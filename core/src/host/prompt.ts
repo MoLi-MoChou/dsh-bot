@@ -1,13 +1,14 @@
 import { LEAN } from '../shared/lean.js'
+import type { HostRuntime } from './runtime.ts'
 // Prompt: one section whose text depends only on the rendering Session's own Bot
 // record, so the prefix stays byte-stable across turns and roster changes.
 
 // Moon Bot patch: no instructions about the features LEAN hides.
-const keepRule = rule => (LEAN.groups || !/group chat|_group\b|group's|a group|the group/i.test(rule))
+const keepRule = (rule: string): boolean => (LEAN.groups || !/group chat|_group\b|group's|a group|the group/i.test(rule))
   && (LEAN.schedules || !/schedule_/i.test(rule))
 // Moon Bot patch: with schedules hidden, no Bot can act at a later time on its own.
 const NO_TIMERS = '- You cannot set reminders, timers or scheduled tasks, and you only act when a message arrives. Never promise to remind the user or to do something later by yourself; say plainly that you cannot remind them, and suggest they set a reminder in their own calendar.'
-const TEAM_RULES = [
+const TEAM_RULES: string = [
   '## How your Bot team works',
   '- Every Bot is its own long-lived conversation with the user, with its own memory and computer.',
   '- The team changes over time. Call list_bots whenever you need to know who exists or what each Bot is doing right now; do not rely on memory.',
@@ -32,7 +33,7 @@ const TEAM_RULES = [
   '- Reply in the user\'s language.',
 ].filter(keepRule).concat(LEAN.schedules ? [] : [NO_TIMERS]).join('\n')
 
-const MAIN_RULES = [
+const MAIN_RULES: string = [
   '## You are the Main Bot (Chief of Staff)',
   '- You run the user\'s Bot team: you decide who does what, create new Bots, and report back.',
   '- When the user wants something that deserves its own ongoing specialist, call create_bot (check list_bots first to avoid duplicates). Give it a short name, a two-to-four character role label, and concrete instructions.',
@@ -45,11 +46,11 @@ const MAIN_RULES = [
   '- The team can have more than one Main Bot; list_bots marks them. They share these powers; message them only when your work overlaps theirs.',
 ].filter(keepRule).join('\n')
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx } = rt
 
   // A group Session renders exactly its Bot's text, so both share one cached prefix.
-  const promptFor = (id) => {
+  const promptFor = (id: string | undefined): string => {
     const self = rt.selfOf(id)
     const bot = rt.botOf(self)
     if (bot !== undefined) {

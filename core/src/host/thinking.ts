@@ -3,13 +3,24 @@
 // its first one's, summed over the turn. assistant/attempt events are skipped on
 // purpose — a failed or retried attempt's thinking never reached the reply.
 import { HISTORY_TIMEOUT_MS } from './constants.ts'
+import type { SessionEvent } from './dsh-types.ts'
+import type { HostRuntime } from './runtime.ts'
 
-export function thinkingMs(events, turn) {
+/** One entry of a timed model stream. A reasoning-chunks record packs member times as
+ *  the first time plus the gaps to each next member. */
+interface ReasoningRecord {
+  readonly type: string
+  readonly time0: number
+  readonly dt: readonly number[]
+  readonly texts: readonly string[]
+}
+
+export function thinkingMs(events: readonly SessionEvent[], turn: number): number | undefined {
   let total = 0
   let timed = false
   for (const event of events) {
-    if (event.type !== 'assistant/message' || event.data.turn !== turn) continue
-    const span = streamReasoningMs(event.data.stream)
+    if (event.type !== 'assistant/message' || event.data?.turn !== turn) continue
+    const span = streamReasoningMs(event.data.stream as readonly ReasoningRecord[] | undefined)
     if (span === undefined) continue
     timed = true
     total += span
@@ -20,7 +31,7 @@ export function thinkingMs(events, turn) {
 // One stream's reasoning span. A reasoning-chunks record packs its member times as
 // the first time plus the gaps to each next member, so its last member lands at
 // time0 + sum(dt).
-const streamReasoningMs = (stream) => {
+const streamReasoningMs = (stream: readonly ReasoningRecord[] | undefined): number | undefined => {
   let first
   let last
   for (const record of stream ?? []) {
@@ -29,16 +40,16 @@ const streamReasoningMs = (stream) => {
     if (first === undefined || record.time0 < first) first = record.time0
     if (last === undefined || end > last) last = end
   }
-  return first === undefined ? undefined : last - first
+  return first === undefined || last === undefined ? undefined : last - first
 }
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   // A closed turn's events do not change; cache its answer once turn/end exists.
-  const settled = new Map()
+  const settled = new Map<string, number | undefined>()
   rt.thinkingOf = async (sessionId, turn) => {
     const key = `${sessionId}:${turn}`
     if (settled.has(key)) return settled.get(key)
-    const events = []
+    const events: SessionEvent[] = []
     // Newest first; events older than the turn close the read.
     for await (const event of rt.eventsBackwards(sessionId, AbortSignal.timeout(HISTORY_TIMEOUT_MS))) {
       events.push(event)

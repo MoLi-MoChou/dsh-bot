@@ -29,7 +29,15 @@ export interface SessionEvent {
   readonly type: string
   readonly seq?: number
   readonly time?: number
-  readonly data?: Record<string, unknown>
+  readonly data?: SessionEventData
+}
+
+/** The payload of a Session event. `turn`/`step` identify the turn the event belongs to. */
+export interface SessionEventData {
+  readonly turn?: number
+  readonly step?: number
+  readonly source?: Record<string, unknown>
+  readonly [key: string]: unknown
 }
 
 /** One message DSH put in a Session's inbox, as a plugin sees it before delivery. */
@@ -203,10 +211,15 @@ export interface ConnectionService {
   readonly fetch: { register(route: FetchRoute): Disposer }
 }
 
+export interface PromptSectionContext {
+  readonly agent?: { readonly id?: string }
+}
+
 export interface PromptSection {
   readonly name: string
   readonly order: number
-  text(context: unknown): string
+  readonly interpolate?: boolean
+  text(context: PromptSectionContext | undefined): string
 }
 
 export interface SystemPromptService {
@@ -290,7 +303,12 @@ export type DshServiceName = keyof DshServices
 export interface DshContext {
   readonly logger: Logger
   get<T>(name: string): T | undefined
-  on(name: string, listener: (payload: unknown) => unknown, options?: { readonly prepend?: boolean }): Disposer
+  // A waterfall listener gets the payload and `next()`; a plain listener only the payload.
+  on<TPayload = unknown, TResult = unknown>(
+    name: string,
+    listener: (payload: TPayload, next: () => Promise<TResult>) => unknown,
+    options?: { readonly prepend?: boolean },
+  ): Disposer
   emit?(name: string, payload: unknown): void
   effect(execute: () => void | Disposer, label?: string): void
   plugin?(plugin: unknown, config?: unknown): Disposer

@@ -1,3 +1,5 @@
+import type { HostRuntime, StoredBot, StoredRoom } from './runtime.ts'
+
 // Permissions. A Bot's permission preset is its own: kept on the Bot and set on every
 // Session it speaks from, so a fresh part or a new group Session keeps it. A group may
 // set one preset for all its members there, in place of each member's own, as it may
@@ -5,35 +7,46 @@
 // DSH offers Auto review for the current Session only, so neither a Bot nor a group keeps it.
 const SESSION_ONLY = 'auto'
 
-export function install(rt) {
+/** DSH's permission presets for a Session. */
+interface PermissionPresetsService {
+  catalog(): {
+    readonly options: readonly { readonly value: string }[]
+    readonly defaultPreset: string
+  }
+  set(session: unknown, name: string): void
+  resolve(name: string): unknown
+}
+
+export function install(rt: HostRuntime): void {
   const { ctx } = rt
 
-  const presets = () => ctx.get?.('permissionPresets')
+  const presets = (): PermissionPresetsService | undefined => ctx.get<PermissionPresetsService>('permissionPresets')
 
   // The presets DSH offers, or undefined when the profile has none.
-  function permissionCatalog() {
+  function permissionCatalog(): { readonly options: readonly { readonly value: string }[]; readonly defaultPreset: string } | undefined {
     const service = presets()
     if (service === undefined) return undefined
     const { options, defaultPreset } = service.catalog()
     return { options: options.filter(option => option.value !== SESSION_ONLY), defaultPreset }
   }
 
-  const roomOfSession = sessionId => rt.roomOf(rt.groupOwners.get(sessionId)?.roomId)
+  const roomOfSession = (sessionId: string): StoredRoom | undefined => rt.roomOf(rt.groupOwners.get(sessionId)?.roomId)
 
-  async function setPreset(sessionId, name) {
+  async function setPreset(service: PermissionPresetsService, sessionId: string, name: string): Promise<void> {
     const agent = await rt.resolveAgent(sessionId)
-    presets().set(agent.session, name)
+    service.set(agent.session, name)
   }
 
   // Sets the preset on one of the Bot's Sessions: its group's there, else its own; a Bot
   // without one keeps DSH's default. `room` is for a group Session not indexed yet.
-  async function applyPermission(bot, sessionId, room = roomOfSession(sessionId)) {
+  async function applyPermission(bot: StoredBot, sessionId: string, room: StoredRoom | undefined = roomOfSession(sessionId)): Promise<void> {
     const name = room?.permission ?? bot.permission
-    if (presets() === undefined || !name) return
-    await setPreset(sessionId, name)
+    const service = presets()
+    if (service === undefined || !name) return
+    await setPreset(service, sessionId, name)
   }
 
-  function checkPreset(name, whose) {
+  function checkPreset(name: unknown, whose: string): string {
     const service = presets()
     if (service === undefined) throw new Error('Permissions are not available in this DeepSeek Harness')
     const wanted = String(name ?? '').trim()
@@ -42,7 +55,7 @@ export function install(rt) {
     return wanted
   }
 
-  async function setPermission(bot, name) {
+  async function setPermission(bot: StoredBot, name: unknown): Promise<void> {
     const wanted = checkPreset(name, 'a Bot\'s')
     await applyPermission({ ...bot, permission: wanted }, rt.chatOf(bot.id))
     bot.permission = wanted
@@ -54,11 +67,11 @@ export function install(rt) {
   }
 
   // A group's preset, or null when each member uses its own.
-  const cleanRoomPermission = name => (name === null || name === '' ? null : checkPreset(name, 'a group\'s'))
+  const cleanRoomPermission = (name: string | null | undefined): string | null => (name === null || name === '' ? null : checkPreset(name, 'a group\'s'))
 
   // Members' Sessions in the group change now; a member that has none there yet gets the
   // group's preset when its first turn there makes one. Returns whether it changed.
-  async function setRoomPermission(room, name) {
+  async function setRoomPermission(room: StoredRoom, name: string | null | undefined): Promise<boolean> {
     const wanted = cleanRoomPermission(name) ?? undefined
     if (wanted === room.permission) return false
     if (wanted === undefined) delete room.permission
@@ -70,7 +83,7 @@ export function install(rt) {
       if (bot === undefined) continue
       // A member without a preset of its own goes back to the default its Session started on.
       const next = wanted ?? bot.permission ?? service.catalog().defaultPreset
-      await setPreset(sessionId, next)
+      await setPreset(service, sessionId, next)
         .catch(error => rt.warn('ds-bot: permission for %s in %s not applied: %s', bot.name, room.name, error))
     }
     return true

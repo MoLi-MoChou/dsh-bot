@@ -6,7 +6,7 @@ import { copyFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { LEGACY_THEMES, MAX_EXCHANGES, ROOM_MODES, TEXT_KEPT } from './constants.ts'
 import { replaceFile } from './files.ts'
-import { homeLock } from './home-lock.js'
+import { homeLock } from './home-lock.ts'
 import { currentColor, headOf, normalize, unquote } from './text.ts'
 
 // A table read that sees only the keys the table holds itself. Ids that come from
