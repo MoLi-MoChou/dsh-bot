@@ -7,7 +7,7 @@ import { BotAvatar, RoomAvatar } from './mark.ts'
 import { isMainOf } from './sources.ts'
 import type { Roster } from './sources.ts'
 import { EmptyState } from './empty-state.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 export interface WelcomeCopy {
   readonly title: string

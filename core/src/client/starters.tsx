@@ -3,7 +3,7 @@
 // has a conversation going, or once the user taps one.
 import { createElement as h, useState } from 'react'
 import type { Bot } from '../shared/schema.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 const STARTERS = [
   ['Compare with a table…', '用表格对比一下 iPhone 和安卓旗舰的优缺点'],

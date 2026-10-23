@@ -5,7 +5,7 @@ import { ArrowUpIcon, CloseIcon, ArrowDownIcon, MemoryIcon, SidePanelIcon } from
 import { botState, BotAvatar, RoomAvatar } from './mark.ts'
 import { ActivityIndicator } from './activity-row.ts'
 import { clockLabel, openingTurn, unseenSince } from './cells.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // -------------------------------------------------------------------------
 // Conversation header

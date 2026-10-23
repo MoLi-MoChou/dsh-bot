@@ -8,7 +8,7 @@ import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { DIALOG_EXIT_MS, QUICK_EDGES, reducedMotion, useFlip, useGlide } from './motion.js'
 import type { ReactNode } from 'react'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // The roster fields the palette reads to build its rows.
 interface PaletteBot { id: string; name: string; role?: string; hidden?: boolean; sessionId?: string }

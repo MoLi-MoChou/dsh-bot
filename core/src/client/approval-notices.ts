@@ -1,4 +1,4 @@
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 interface ApprovalEntry { id: string; at?: number; tool?: string; botId: string; roomId?: string; sessionId?: string }
 export interface ApprovalWork { getSnapshot(): { approvals?: readonly ApprovalEntry[] }; subscribe(listener: () => void): () => void }

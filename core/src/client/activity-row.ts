@@ -7,7 +7,7 @@ import { BotMark, RoomAvatar } from './mark.ts'
 import type { BotMarkProps, RoomAvatarProps } from './mark.ts'
 import { Elapsed, Shimmer, PHRASES } from './cells.js'
 import { reducedMotion } from './motion.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 const PHRASE_HOLD_MS = 800
 // A phrase that stays this long gives way to another one of the same kind, so a long

@@ -2,7 +2,7 @@ import { createElement as h, useLayoutEffect, useRef, useState } from 'react'
 import { BotMark, toolState } from './mark.ts'
 import { Elapsed, Shimmer, workPhrase } from './cells.js'
 import { SPRING_SHAPE, SPRING_TAP, spring, useLinger } from './motion.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // -------------------------------------------------------------------------
 // What a group's members are doing: above the group's composer, one capsule for the

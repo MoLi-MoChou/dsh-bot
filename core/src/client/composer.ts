@@ -5,7 +5,7 @@ import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, Wav
 import { BotMark } from './mark.ts'
 import { useLinger } from './motion.js'
 import { useMenuKeys } from './overlay-hooks.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // -------------------------------------------------------------------------
 // Composer: dictation mic and the voice-chat button. The shell's send

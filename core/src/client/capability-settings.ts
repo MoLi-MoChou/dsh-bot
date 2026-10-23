@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useState } from 'react'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // A capability as the host reports it: an MCP server, a skill or a pack of them.
 export interface Capability {

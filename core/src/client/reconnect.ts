@@ -1,7 +1,7 @@
 // Keeping the window honest about a lost connection. The roster poll is the only way the
 // window learns what the team does, so a run of failed polls means the page is stale; the
 // notice says so at the top, and disappears once a poll succeeds again.
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // One missed poll is ordinary (a restart, a laptop waking); two in a row means something
 // is really down, and only then is the user told.

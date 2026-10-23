@@ -1,5 +1,5 @@
 import { createElement as h, useMemo, useState } from 'react'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // A message past FOLD_AT shows folded: its first lines, then "Show all". A Bot's reply in
 // its own chat is what the user reads, so it folds only past FOLD_HUGE, where rendering

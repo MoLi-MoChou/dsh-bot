@@ -6,7 +6,7 @@ import { createElement as h, Fragment, useCallback, useEffect, useRef, useState 
 import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.ts'
-import { dateLocale, hostText, t } from './i18n.js'
+import { dateLocale, hostText, t } from './i18n.ts'
 import { summaryBlocks } from './text.ts'
 import { useLinger } from './motion.js'
 

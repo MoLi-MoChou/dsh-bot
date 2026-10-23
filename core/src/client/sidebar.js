@@ -13,7 +13,7 @@ import { Shimmer, workPhrase } from './cells.js'
 import { PeopleIcon } from './icons.ts'
 import { EmptyState } from './empty-state.ts'
 import { EASE_OUT, reducedMotion, SPRING_ROW_GLIDE, SPRING_SHAPE } from './motion.js'
-import { hostText, t, productName } from './i18n.js'
+import { hostText, t, productName } from './i18n.ts'
 import { showsDshRow } from './dsh-offer.ts'
 import { useMenuKeys } from './overlay-hooks.ts'
 

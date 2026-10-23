@@ -20,7 +20,7 @@ import { FeedbackIcon, FeedbackPage } from './feedback.ts'
 import { AboutPage } from './about.js'
 import { ProvidersPage } from './providers-page.js'
 import { FolderMenu } from './folder-menu.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 const capitalize = word => word[0].toUpperCase() + word.slice(1)
 

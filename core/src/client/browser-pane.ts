@@ -14,7 +14,7 @@ import { EASE_OUT, PANEL_LINGER_MS, PANEL_TAB_EDGES, reducedMotion, SPRING_SHAPE
 import { DetailsDrawer } from './details-drawer.js'
 import { EmptyState } from './empty-state.ts'
 import { useEscape } from './overlay-hooks.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 import type { PanelRect } from './bot-browsers.ts'
 
 export { PANEL_LINGER_MS }

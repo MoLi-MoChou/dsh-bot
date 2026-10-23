@@ -6,7 +6,7 @@ import { BotAvatar, RoomAvatar } from './mark.ts'
 import { ClockIcon, PlusIcon, TrashIcon } from './icons.ts'
 import { Segmented } from './motion.js'
 import { EmptyState } from './empty-state.ts'
-import { dateLocale, hostText, t } from './i18n.js'
+import { dateLocale, hostText, t } from './i18n.ts'
 
 const POLL_MS = 30_000
 

@@ -1,4 +1,4 @@
-import { errorCopy } from './i18n.js'
+import { errorCopy } from './i18n.ts'
 import { markNoted, noteClientError } from './diagnostics.ts'
 
 const ROUTE = 'api/bot'

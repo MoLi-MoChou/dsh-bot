@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { DICTIONARY, errorCopy, hostText, installLocale, language, t } from '../src/client/i18n.js'
+import { DICTIONARY, errorCopy, hostText, installLocale, language, t } from '../src/client/i18n.ts'
 
 function fakeLocale(active) {
   const dicts = new Map()

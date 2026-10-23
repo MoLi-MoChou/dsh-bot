@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CheckIcon, ChevronLeftIcon, ChevronRightIcon, FolderIcon, PencilIcon } from './icons.ts'
 import { Caret, useAnchoredMenu } from './model-menu.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // The last segment of a host path, Windows or POSIX; a root keeps its own spelling.
 export const folderName = (path: string): string => String(path).replace(/[\\/]+$/, '').split(/[\\/]/).pop() || String(path)

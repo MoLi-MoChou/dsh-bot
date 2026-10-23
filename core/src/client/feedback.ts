@@ -4,7 +4,7 @@
 import { createElement as h, useEffect, useState } from 'react'
 import type { ChangeEvent, ReactNode } from 'react'
 import { clearClientErrors, clientErrors, clientFacts, failureLabel, issueUrl, WHAT_MAX } from './diagnostics.ts'
-import { dateLocale, t } from './i18n.js'
+import { dateLocale, t } from './i18n.ts'
 import { CloseIcon } from './icons.ts'
 import { SPRING_SHAPE } from './motion.js'
 

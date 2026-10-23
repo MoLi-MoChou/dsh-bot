@@ -1,6 +1,6 @@
 import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { CloseIcon, CheckIcon } from './icons.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 import { useDockHold } from './card-hold.ts'
 import { heldCardKey } from './sources.ts'
 

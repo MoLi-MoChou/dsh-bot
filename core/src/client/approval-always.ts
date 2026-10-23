@@ -1,4 +1,4 @@
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 import type { ApprovalWork } from './approval-notices.ts'
 
 const ONCE = new Set<string>(['允许一次', 'Allow once'])

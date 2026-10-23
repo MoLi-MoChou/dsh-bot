@@ -8,7 +8,7 @@ import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { CreateBot } from './create-bot.ts'
 import { QUICK_EDGES, useFlip, useGlide, useMorph } from './motion.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 import type { MarkBot } from './mark.ts'
 import type { CreateRoster, CreateBotActions } from './create-bot.ts'
 

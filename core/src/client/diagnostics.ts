@@ -1,6 +1,6 @@
 // What went wrong in this browser, for Settings → Feedback and the report it builds.
 // Calls whose failures the interface swallows (polls, previews) still land here.
-import { t, language } from './i18n.js'
+import { t, language } from './i18n.ts'
 
 const MAX = 30
 // The same failure again within this window bumps a count instead of a new line.

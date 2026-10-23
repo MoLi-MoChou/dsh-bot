@@ -1,6 +1,6 @@
 // -------------------------------------------------------------------------
 // Text helpers
-import { dateLocale, hostText, t } from './i18n.js'
+import { dateLocale, hostText, t } from './i18n.ts'
 import { mentionSpans } from '../shared/mentions.ts'
 
 export const MENTION_ORIGIN = 'https://bots.local/'

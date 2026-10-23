@@ -40,8 +40,7 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
-// src/client/i18n.js
-var NAMESPACE = "ds-bot";
+// src/client/i18n/zh.ts
 var ZH = {
   // Shared
   "Main Bot": "主 Bot",
@@ -1044,6 +1043,45 @@ var ZH = {
   "Build your Bot team": "组建你的 Bot 团队",
   "Each Bot has its own chat, instructions and memory. Create one, or ask your Main Bot to set one up.": "每个 Bot 都有独立的对话、指令和记忆。你可以直接创建，也可以让主 Bot 帮你建。"
 };
+var HOST_ZH = {
+  "Request failed": "请求失败",
+  "Permissions are not available in this DeepSeek Harness": "这个 DeepSeek Harness 不支持权限设置",
+  "Avatar images must be PNG, JPEG, WebP, or GIF": "头像图片必须是 PNG、JPEG、WebP 或 GIF",
+  "Avatar image is too large": "头像图片太大了",
+  "A Bot needs a name": "Bot 需要一个名字",
+  "A Bot name cannot contain @, ` or a line break": "Bot 名字里不能有 @、` 或换行",
+  "Unknown Bot": "找不到这个 Bot",
+  "Unknown conversation": "找不到这个对话",
+  "A group chat needs at least two Bots": "群聊至少要两个 Bot",
+  "The admin must be a member of the group": "管理员必须是群成员",
+  "Unknown group chat": "找不到这个群聊",
+  "No Bot is left in this group chat": "这个群聊里已经没有 Bot 了",
+  "That group chat has been deleted": "这个群聊已经删除了",
+  "Hand the admin role to another member instead of leaving the group without one": "请把管理员交给其他成员，不要让群聊没有管理员",
+  "Hand the admin role to another member before leaving the group": "离开群聊前，请先把管理员交给其他成员",
+  "The team needs at least one Main Bot": "团队至少要有一个主 Bot",
+  "Only a Main Bot can be replaced": "只能替换主 Bot",
+  "A Main Bot cannot be deleted; remove its Main Bot role first": "主 Bot 不能删除，请先取消它的主 Bot 身份",
+  "Unknown theme": "未知主题",
+  "Accent must be a #rrggbb color": "强调色必须是 #rrggbb 格式",
+  "Type the key first": "请先输入密钥",
+  "Choose every Bot or a list of Bots": "请选择所有 Bot 或指定的 Bot",
+  "This request is gone": "这个请求已经不存在了",
+  "This request was already answered": "这个请求已经处理过了",
+  "A name uses capitals, digits, and underscores, and starts with a letter": "名字只能用大写字母、数字和下划线，并以字母开头",
+  "No such key": "没有这个密钥",
+  "Type a question or a change first": "请先输入问题或要改的内容",
+  "No model is available. Add one in Harness settings.": "没有可用的模型，请先在 Harness 设置里添加模型。",
+  "Memory is turned off on this host": "这台主机关闭了记忆功能",
+  "The model wrote nothing": "模型没有输出内容",
+  "Write the entry to save.": "请写下要保存的内容。",
+  "This DeepSeek Harness has no folder chooser": "这个 DeepSeek Harness 没有文件夹选择窗口",
+  "This DeepSeek Harness cannot list folders": "这个 DeepSeek Harness 不能列出文件夹"
+};
+Object.assign(ZH, HOST_ZH);
+
+// src/client/i18n.ts
+var NAMESPACE = "ds-bot";
 var HOST_ERRORS = [
   // Approval refusal from DSH (shows in chat + sidebar preview when the user rejects).
   [/^Error:\s*the user rejected escalating this command to danger-full-access\.?$/i, "你拒绝了完全访问权限，命令没有执行"],
@@ -1110,42 +1148,6 @@ var HOST_ERRORS = [
   [/^A browser poll needs a clientId$/, "浏览器轮询缺少 clientId"],
   [/^Unknown endpoint (.+)$/, "未知的接口 $1"]
 ];
-var HOST_ZH = {
-  "Request failed": "请求失败",
-  "Permissions are not available in this DeepSeek Harness": "这个 DeepSeek Harness 不支持权限设置",
-  "Avatar images must be PNG, JPEG, WebP, or GIF": "头像图片必须是 PNG、JPEG、WebP 或 GIF",
-  "Avatar image is too large": "头像图片太大了",
-  "A Bot needs a name": "Bot 需要一个名字",
-  "A Bot name cannot contain @, ` or a line break": "Bot 名字里不能有 @、` 或换行",
-  "Unknown Bot": "找不到这个 Bot",
-  "Unknown conversation": "找不到这个对话",
-  "A group chat needs at least two Bots": "群聊至少要两个 Bot",
-  "The admin must be a member of the group": "管理员必须是群成员",
-  "Unknown group chat": "找不到这个群聊",
-  "No Bot is left in this group chat": "这个群聊里已经没有 Bot 了",
-  "That group chat has been deleted": "这个群聊已经删除了",
-  "Hand the admin role to another member instead of leaving the group without one": "请把管理员交给其他成员，不要让群聊没有管理员",
-  "Hand the admin role to another member before leaving the group": "离开群聊前，请先把管理员交给其他成员",
-  "The team needs at least one Main Bot": "团队至少要有一个主 Bot",
-  "Only a Main Bot can be replaced": "只能替换主 Bot",
-  "A Main Bot cannot be deleted; remove its Main Bot role first": "主 Bot 不能删除，请先取消它的主 Bot 身份",
-  "Unknown theme": "未知主题",
-  "Accent must be a #rrggbb color": "强调色必须是 #rrggbb 格式",
-  "Type the key first": "请先输入密钥",
-  "Choose every Bot or a list of Bots": "请选择所有 Bot 或指定的 Bot",
-  "This request is gone": "这个请求已经不存在了",
-  "This request was already answered": "这个请求已经处理过了",
-  "A name uses capitals, digits, and underscores, and starts with a letter": "名字只能用大写字母、数字和下划线，并以字母开头",
-  "No such key": "没有这个密钥",
-  "Type a question or a change first": "请先输入问题或要改的内容",
-  "No model is available. Add one in Harness settings.": "没有可用的模型，请先在 Harness 设置里添加模型。",
-  "Memory is turned off on this host": "这台主机关闭了记忆功能",
-  "The model wrote nothing": "模型没有输出内容",
-  "Write the entry to save.": "请写下要保存的内容。",
-  "This DeepSeek Harness has no folder chooser": "这个 DeepSeek Harness 没有文件夹选择窗口",
-  "This DeepSeek Harness cannot list folders": "这个 DeepSeek Harness 不能列出文件夹"
-};
-Object.assign(ZH, HOST_ZH);
 var fill = (text, params) => params ? text.replace(/\{(\w+)\}/g, (match, name) => name in params ? String(params[name]) : match) : text;
 var service = null;
 var bound = null;
@@ -1165,7 +1167,7 @@ function installLocale(locale) {
 }
 var KEEP_NAME = /* @__PURE__ */ new Set(["Based on DS Bot"]);
 var productName = () => "Moon Bot";
-var brand = (text) => typeof text === "string" ? text.replace(/\b(?:DS Bot|DeepSeek Bot)\b/g, productName()) : text;
+var brand = (text) => text.replace(/\b(?:DS Bot|DeepSeek Bot)\b/g, productName());
 function t(key, params) {
   const text = bound ? bound(key, params) : fill(key, params);
   return KEEP_NAME.has(key) ? text : brand(text);
@@ -1210,7 +1212,7 @@ var detailOf = (message) => {
 };
 var sameText = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 function errorCopy(code, message) {
-  const copy2 = Object.hasOwn(ERROR_COPY, code ?? "") ? ERROR_COPY[code] : void 0;
+  const copy2 = typeof code === "string" && Object.hasOwn(ERROR_COPY, code) ? ERROR_COPY[code] : void 0;
   const zh = language().startsWith("zh");
   const generic = zh ? copy2?.zh : copy2?.en;
   const detail = detailOf(message);

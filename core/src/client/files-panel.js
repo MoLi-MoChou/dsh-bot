@@ -7,7 +7,7 @@
 // - in place of the bare notice, a card with the file's icon, name, size and type and
 //   a Download button; audio and video play right in it.
 // Bytes come over the api/bot channel, so it works in the web build behind its password.
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // The shared empty-state DOM (.bt-es), built without React so this file stays importable
 // in Node tests that check its pure helpers.

@@ -6,7 +6,7 @@ import { Card, Row, InlineText, SwitchRow } from './bot-settings.js'
 import { Segmented } from './motion.js'
 import { FolderMenu } from './folder-menu.ts'
 import { PermissionPicker } from './permission-picker.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // A member as a group's settings show it.
 interface GroupBot { id: string; name: string }

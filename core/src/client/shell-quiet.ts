@@ -1,4 +1,4 @@
-import { productName } from './i18n.js'
+import { productName } from './i18n.ts'
 import { FAVICON } from './brand-art.ts'
 // Moon Bot patch: one onboarding, not three. On a first start DSH opens its own "Get started"
 // sign-in dialog and a preview notice on top of Chief's model choice; Chief already offers

@@ -16,7 +16,7 @@ import { LEAN } from './lean.ts'
 import { useGlide, useMorph } from './motion.js'
 import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.js'
 import { PermissionPicker, presetDanger, presetName } from './permission-picker.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 function transcriptOf(list, id, name, hiddenTurns = []) {
   const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline

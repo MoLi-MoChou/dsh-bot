@@ -2,7 +2,7 @@
 // ("请求受限，3s 后重试 · 2/5"). Once the retry has run, the row leaves the chat and is
 // listed in the turn's work process behind the "已工作" line.
 import { createElement as h, useEffect, useMemo, useState } from 'react'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // One retry the model asked for, kept after the row leaves the chat so the turn's work
 // process can list it. `maximum` is the mode's own cap, or '∞' for the normal mode.

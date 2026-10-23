@@ -1,6 +1,6 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
 import { Segmented } from './motion.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // One preset of the permission catalog the host offers.
 export interface PresetOption {

@@ -1,7 +1,7 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
 import { fnv1a, lookOf, shapeId, shapeOf, MASK_ID, nextMarkSerial, characterMarkup } from './characters.ts'
 import type { LookBot } from './characters.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // The look a mark draws: a character shape, an optional photo, and a colour.
 export type Look = { shape: string; image?: string | undefined; color: string }

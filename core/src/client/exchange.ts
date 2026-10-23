@@ -8,7 +8,7 @@ import { ChatsIcon } from './icons.ts'
 import { SHEET_EXIT_MS, reducedMotion } from './motion.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // One message the two Bots sent each other; a long one carries its length so the rest
 // can be read on request.

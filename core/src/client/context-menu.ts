@@ -4,7 +4,7 @@ import { isMainOf } from './sources.ts'
 import { currentPart } from './text.ts'
 import { GearIcon, PinIcon, UnreadIcon, PencilIcon, StarLineIcon, CopyIcon, HideIcon, TrashIcon, DuplicateIcon } from './icons.ts'
 import { useEscape, useMenuKeys } from './overlay-hooks.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 // The thing a menu was opened on: a Bot or room by id, or a DSH Agent row (whose
 // Session menus carry the Agent id beside the Session id).

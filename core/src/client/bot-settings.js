@@ -10,7 +10,7 @@ import { BotSchedules } from './schedules.js'
 import { BotCapabilitiesCard } from './capability-settings.ts'
 import { useMemoryCount } from './memory-panel.js'
 import { SPRING_SHAPE, SPRING_TAP, spring, useGlide } from './motion.js'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 
 const capitalize = word => word[0].toUpperCase() + word.slice(1)
 

@@ -5,7 +5,7 @@ import { BotMark, RoomAvatar } from './mark.ts'
 import { speechApi, useDictation } from './composer.ts'
 import { Shimmer } from './cells.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 import { openCapture, speechCatalog, transcribeWave, turnDetector } from './speech.ts'
 
 // Voice chat: listen, send what the user said, read the Bot's answer aloud, listen

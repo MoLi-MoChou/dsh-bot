@@ -5,7 +5,7 @@ import { createElement as h, useEffect, useState } from 'react'
 import { CheckIcon, TrashIcon } from './icons.ts'
 import { KeyIcon, MaskedInput } from './secret-card.js'
 import { Segmented, SPRING_SHAPE } from './motion.js'
-import { hostText, t } from './i18n.js'
+import { hostText, t } from './i18n.ts'
 
 const PROTOCOL_NAMES = { 'openai-completions': 'OpenAI Chat Completions', 'openai-responses': 'OpenAI Responses', 'anthropic-messages': 'Anthropic Messages' }
 // Anthropic's SDK appends /v1/messages itself; the OpenAI ones take the /v1 root.

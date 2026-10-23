@@ -1,7 +1,7 @@
 import { createElement as h, Fragment, useId, useRef, useState } from 'react'
 import { MarkdownText } from './dsh-primitives.ts'
 import { CheckIcon, CloseIcon } from './icons.ts'
-import { t } from './i18n.js'
+import { t } from './i18n.ts'
 import { AnsweredCell, keyLetter, useOptionKeys } from './questions.js'
 import { useDockHold } from './card-hold.ts'
 import { heldCardKey } from './sources.ts'

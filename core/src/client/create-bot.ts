@@ -6,7 +6,7 @@ import { ChevronLeftIcon, CloseIcon } from './icons.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { createPayload, freshBotName, startModel } from './bot-draft.ts'
 import { ModelMenu } from './model-menu.js'
-import { hostText, t } from './i18n.js'
+import { hostText, t } from './i18n.ts'
 import { nameProblem } from '../shared/mentions.ts'
 import type { DraftRoster } from './bot-draft.ts'
 
