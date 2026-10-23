@@ -124,6 +124,9 @@ try {
     await sleep(200)
   }
   if (waitMs > 0) await sleep(waitMs)
+  // Count once more after the settle time: the client keeps adding its parts as it draws,
+  // so the first non-zero count says only that it started, not how much is there.
+  classes = await page.evaluate(() => document.querySelectorAll('[class*="bt-"]').length)
 
   const theme = await page.evaluate(() => document.body.dataset.btTheme ?? '')
   shot = join(outDir, `ui-smoke-${new Date().toISOString().replace(/[:.]/g, '-')}.png`)
