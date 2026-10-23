@@ -98,7 +98,7 @@ export const stripHeader = (text: string): string => text.replace(HEADER, '')
 
 // Of the Bots in a conversation, the one whose memory changed last, by the host's
 // clock: changes reaching one window in the same poll share a `seen` time.
-export function latestMemoryChange(news: Record<string, { seen?: boolean; at?: number } | undefined> | undefined, ids: readonly string[]): string | null {
+export function latestMemoryChange(news: Record<string, { seen?: number | undefined; at?: number | undefined } | undefined> | undefined, ids: readonly string[]): string | null {
   const at = (id: string): number => (news?.[id]?.seen ? news[id]?.at ?? 0 : 0)
   return ids.reduce<string | null>((best, id) => (at(id) > (best === null ? 0 : at(best)) ? id : best), ids[0] ?? null)
 }

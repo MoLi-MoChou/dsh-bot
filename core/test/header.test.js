@@ -6,7 +6,7 @@ import { build } from 'esbuild'
 import { headerNavigation, installHeaderNavigation } from '../src/client/header-navigation.ts'
 
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../src/client/header.js', import.meta.url))],
+  entryPoints: [fileURLToPath(new URL('../src/client/header.ts', import.meta.url))],
   bundle: true, format: 'cjs', platform: 'node', write: false,
   external: ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives'],
 })
