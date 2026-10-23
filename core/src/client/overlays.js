@@ -6,13 +6,9 @@ import { ExchangeDialog } from './exchange.js'
 import { VoiceMode } from './voice.js'
 import { SettingsDialog } from './settings.js'
 import { ContextMenu } from './context-menu.js'
-import { PANEL_LINGER_MS, BotPanel } from './browser-pane.js'
+import { BotPanel } from './browser-pane.js'
 import { MemoryDialog } from './memory-panel.js'
-import { useLinger } from './motion.js'
-
-// How long a closing dialog or menu stays for its exit (see their [data-leaving] CSS).
-const DIALOG_EXIT_MS = 160
-const MENU_EXIT_MS = 120
+import { DIALOG_EXIT_MS, MENU_EXIT_MS, PANEL_LINGER_MS, reducedMotion, useLinger } from './motion.js'
 
 export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity, useWork, useRegistry, useBrowserPages, useBrowserTabs, useUpdate, actions }) {
   const roster = useRoster(value => value)
@@ -31,7 +27,7 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
   const [kept, setKept] = useState(open)
   useEffect(() => {
     if (open) { setKept(open); return undefined }
-    const timer = setTimeout(() => setKept(null), PANEL_LINGER_MS)
+    const timer = setTimeout(() => setKept(null), reducedMotion() ? 0 : PANEL_LINGER_MS)
     return () => clearTimeout(timer)
   }, [ui.details, ui.view, ui.renaming, ui.tab])
   const pane = open ?? kept

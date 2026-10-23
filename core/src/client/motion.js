@@ -36,6 +36,27 @@ export const SPRING_TRAIL = springEasing(289, 29.2)
 // A highlight that follows the keyboard and pointer down a list keeps up on stiffer
 // edges (ω=30 and ω=20).
 export const QUICK_EDGES = { lead: springEasing(900, 51), trail: springEasing(400, 34) }
+// Sidebar rows glide to new places on a stiffer spring (ω≈31.6, ζ≈1).
+export const SPRING_ROW_GLIDE = springEasing(1000, 63)
+// Browser panel tab indicator edges: leading edge stretches ahead, trailing edge settles.
+export const PANEL_TAB_EDGES = { lead: springEasing(576, 39.4), trail: springEasing(144, 19.7) }
+
+// Unified exit durations (ms) and easing curves across menus, dialogs, sheets and panels.
+export const MENU_EXIT_MS = 120
+export const DIALOG_EXIT_MS = 160
+export const SHEET_EXIT_MS = 220
+export const PANEL_LINGER_MS = 300
+export const EASE_OUT = 'cubic-bezier(.16,1,.3,1)'
+export const EASE_IN = 'cubic-bezier(.4,0,1,1)'
+export const EASE_PANEL = 'cubic-bezier(.2,0,0,1)'
+
+export const MOTION_PRESETS = Object.freeze({
+  sidebar: Object.freeze({ shape: SPRING_SHAPE, rowGlide: SPRING_ROW_GLIDE, easeOut: EASE_OUT }),
+  overlay: Object.freeze({ enter: SPRING_SHAPE, exitMs: DIALOG_EXIT_MS, sheetExitMs: SHEET_EXIT_MS, easeIn: EASE_IN, easeOut: EASE_OUT }),
+  menu: Object.freeze({ enter: SPRING_TAP, exitMs: MENU_EXIT_MS, easeIn: EASE_IN }),
+  panel: Object.freeze({ shape: SPRING_SHAPE, lingerMs: PANEL_LINGER_MS, ease: EASE_PANEL, tabEdges: PANEL_TAB_EDGES }),
+  message: Object.freeze({ enter: SPRING_SHAPE, collapseMs: 240, easeOut: EASE_OUT }),
+})
 
 export const spring = (curve, ...properties) => properties.map(property => `${property} ${curve.duration}ms ${curve.easing}`).join(',')
 

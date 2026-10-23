@@ -9,11 +9,10 @@ import { isMainOf } from './sources.js'
 import { currentPart, previewOf, relativeShort } from './text.js'
 import { PlusIcon, SearchIcon, SidebarIcon, GaugeIcon, PlugIcon, ClockIcon, GearIcon, PinMarkIcon, ConnectorIcon, SwitchIcon, CloudDownloadIcon, MoonBotMark } from './icons.js'
 import { botState, BotAvatar, RoomAvatar } from './mark.js'
-import { reducedMotion } from './activity-row.js'
 import { Shimmer, workPhrase } from './cells.js'
 import { PeopleIcon } from './icons.js'
 import { EmptyState } from './empty-state.js'
-import { springEasing, SPRING_SHAPE } from './motion.js'
+import { EASE_OUT, reducedMotion, SPRING_ROW_GLIDE, SPRING_SHAPE } from './motion.js'
 import { hostText, t, productName } from './i18n.js'
 import { showsDshRow } from './dsh-offer.js'
 import { useMenuKeys } from './overlay-hooks.js'
@@ -228,9 +227,6 @@ function AgentRow({ agent, actions, useSessions, useSessionStatus, useUi, wide, 
         })))))
 }
 
-// List rows glide to new places on a spring.
-const GLIDE = springEasing(1000, 63)
-
 function useListGlide(listRef, layout, key) {
   const tops = useRef({ layout, map: new Map() })
   useLayoutEffect(() => {
@@ -245,7 +241,7 @@ function useListGlide(listRef, layout, key) {
       next.set(id, top)
       const before = tops.current.map.get(id)
       if (!still && before !== undefined && Math.abs(before - top) > 0.5) {
-        row.animate([{ transform: `translateY(${before - top}px)` }, { transform: 'none' }], GLIDE)
+        row.animate([{ transform: `translateY(${before - top}px)` }, { transform: 'none' }], SPRING_ROW_GLIDE)
       }
     }
     tops.current = { layout, map: next }
@@ -727,7 +723,7 @@ export const SIDEBAR_CSS = `
 .bt-agent-new svg{width:14px;height:14px;flex:none}
 .bt-agent-edit{padding:3px 10px 3px 4px}
 .bt-agent-edit input{width:100%;border:0;border-radius:6px;background:var(--bt-hover);color:var(--bt-ink);font:inherit;font-size:13px;line-height:20px;padding:2px 8px;outline:none;box-shadow:inset 0 0 0 .5px var(--bt-line-2)}
-.bt-agent-sub[data-open] .bt-agent-sub-row{animation:bt-agent-row-in .24s ease both;animation-delay:calc(var(--i, 0)*30ms)}
+.bt-agent-sub[data-open] .bt-agent-sub-row{animation:bt-agent-row-in .24s ${EASE_OUT} both;animation-delay:calc(var(--i, 0)*30ms)}
 @keyframes bt-agent-row-in{from{opacity:0;filter:blur(4px)}to{opacity:1;filter:blur(0)}}
-@media (prefers-reduced-motion:reduce){.bt-agent-sub{transition:none}.bt-agent-sub .bt-agent-sub-row{animation:none}}
+@media (prefers-reduced-motion:reduce){.bt-agent-sub,.bt-round,.bt-row,.bt-tile,.bt-connect,.bt-update-go{transition:none}.bt-agent-sub .bt-agent-sub-row,.bt-agent-ava.bt-run{animation:none}}
 `
