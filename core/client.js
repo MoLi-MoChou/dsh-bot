@@ -16694,7 +16694,6 @@ function AboutPage({ useUpdate, actions, run, Section, Row: Row3 }) {
   (0, import_react33.useEffect)(() => {
     if (phase === "installed" || dshPhase === "installed") setCheer(true);
   }, [phase, dshPhase]);
-  const markState = checking ? "searching" : phase === "installing" || dshPhase === "installing" ? "working" : cheer ? "done" : "idle";
   const dshNew = showsDshRow(dsh, update.app);
   const dshShown = dshNew && dsh.available;
   const botControl = phase === "installed" || update.source === "app" ? null : update.available || phase === "installing" ? (0, import_react33.createElement)(

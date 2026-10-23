@@ -136,7 +136,6 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
   const dsh = update.dsh
   const dshPhase = dsh?.phase ?? 'idle'
   useEffect(() => { if (phase === 'installed' || dshPhase === 'installed') setCheer(true) }, [phase, dshPhase])
-  const markState = checking ? 'searching' : phase === 'installing' || dshPhase === 'installing' ? 'working' : cheer ? 'done' : 'idle'
   // Same rule as the sidebar card.
   const dshNew = showsDshRow(dsh, update.app)
   const dshShown = dshNew && dsh.available
