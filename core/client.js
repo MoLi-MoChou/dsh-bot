@@ -15587,15 +15587,15 @@ function PermissionPicker({ catalog, saved, onPick, repick = false }) {
   );
 }
 
-// src/client/group-settings.js
+// src/client/group-settings.ts
 var import_react30 = require("react");
 var ROOM_MODES = [
   ["admin", "Admin leads", "Plain messages go to the admin, who calls others with @Name."],
   ["everyone", "Everyone", "Every member answers in turn, admin first."]
 ];
-var shownMode = (room2, roster) => roster.byId[room2.admin] ? room2.mode : "everyone";
+var shownMode = (room2, roster) => room2.admin && roster.byId[room2.admin] ? room2.mode : "everyone";
 function roomSubtitle(room2, roster) {
-  const admin = roster.byId[room2.admin];
+  const admin = room2.admin ? roster.byId[room2.admin] : void 0;
   return [t("{count} members", { count: room2.members.length }), admin ? t("Admin {name}", { name: admin.name }) : t("No admin")].join(" · ");
 }
 function GroupPermission({ room: room2, catalog, update }) {
@@ -15608,12 +15608,12 @@ function GroupPermission({ room: room2, catalog, update }) {
       label: t("Same for every member"),
       hint: t("Replaces each member's own permissions in this group."),
       on: shared2,
-      onChange: (on) => update({ permission: on ? catalog.defaultPreset ?? catalog.options[0].value : null })
+      onChange: (on) => update({ permission: on ? catalog?.defaultPreset ?? catalog?.options[0]?.value ?? null : null })
     }),
     shared2 ? (0, import_react30.createElement)(
       "div",
       { className: "bt-set-row bt-bs-row bt-bs-stack bt-gs-perm bt-veil" },
-      (0, import_react30.createElement)(PermissionPicker, { catalog, saved: room2.permission, onPick: (permission) => update({ permission }) })
+      (0, import_react30.createElement)(PermissionPicker, { catalog, saved: room2.permission ?? "", onPick: (permission) => update({ permission }) })
     ) : null
   );
 }
@@ -15625,9 +15625,9 @@ function GroupSettingsForm({ room: room2, roster, actions, run, onDeleted }) {
     const timer = setTimeout(() => setConfirming(false), 4e3);
     return () => clearTimeout(timer);
   }, [confirming]);
-  const members = room2.members.map((id) => roster.byId[id]).filter(Boolean);
+  const members = room2.members.map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   const outside = roster.bots.filter((bot) => !room2.members.includes(bot.id));
-  const admin = roster.byId[room2.admin];
+  const admin = room2.admin ? roster.byId[room2.admin] : void 0;
   const mode = shownMode(room2, roster);
   const modeHint = ROOM_MODES.find(([id]) => id === mode)?.[2] ?? "";
   const update = (patch) => run(actions.updateRoom(room2.id, patch));
@@ -15669,7 +15669,7 @@ function GroupSettingsForm({ room: room2, roster, actions, run, onDeleted }) {
       (0, import_react30.createElement)(
         Row,
         { label: t("Notice"), hint: t("Every member reads it before speaking in this group."), stack: true },
-        (0, import_react30.createElement)(InlineText, { label: t("Group notice"), value: room2.notice, multiline: true, maxLength: 2e3, placeholder: t("Shared instructions every member reads before speaking…"), onSave: (notice) => update({ notice }) })
+        (0, import_react30.createElement)(InlineText, { label: t("Group notice"), value: room2.notice ?? "", multiline: true, maxLength: 2e3, placeholder: t("Shared instructions every member reads before speaking…"), onSave: (notice) => update({ notice }) })
       )
     ),
     (0, import_react30.createElement)(

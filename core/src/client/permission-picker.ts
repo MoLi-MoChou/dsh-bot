@@ -5,15 +5,18 @@ import { t } from './i18n.js'
 // One preset of the permission catalog the host offers.
 export interface PresetOption {
   value: string
-  name: string
-  description?: string
+  name?: string | undefined
+  description?: string | undefined
 }
-export interface PresetCatalog { options: PresetOption[] }
+export interface PresetCatalog {
+  options: readonly PresetOption[]
+  defaultPreset?: string | null | undefined
+}
 
 export interface PermissionPickerProps {
   catalog: PresetCatalog
   saved: string
-  onPick: (value: string) => boolean | void | Promise<boolean | void>
+  onPick: (value: string) => unknown
   repick?: boolean
 }
 

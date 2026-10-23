@@ -8,37 +8,75 @@ import { FolderMenu } from './folder-menu.ts'
 import { PermissionPicker } from './permission-picker.ts'
 import { t } from './i18n.js'
 
-export const ROOM_MODES = [
+// A member as a group's settings show it.
+interface GroupBot { id: string; name: string }
+// A group chat: the fields its settings read and change.
+export interface GroupRoom {
+  id: string
+  name: string
+  named?: boolean
+  notice?: string
+  admin?: string | null
+  mode: string
+  members: readonly string[]
+  permission?: string | null
+  workDir?: string
+  pinned?: boolean
+  hidden?: boolean
+}
+export interface GroupRoster {
+  bots: GroupBot[]
+  byId: Record<string, GroupBot | undefined>
+  mainBotIds?: readonly string[]
+  permissions?: { options: readonly { value: string; name?: string | undefined }[]; defaultPreset?: string | null }
+}
+export interface GroupActions {
+  updateRoom: (id: string, patch: Record<string, unknown>) => Promise<unknown>
+  deleteRoom: (id: string) => Promise<unknown>
+  createRoom: (members: readonly string[], options: Record<string, unknown>) => Promise<{ id: string; name: string; members: readonly string[] } | undefined>
+  setFlags: (id: string, flags: Record<string, boolean>) => Promise<unknown>
+  closeSettings: () => void
+  openSession: (id: string) => void
+}
+export type RunWork = (work: Promise<unknown>) => Promise<unknown>
+
+export const ROOM_MODES: readonly (readonly [string, string, string])[] = [
   ['admin', 'Admin leads', 'Plain messages go to the admin, who calls others with @Name.'],
   ['everyone', 'Everyone', 'Every member answers in turn, admin first.'],
 ]
 
 // Without an admin the host answers as everyone, whatever the stored mode says.
-export const shownMode = (room, roster) => (roster.byId[room.admin] ? room.mode : 'everyone')
+export const shownMode = (room: GroupRoom, roster: GroupRoster): string => (room.admin && roster.byId[room.admin] ? room.mode : 'everyone')
 
-export function roomSubtitle(room, roster) {
-  const admin = roster.byId[room.admin]
+export function roomSubtitle(room: GroupRoom, roster: GroupRoster): string {
+  const admin = room.admin ? roster.byId[room.admin] : undefined
   return [t('{count} members', { count: room.members.length }), admin ? t('Admin {name}', { name: admin.name }) : t('No admin')].join(' · ')
 }
 
 // One preset for every member in the group, or each member's own. Turning it on starts
 // from DSH's default preset.
-function GroupPermission({ room, catalog, update }) {
+function GroupPermission({ room, catalog, update }: { room: GroupRoom; catalog: GroupRoster['permissions']; update: (patch: Record<string, unknown>) => unknown }) {
   if (!catalog?.options?.length) return null
   const shared = room.permission !== undefined
   return h(Card, { title: t('Permissions') },
     h(SwitchRow, {
       label: t('Same for every member'), hint: t("Replaces each member's own permissions in this group."), on: shared,
-      onChange: on => update({ permission: on ? catalog.defaultPreset ?? catalog.options[0].value : null }),
+      onChange: (on: boolean) => update({ permission: on ? catalog?.defaultPreset ?? catalog?.options[0]?.value ?? null : null }),
     }),
     shared ? h('div', { className: 'bt-set-row bt-bs-row bt-bs-stack bt-gs-perm bt-veil' },
-      h(PermissionPicker, { catalog, saved: room.permission, onPick: permission => update({ permission }) })) : null)
+      h(PermissionPicker, { catalog, saved: room.permission ?? '', onPick: (permission: string) => update({ permission }) })) : null)
 }
 
 // A group chat's settings as grouped cards: its name and notice, who answers, its
 // members and admin, its permissions, its sidebar place, and deleting it. The user may
 // change all of it; the host enforces what Bots may change.
-export function GroupSettingsForm({ room, roster, actions, run, onDeleted }) {
+export function GroupSettingsForm({ room, roster, actions, run, onDeleted }: {
+  room: GroupRoom
+  roster: GroupRoster
+  actions: GroupActions
+  run: RunWork
+  onDeleted?: () => void
+}) {
   const [adding, setAdding] = useState(false)
   const [confirming, setConfirming] = useState(false)
   useEffect(() => {
@@ -46,13 +84,13 @@ export function GroupSettingsForm({ room, roster, actions, run, onDeleted }) {
     const timer = setTimeout(() => setConfirming(false), 4000)
     return () => clearTimeout(timer)
   }, [confirming])
-  const members = room.members.map(id => roster.byId[id]).filter(Boolean)
+  const members = room.members.map(id => roster.byId[id]).filter((bot): bot is GroupBot => bot !== undefined)
   const outside = roster.bots.filter(bot => !room.members.includes(bot.id))
-  const admin = roster.byId[room.admin]
+  const admin = room.admin ? roster.byId[room.admin] : undefined
   const mode = shownMode(room, roster)
-  const modeHint = ROOM_MODES.find(([id]) => id === mode)?.[2] ?? ''
-  const update = patch => run(actions.updateRoom(room.id, patch))
-  const openBot = (id) => { actions.closeSettings(); actions.openSession(id) }
+  const modeHint: string = ROOM_MODES.find(([id]) => id === mode)?.[2] ?? ''
+  const update = (patch: Record<string, unknown>) => run(actions.updateRoom(room.id, patch))
+  const openBot = (id: string) => { actions.closeSettings(); actions.openSession(id) }
   const remove = () => {
     if (!confirming) { setConfirming(true); return }
     void Promise.resolve(run(actions.deleteRoom(room.id))).then((done) => { if (done) onDeleted?.() })
@@ -67,7 +105,7 @@ export function GroupSettingsForm({ room, roster, actions, run, onDeleted }) {
       h(Row, { label: t('Name'), hint: t('Leave it empty to name the group after its members.') },
         h(InlineText, { label: t('Group name'), value: room.named ? room.name : '', placeholder: t('Name after members'), maxLength: 60, onSave: name => update({ name }) })),
       h(Row, { label: t('Notice'), hint: t('Every member reads it before speaking in this group.'), stack: true },
-        h(InlineText, { label: t('Group notice'), value: room.notice, multiline: true, maxLength: 2000, placeholder: t('Shared instructions every member reads before speaking…'), onSave: notice => update({ notice }) }))),
+        h(InlineText, { label: t('Group notice'), value: room.notice ?? '', multiline: true, maxLength: 2000, placeholder: t('Shared instructions every member reads before speaking…'), onSave: notice => update({ notice }) }))),
     h(Card, { title: t('Who answers') },
       h('div', { className: 'bt-set-row bt-bs-row bt-bs-stack' },
         h(Segmented, { label: t('Who answers'), value: mode }, ROOM_MODES.map(([id, label]) => h('button', {
@@ -79,7 +117,7 @@ export function GroupSettingsForm({ room, roster, actions, run, onDeleted }) {
     h(Card, { title: t('Working folder') },
       h('div', { className: 'bt-set-row bt-bs-row' },
         h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Folder'))),
-        h(FolderMenu, { value: room.workDir, group: true, actions, run, onPick: workDir => update({ workDir }) }))),
+        h(FolderMenu, { value: room.workDir, group: true, actions: actions as never, run, onPick: (workDir: string) => update({ workDir }) }))),
     h(GroupPermission, { room, catalog: roster.permissions, update }),
     h(Card, { title: t('Members · {count}', { count: members.length }) },
       members.map((member) => {
@@ -121,22 +159,28 @@ export function GroupSettingsForm({ room, roster, actions, run, onDeleted }) {
 
 // A new group chat from Settings: its admin first, then the other members, then a name
 // if the member names will not do.
-export function NewGroupForm({ roster, actions, run, onCreated, onCancel }) {
-  const [admin, setAdmin] = useState(null)
-  const [members, setMembers] = useState([])
+export function NewGroupForm({ roster, actions, run, onCreated, onCancel }: {
+  roster: GroupRoster
+  actions: GroupActions
+  run: RunWork
+  onCreated: (room: { id: string; name: string; members: readonly string[] }) => void
+  onCancel: () => void
+}) {
+  const [admin, setAdmin] = useState<string | null>(null)
+  const [members, setMembers] = useState<string[]>([])
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
-  const toggle = id => setMembers(list => (list.includes(id) ? list.filter(item => item !== id) : [...list, id]))
-  const pickAdmin = (id) => { setAdmin(id); setMembers(list => list.filter(item => item !== id)) }
+  const toggle = (id: string) => setMembers(list => (list.includes(id) ? list.filter(item => item !== id) : [...list, id]))
+  const pickAdmin = (id: string) => { setAdmin(id); setMembers(list => list.filter(item => item !== id)) }
   const create = async () => {
     if (busy || admin === null || members.length === 0) return
     setBusy(true)
-    let room
+    let room: { id: string; name: string; members: readonly string[] } | undefined
     const done = await run(actions.createRoom([admin, ...members], { admin, greet: true, ...(name.trim() ? { name: name.trim() } : {}) }).then((value) => { room = value }))
     if (done && room) onCreated(room)
     else setBusy(false)
   }
-  const chip = (bot, on, onClick, role) => h('button', {
+  const chip = (bot: GroupBot, on: boolean, onClick: () => void, role: string) => h('button', {
     key: bot.id, type: 'button', role, className: 'bt-ng-chip', 'aria-checked': on, onClick,
   }, h(BotAvatar, { bot, size: 22, badge: false, live: false }), h('span', { className: 'bt-ng-name' }, bot.name), on && role === 'radio' ? h(AdminStar) : null)
   return h('div', { className: 'bt-set-card bt-ng' },
@@ -150,7 +194,7 @@ export function NewGroupForm({ roster, actions, run, onCreated, onCancel }) {
         roster.bots.filter(bot => bot.id !== admin).map(bot => chip(bot, members.includes(bot.id), () => toggle(bot.id), 'checkbox')))),
     admin === null || members.length === 0 ? null : h('label', { className: 'bt-set-row bt-bs-row bt-ng-step' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Name'))),
-      h('input', { className: 'bt-bs-input', value: name, maxLength: 60, placeholder: t('Name after members'), onChange: event => setName(event.target.value) })),
+      h('input', { className: 'bt-bs-input', value: name, maxLength: 60, placeholder: t('Name after members'), onChange: (event: React.ChangeEvent<HTMLInputElement>) => setName(event.target.value) })),
     h('div', { className: 'bt-set-row bt-task-foot' },
       h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: onCancel }, t('Cancel')),
       h('button', { type: 'button', className: 'bt-send bt-soft-sm', disabled: busy || admin === null || members.length === 0, onClick: () => void create() }, t('Create group chat'))))

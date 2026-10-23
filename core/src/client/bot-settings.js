@@ -39,6 +39,11 @@ export async function avatarImage(file) {
 
 // Settings save on blur or Enter, with no Save button; Escape puts the
 // saved value back. A required field never saves empty.
+/**
+ * A value edited in place. Only the props a caller varies are typed until this file
+ * migrates; the rest keep their defaults.
+ * @param {{ label?: string, value?: string, placeholder?: string, required?: boolean, maxLength?: number, multiline?: boolean, onSave?: (value: string) => unknown }} props
+ */
 export function InlineText({ label, value, placeholder, required = false, maxLength, multiline = false, onSave }) {
   const [draft, setDraft] = useState(null)
   const reverting = useRef(false)
@@ -61,12 +66,14 @@ export function InlineText({ label, value, placeholder, required = false, maxLen
 }
 
 // One labelled card row with its control on the right, or below when `stack`.
+/** @param {{ label?: unknown, hint?: unknown, stack?: boolean, children?: unknown }} props */
 export function Row({ label, hint, stack = false, children }) {
   return h('label', { className: stack ? 'bt-set-row bt-bs-row bt-bs-stack' : 'bt-set-row bt-bs-row' },
     h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, label), hint ? h('span', { className: 'bt-set-hint' }, hint) : null),
     children)
 }
 
+/** @param {{ title?: unknown, children?: unknown }} props */
 export function Card({ title, children }) {
   return h('section', { className: 'bt-set-section' }, title ? h('h3', null, title) : null, h('div', { className: 'bt-set-card' }, children))
 }
@@ -77,6 +84,7 @@ export function Switch({ on, label, disabled, onChange }) {
 }
 
 // A row with a switch. Not a label: a click on the copy must not flip it twice.
+/** @param {{ label?: unknown, hint?: unknown, on?: boolean, disabled?: boolean, onChange?: (on: boolean) => unknown }} props */
 export function SwitchRow({ label, hint, on, disabled, onChange }) {
   return h('div', { className: 'bt-set-row bt-bs-row' },
     h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, label), hint ? h('span', { className: 'bt-set-hint' }, hint) : null),
