@@ -1052,7 +1052,12 @@ div:has(> nav [class*="_marks"]){display:none!important}
 .bt-news-x{position:absolute;right:4px;top:50%;z-index:1;transform:translateY(-50%);width:20px;height:20px;padding:0;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.75;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .bt-news-x svg{width:12px;height:12px}
 .bt-news-x:hover{opacity:1;background:rgba(20,20,20,.5)}
-@media (prefers-reduced-motion:reduce){.bt-news,[class*="_toBottomSlot"]>button{animation:none}}
+.bt-to-bottom{position:fixed;z-index:30;transform:translateX(-50%);display:inline-flex;align-items:center;border-radius:999px;background:var(--bt-main);color:var(--bt-ink);box-shadow:0 0 0 .5px var(--bt-line-2),0 4px 12px -2px rgba(0,0,0,.14);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;animation:bt-tobottom-in ${SPRING_TAP.duration}ms ${SPRING_TAP.easing},bt-veil-in .16s ease-out}
+.bt-to-bottom-btn{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 14px 0 10px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:18px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color .12s ease,${spring(SPRING_TAP, 'scale')}}
+.bt-to-bottom-btn:hover{background:var(--bt-hover)}
+.bt-to-bottom-btn:active{scale:.95}
+.bt-earlier>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),.bt-dialog-log>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),[class*="_flowItem"][data-chat-flow-kind]:not(:nth-last-child(-n+12)):not(:hover):not(:focus-within){content-visibility:auto;contain-intrinsic-size:auto 64px}
+@media (prefers-reduced-motion:reduce){.bt-news,.bt-to-bottom,[class*="_toBottomSlot"]>button{animation:none}}
 .bt-new-sep{display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:2px 0;font-size:11px;line-height:14px;font-weight:500;letter-spacing:.02em;text-transform:uppercase;color:var(--bt-accent);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
 .bt-new-sep::before,.bt-new-sep::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--bt-accent) 20%,transparent)}
 .bt-open-new{display:flex;flex-direction:column}

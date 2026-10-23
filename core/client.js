@@ -212,6 +212,7 @@ var ZH = {
   "{count} new messages": "{count} 条新消息",
   "New messages": "新消息",
   "Dismiss new messages": "关闭新消息提示",
+  "Back to bottom": "回到底部",
   New: "新",
   // New chat
   "Create new Bot": "新建 Bot",
@@ -3606,7 +3607,12 @@ div:has(> nav [class*="_marks"]){display:none!important}
 .bt-news-x{position:absolute;right:4px;top:50%;z-index:1;transform:translateY(-50%);width:20px;height:20px;padding:0;border:0;border-radius:999px;background:transparent;color:inherit;opacity:.75;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .bt-news-x svg{width:12px;height:12px}
 .bt-news-x:hover{opacity:1;background:rgba(20,20,20,.5)}
-@media (prefers-reduced-motion:reduce){.bt-news,[class*="_toBottomSlot"]>button{animation:none}}
+.bt-to-bottom{position:fixed;z-index:30;transform:translateX(-50%);display:inline-flex;align-items:center;border-radius:999px;background:var(--bt-main);color:var(--bt-ink);box-shadow:0 0 0 .5px var(--bt-line-2),0 4px 12px -2px rgba(0,0,0,.14);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;animation:bt-tobottom-in ${SPRING_TAP.duration}ms ${SPRING_TAP.easing},bt-veil-in .16s ease-out}
+.bt-to-bottom-btn{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 14px 0 10px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:18px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color .12s ease,${spring(SPRING_TAP, "scale")}}
+.bt-to-bottom-btn:hover{background:var(--bt-hover)}
+.bt-to-bottom-btn:active{scale:.95}
+.bt-earlier>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),.bt-dialog-log>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),[class*="_flowItem"][data-chat-flow-kind]:not(:nth-last-child(-n+12)):not(:hover):not(:focus-within){content-visibility:auto;contain-intrinsic-size:auto 64px}
+@media (prefers-reduced-motion:reduce){.bt-news,.bt-to-bottom,[class*="_toBottomSlot"]>button{animation:none}}
 .bt-new-sep{display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:2px 0;font-size:11px;line-height:14px;font-weight:500;letter-spacing:.02em;text-transform:uppercase;color:var(--bt-accent);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
 .bt-new-sep::before,.bt-new-sep::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--bt-accent) 20%,transparent)}
 .bt-open-new{display:flex;flex-direction:column}
@@ -10082,8 +10088,7 @@ function EarlierParts({ sessionId, roster, actions }) {
     (0, import_react12.createElement)(PartLine, { time: view.startedAt })
   );
 }
-function ChatRows({ items, sessionId, roster, actions, useUi, clock: clock4 = false }) {
-  const selfId = roster.byId[sessionId]?.id;
+function stackChatItems(items) {
   const rows = [];
   for (const item of items) {
     const last = rows.at(-1);
@@ -10092,6 +10097,11 @@ function ChatRows({ items, sessionId, roster, actions, useUi, clock: clock4 = fa
       last.end = item.time;
     } else rows.push(item.kind === "bot" ? { kind: "bot", texts: [item.text], time: item.time, end: item.time } : item);
   }
+  return rows;
+}
+function ChatRows({ items, sessionId, roster, actions, useUi, clock: clock4 = false }) {
+  const selfId = roster.byId[sessionId]?.id;
+  const rows = (0, import_react12.useMemo)(() => stackChatItems(items), [items]);
   let before;
   return rows.flatMap((row, index) => {
     const key = rows.length - index;
@@ -10654,19 +10664,20 @@ function useRowEntrances(replacing) {
       if (next !== column) {
         observer.disconnect();
         column = next;
-        if (column) observer.observe(column, { childList: true, subtree: true });
+        if (column) observer.observe(column, { childList: true });
       }
       if (!column) return;
       const items = flowRows(column);
       let last = -1;
+      const fresh = [];
       items.forEach((item, index) => {
         if (seen.has(item)) last = index;
+        else if (item.offsetHeight > 0) fresh.push({ item, index });
       });
-      const fresh = items.filter((item) => !seen.has(item) && item.offsetHeight > 0);
-      for (const item of fresh) seen.add(item);
+      for (const { item } of fresh) seen.add(item);
       if (last < 0 || Date.now() - started < 800 || fresh.length > 3) return;
-      for (const item of fresh) {
-        if (items.indexOf(item) < last) continue;
+      for (const { item, index } of fresh) {
+        if (index < last) continue;
         const reply = [void 0, "assistant-step", "tool-call"].includes(item.dataset.chatFlowKind);
         item.dataset.btEnter = reply && check.current() ? "after-collapse" : "new";
         item.addEventListener("animationend", settle);
@@ -11757,19 +11768,53 @@ function HeaderPill({ sessionId, useRoster, useSessions, useSessionStatus, useSe
     actions.hasRightSidebar?.() ? (0, import_react16.createElement)("button", { type: "button", className: "bt-icon-btn bt-head-side", "data-bt-right-sidebar": "", "aria-label": t("Show or hide the right sidebar"), title: t("Right sidebar"), onClick: () => actions.toggleRightSidebar() }, (0, import_react16.createElement)(SidePanelIcon)) : null
   );
 }
+var OFF_BOTTOM_PX = 120;
+function isOffBottom(scroller, threshold = OFF_BOTTOM_PX) {
+  if (!scroller) return false;
+  const sh = Number(scroller.scrollHeight);
+  const st = Number(scroller.scrollTop);
+  const ch = Number(scroller.clientHeight);
+  if (Number.isFinite(sh) && Number.isFinite(st) && Number.isFinite(ch) && sh > ch && ch > 0) {
+    return sh - st - ch > threshold;
+  }
+  return scroller.querySelector?.('[class*="_toBottomSlot"]>button') !== null;
+}
+function scrollToBottom(scroller) {
+  if (!scroller) return;
+  const back = scroller.querySelector?.('[class*="_toBottomSlot"]>button');
+  if (back) back.click();
+  scroller.scrollTo?.({ top: scroller.scrollHeight, behavior: "smooth" });
+}
+function followBottom(scroller, wasPinned) {
+  if (!scroller || !wasPinned) return false;
+  const distance = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+  if (Number.isFinite(distance) && distance > 2) {
+    if (typeof scroller.scrollTo === "function") scroller.scrollTo({ top: scroller.scrollHeight, behavior: "auto" });
+    else scroller.scrollTop = scroller.scrollHeight;
+    return true;
+  }
+  return false;
+}
 function useTranscriptView() {
   const [view, setView] = (0, import_react16.useState)(null);
   (0, import_react16.useEffect)(() => {
     let frame = 0;
     let watched = null;
+    let composerHeight = 152;
+    const readComposer = (scroller) => {
+      if (!scroller || typeof getComputedStyle !== "function") return;
+      composerHeight = parseFloat(getComputedStyle(scroller).getPropertyValue("--dsh-composer-height")) || 152;
+    };
     const observer = new MutationObserver(() => schedule());
     const measure = () => {
       frame = 0;
       const scroller = document.querySelector("[data-conversation-scroll]");
-      if (scroller !== watched) {
+      const flow = scroller?.querySelector("[data-chat-flow]") ?? scroller;
+      if (flow !== watched) {
         observer.disconnect();
-        watched = scroller;
-        if (scroller) observer.observe(scroller, { childList: true, subtree: true });
+        watched = flow;
+        readComposer(scroller);
+        if (flow) observer.observe(flow, { childList: true });
       }
       if (!scroller) {
         setView(null);
@@ -11783,27 +11828,30 @@ function useTranscriptView() {
         const at = sep.getBoundingClientRect();
         divider = at.bottom <= headerBottom ? "above" : at.top >= box.bottom ? "below" : "in-view";
       }
-      const composer = parseFloat(getComputedStyle(scroller).getPropertyValue("--dsh-composer-height")) || 152;
       const next = {
-        unpinned: scroller.querySelector('[class*="_toBottomSlot"]>button') !== null,
+        unpinned: isOffBottom(scroller),
         divider,
         center: Math.round(box.left + box.width / 2),
         top: Math.round(headerBottom + 8),
-        bottom: Math.round(window.innerHeight - box.bottom + composer + 8)
+        bottom: Math.round(window.innerHeight - box.bottom + composerHeight + 8)
       };
       setView((prev) => prev && Object.keys(next).every((key) => prev[key] === next[key]) ? prev : next);
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(measure);
     };
+    const onResize = () => {
+      readComposer(document.querySelector("[data-conversation-scroll]"));
+      schedule();
+    };
     document.addEventListener("scroll", schedule, true);
-    window.addEventListener("resize", schedule);
+    window.addEventListener("resize", onResize);
     schedule();
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       document.removeEventListener("scroll", schedule, true);
-      window.removeEventListener("resize", schedule);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
   return view;
@@ -11824,24 +11872,30 @@ function NewMessagePills({ sessionId, useSessions, useUi, useTurnClock }) {
   });
   const view = useTranscriptView();
   const unpinned = view?.unpinned === true;
+  const pinnedRef = (0, import_react16.useRef)(true);
+  pinnedRef.current = !unpinned;
   const [release, setRelease] = (0, import_react16.useState)({ base: null, dismissed: false });
   const [above, setAbove] = (0, import_react16.useState)({ seen: false, dismissed: false });
   (0, import_react16.useEffect)(() => {
     setRelease({ base: unpinned ? replies : null, dismissed: false });
   }, [unpinned]);
   (0, import_react16.useEffect)(() => {
+    if (pinnedRef.current) followBottom(document.querySelector("[data-conversation-scroll]"), true);
+  }, [replies]);
+  (0, import_react16.useEffect)(() => {
     if (view?.divider === "in-view") setAbove((state) => state.seen ? state : { ...state, seen: true });
   }, [view?.divider]);
   const fresh = release.base === null ? 0 : replies - release.base;
   const showDown = unpinned && fresh > 0 && !release.dismissed;
+  const showBack = unpinned && !showDown;
   const showUp = view?.divider === "above" && !above.seen && !above.dismissed;
   (0, import_react16.useEffect)(() => {
     const scroller = document.querySelector("[data-conversation-scroll]");
     if (!scroller) return void 0;
-    scroller.toggleAttribute("data-bt-news", showDown);
+    scroller.toggleAttribute("data-bt-news", showDown || showBack);
     return () => scroller.removeAttribute("data-bt-news");
-  }, [showDown]);
-  if (!view || !showDown && !showUp) return null;
+  }, [showDown, showBack]);
+  if (!view || !showDown && !showBack && !showUp) return null;
   const label = (count) => count === 1 ? t("1 new message") : count > 0 ? t("{count} new messages", { count }) : t("New messages");
   const pill = (direction, count, style, onJump, onDismiss) => (0, import_react16.createElement)(
     "div",
@@ -11862,19 +11916,24 @@ function NewMessagePills({ sessionId, useSessions, useUi, useTurnClock }) {
       }
     }, (0, import_react16.createElement)(CloseIcon))
   );
-  const toLatest = () => {
-    const scroller = document.querySelector("[data-conversation-scroll]");
-    const back = scroller?.querySelector('[class*="_toBottomSlot"]>button');
-    if (back) back.click();
-    else scroller?.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
-  };
+  const toLatest = () => scrollToBottom(document.querySelector("[data-conversation-scroll]"));
   const toDivider = () => document.querySelector("[data-conversation-scroll] .bt-new-sep")?.scrollIntoView({ block: "center", behavior: "smooth" });
   return (0, import_react_dom5.createPortal)(
     (0, import_react16.createElement)(
       import_react16.Fragment,
       null,
       showUp ? pill("up", unread, { left: view.center, top: view.top }, toDivider, () => setAbove((state) => ({ ...state, dismissed: true }))) : null,
-      showDown ? pill("down", fresh, { left: view.center, bottom: view.bottom }, toLatest, () => setRelease((state) => ({ ...state, dismissed: true }))) : null
+      showDown ? pill("down", fresh, { left: view.center, bottom: view.bottom }, toLatest, () => setRelease((state) => ({ ...state, dismissed: true }))) : null,
+      showBack ? (0, import_react16.createElement)(
+        "div",
+        { className: "bt-to-bottom", style: { left: view.center, bottom: view.bottom } },
+        (0, import_react16.createElement)(
+          "button",
+          { type: "button", className: "bt-to-bottom-btn", "aria-label": t("Back to bottom"), onClick: toLatest },
+          (0, import_react16.createElement)("span", { className: "bt-news-ico" }, (0, import_react16.createElement)(ArrowDownIcon)),
+          t("Back to bottom")
+        )
+      ) : null
     ),
     document.body
   );
