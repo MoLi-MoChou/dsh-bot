@@ -11,7 +11,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 async function loadOverlayHooks() {
   const { outputFiles } = await build({
-    entryPoints: [join(ROOT, 'src/client/overlay-hooks.js')],
+    entryPoints: [join(ROOT, 'src/client/overlay-hooks.ts')],
     bundle: true,
     write: false,
     format: 'cjs',

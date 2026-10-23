@@ -5,41 +5,44 @@ import { t, language } from './i18n.js'
 const MAX = 30
 // The same failure again within this window bumps a count instead of a new line.
 const REPEAT_MS = 5 * 60 * 1000
-const entries = []
+interface ClientErrorEntry { time: number; level: 'error'; text: string; code?: string; count?: number }
+const entries: ClientErrorEntry[] = []
 // An API failure is noted where it happens; the menu or form that shows it must not add it again.
-const noted = new WeakSet()
-export const markNoted = (error) => {
+const noted = new WeakSet<object>()
+export const markNoted = <T>(error: T): T => {
   if (error !== null && typeof error === 'object') noted.add(error)
   return error
 }
 
-export function noteClientError(where, error) {
+export function noteClientError(where: string, error: unknown): void {
+  const failure = error as { message?: unknown; code?: unknown } | null
   if (error !== null && typeof error === 'object') {
     if (noted.has(error)) return
     noted.add(error)
   }
-  const message = String(error?.message ?? error ?? 'error').slice(0, 300)
-  const code = typeof error?.code === 'string' ? error.code : undefined
+  const message = String(failure?.message ?? error ?? 'error').slice(0, 300)
+  const code = typeof failure?.code === 'string' ? failure.code : undefined
   const text = `${where}: ${message}`
   const now = Date.now()
   const last = entries.at(-1)
-  if (last && last.text === text && now - last.time < REPEAT_MS) {
+  if (last !== undefined && last.text === text && now - last.time < REPEAT_MS) {
     last.time = now
     last.count = (last.count ?? 1) + 1
     return
   }
-  entries.push({ time: now, level: 'error', text, ...(code ? { code } : {}) })
+  const entry: ClientErrorEntry = { time: now, level: 'error', text, ...(code !== undefined ? { code } : {}) }
+  entries.push(entry)
   if (entries.length > MAX) entries.splice(0, entries.length - MAX)
 }
 
 // A catch handler that keeps the failure without bothering the user.
-export const quietly = where => error => noteClientError(where, error)
+export const quietly = (where: string) => (error: unknown): void => noteClientError(where, error)
 
-export const clearClientErrors = () => { entries.length = 0 }
+export const clearClientErrors = (): void => { entries.length = 0 }
 
-export const clientErrors = () => entries.map(entry => (entry.count > 1 ? { ...entry, text: `${entry.text} (×${entry.count})` } : { ...entry }))
+export const clientErrors = (): ClientErrorEntry[] => entries.map(entry => (entry.count !== undefined && entry.count > 1 ? { ...entry, text: `${entry.text} (×${entry.count})` } : { ...entry }))
 
-export function clientFacts() {
+export function clientFacts(): Record<string, string> {
   return {
     surface: window.dshDesktop ? 'DSH Desktop' : 'DSH Web',
     language: language(),
@@ -48,7 +51,7 @@ export function clientFacts() {
 }
 
 // Short words for the provider-neutral failure codes of DSH's LLM layer.
-const FAILURES = {
+const FAILURES: Record<string, string> = {
   AUTH: 'The API key was rejected',
   QUOTA: 'The account is out of quota',
   ACCOUNT_QUOTA: 'The account is out of quota',
@@ -62,9 +65,10 @@ const FAILURES = {
   SESSION_RESET: 'Its group conversation could not open, so it starts a new one next time',
 }
 
-export function failureLabel(code, message) {
-  if (FAILURES[code]) return t(FAILURES[code])
-  return message || code || t('Unknown error')
+export function failureLabel(code: string, message?: string): string {
+  const known = FAILURES[code]
+  if (known !== undefined) return t(known)
+  return message ?? code ?? t('Unknown error')
 }
 
 // GitHub refuses very long addresses; past this the diagnostics go by the clipboard.
@@ -73,10 +77,10 @@ export const WHAT_MAX = 2000
 const PASTE_NOTE = 'DS Bot copied the diagnostics to the clipboard. Paste them here.'
 const REST_NOTE = 'The recent errors do not fit in the link. DS Bot copied the diagnostics to the clipboard: paste them below this line.'
 
-export function issueUrl(base, { what = '', diagnostics }) {
+export function issueUrl(base: string, { what = '', diagnostics }: { what?: string; diagnostics: string }): { url: string; inline: boolean } {
   const text = what.trim().slice(0, WHAT_MAX)
-  const title = text.split('\n')[0].slice(0, 80)
-  const build = body => `${base}?${new URLSearchParams({ template: 'bug.yml', ...(title ? { title } : {}), ...(text ? { what: text } : {}), diagnostics: body })}`
+  const title = text.split('\n')[0]?.slice(0, 80) ?? ''
+  const build = (body: string): string => `${base}?${new URLSearchParams({ template: 'bug.yml', ...(title ? { title } : {}), ...(text ? { what: text } : {}), diagnostics: body })}`
   const full = build(diagnostics)
   if (full.length <= URL_LIMIT) return { url: full, inline: true }
   // The versions table leads the report and stays short; only the errors make it

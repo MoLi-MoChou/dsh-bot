@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { EMPTY_ROSTER, indexRoster, isAgentSession } from '../src/client/sources.ts'
-import { groupsFor } from '../src/client/surface.js'
+import { groupsFor } from '../src/client/surface.ts'
 
 const ROSTER_VALUE = {
   revision: 3,

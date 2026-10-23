@@ -1,11 +1,28 @@
 import { t } from './i18n.js'
 
+interface ApprovalEntry { id: string; at?: number; tool?: string; botId: string; roomId?: string; sessionId?: string }
+export interface ApprovalWork { getSnapshot(): { approvals?: readonly ApprovalEntry[] }; subscribe(listener: () => void): () => void }
+export interface ApprovalRoster {
+  getSnapshot(): {
+    byId?: Record<string, { name?: string } | undefined>
+    roomsById?: Record<string, { name?: string } | undefined>
+  }
+}
+
+export interface ApprovalNoticeOptions {
+  work: ApprovalWork
+  roster: ApprovalRoster
+  shownSession: () => string | null | undefined
+  openSession: (id: string) => void
+  since?: number
+}
+
 // A system notification for each approval that starts waiting while this window is in
 // the background or shows another conversation. Only where the platform already allows
 // notifications: DS Bot never asks for the permission.
-export function noticeApprovals({ work, roster, shownSession, openSession, since = Date.now() }) {
-  const told = new Set()
-  const notify = () => {
+export function noticeApprovals({ work, roster, shownSession, openSession, since = Date.now() }: ApprovalNoticeOptions): () => void {
+  const told = new Set<string>()
+  const notify = (): void => {
     const approvals = work.getSnapshot().approvals ?? []
     for (const id of told) {
       if (!approvals.some(entry => entry.id === id)) told.delete(id)
@@ -18,9 +35,9 @@ export function noticeApprovals({ work, roster, shownSession, openSession, since
       if ((entry.at ?? 0) < since) continue
       const place = entry.roomId ?? entry.sessionId
       if (document.visibilityState === 'visible' && shownSession() === place) continue
-      const { byId, roomsById } = roster.getSnapshot()
-      const room = entry.roomId ? roomsById[entry.roomId] : undefined
-      const note = new Notification(t('{name} is waiting for your approval', { name: byId[entry.botId]?.name ?? t('A Bot') }), {
+      const snapshot = roster.getSnapshot()
+      const room = entry.roomId !== undefined ? snapshot.roomsById?.[entry.roomId] : undefined
+      const note = new Notification(t('{name} is waiting for your approval', { name: snapshot.byId?.[entry.botId]?.name ?? t('A Bot') }), {
         body: [room?.name, entry.tool].filter(Boolean).join(' · '),
         tag: `ds-bot-approval-${entry.id}`,
       })

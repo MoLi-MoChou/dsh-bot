@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { sameVersion, showsDshRow } from '../src/client/dsh-offer.js'
+import { sameVersion, showsDshRow } from '../src/client/dsh-offer.ts'
 
 const npm = (verified, current = '0.2.0-rc.2') => ({ kind: 'npm', verified, current })
 const app = (verified, current = '0.2.0-rc.2') => ({ kind: 'app', verified, current })

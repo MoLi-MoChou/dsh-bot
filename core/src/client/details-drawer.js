@@ -4,7 +4,7 @@ import { HEADER, currentPart, runStatsOf, stripHeader, usageOf } from './text.js
 import { PlusIcon, ShareIcon, CloseIcon, ChevronLeftIcon, GearIcon } from './icons.js'
 import { botState, BotMark, BotAvatar } from './mark.js'
 import { GlobeIcon, Favicon } from './browser-pane.js'
-import { useEscape } from './overlay-hooks.js'
+import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.js'
 import { BotSettingsForm } from './bot-settings.js'
 import { GroupSettingsForm, ROOM_MODES, roomSubtitle, shownMode } from './group-settings.js'

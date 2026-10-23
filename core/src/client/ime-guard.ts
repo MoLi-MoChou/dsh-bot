@@ -5,17 +5,20 @@
 const COMPOSER = '[data-composer-input],[contenteditable=true],textarea'
 const STRAY_MS = 60
 
-export function installImeGuard(root = document) {
+interface ComposingEvent extends KeyboardEvent { keyCode: number }
+
+export function installImeGuard(root: Document | HTMLElement = document): () => void {
   let endedAt = -Infinity
-  const ended = () => { endedAt = performance.now() }
-  const keydown = (event) => {
-    if (event.key !== 'Enter' && event.keyCode !== 229) return
-    if (!(event.target instanceof Element) || !event.target.closest(COMPOSER)) return
-    const composing = event.isComposing || event.keyCode === 229
-    const stray = event.key === 'Enter' && performance.now() - endedAt < STRAY_MS
+  const ended = (): void => { endedAt = performance.now() }
+  const keydown = (event: Event): void => {
+    const key = event as ComposingEvent
+    if (key.key !== 'Enter' && key.keyCode !== 229) return
+    if (!(key.target instanceof Element) || key.target.closest(COMPOSER) === null) return
+    const composing = key.isComposing || key.keyCode === 229
+    const stray = key.key === 'Enter' && performance.now() - endedAt < STRAY_MS
     if (!composing && !stray) return
-    event.stopImmediatePropagation()
-    if (stray) event.preventDefault()
+    key.stopImmediatePropagation()
+    if (stray) key.preventDefault()
   }
   root.addEventListener('compositionend', ended, true)
   root.addEventListener('keydown', keydown, true)

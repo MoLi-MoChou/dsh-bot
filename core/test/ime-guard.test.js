@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { installImeGuard } from '../src/client/ime-guard.js'
+import { installImeGuard } from '../src/client/ime-guard.ts'
 
 // The guard runs in a page, where `Element` exists; the test brings its own.
 globalThis.Element ??= class Element {}

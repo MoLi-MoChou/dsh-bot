@@ -2,7 +2,7 @@
 // in, see the latest errors, and download the log. Also the toast for actions that
 // fail away from any form (menus, the palette).
 import { createElement as h, useEffect, useState } from 'react'
-import { clearClientErrors, clientErrors, clientFacts, failureLabel, issueUrl, WHAT_MAX } from './diagnostics.js'
+import { clearClientErrors, clientErrors, clientFacts, failureLabel, issueUrl, WHAT_MAX } from './diagnostics.ts'
 import { dateLocale, t } from './i18n.js'
 import { CloseIcon } from './icons.js'
 import { SPRING_SHAPE } from './motion.js'

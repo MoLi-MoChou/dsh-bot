@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, WaveIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { useLinger } from './motion.js'
-import { useMenuKeys } from './overlay-hooks.js'
+import { useMenuKeys } from './overlay-hooks.ts'
 import { t } from './i18n.js'
 
 // -------------------------------------------------------------------------

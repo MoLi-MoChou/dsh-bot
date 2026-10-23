@@ -10,14 +10,14 @@ const NOTICE_ID = 'bt-reconnect'
 
 // What the top notice says after `failures` failed polls in a row, or null when there is
 // nothing worth telling.
-export function retryNotice(failures) {
+export function retryNotice(failures: number): string | null {
   if (failures < RETRY_AFTER) return null
   return `${t('Reconnecting…')} ${t('Chats stay saved; this window catches up when the connection is back.')}`
 }
 
 // Shows `text` in the notice, or removes the notice when `text` is null. Rendering nothing
 // outside a browser keeps the poll usable from a test or a headless run.
-export function showReconnectNotice(text) {
+export function showReconnectNotice(text: string | null): void {
   if (typeof document === 'undefined') return
   const existing = document.getElementById(NOTICE_ID)
   if (text === null) {

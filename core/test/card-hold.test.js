@@ -11,7 +11,7 @@ import { teamActions } from '../src/client/team-actions.js'
 const { outputFiles } = await build({
   stdin: {
     contents: [
-      "export { useDockHold } from './src/client/card-hold.js'",
+      "export { useDockHold } from './src/client/card-hold.ts'",
       "export { PendingQuestion } from './src/client/questions.js'",
       "export { SecretCard } from './src/client/secret-card.js'",
     ].join('\n'),

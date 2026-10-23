@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { listedOpener } from '../src/client/open-listed.js'
+import { listedOpener } from '../src/client/open-listed.ts'
 
 const store = (ids = []) => {
   const listeners = new Set()

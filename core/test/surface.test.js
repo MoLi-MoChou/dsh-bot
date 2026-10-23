@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { freePriority, groupsFor, readMode, surfaceGroups, writeMode } from '../src/client/surface.js'
+import { freePriority, groupsFor, readMode, surfaceGroups, writeMode } from '../src/client/surface.ts'
 import { STORAGE } from '../src/client/storage.ts'
 
 test('Bot mode mounts both groups; Agent mode mounts neither', () => {

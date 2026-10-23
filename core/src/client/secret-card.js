@@ -8,8 +8,8 @@ import { BotAvatar, BotMark } from './mark.js'
 import { contentText, currentPart } from './text.js'
 import { dateLocale, t } from './i18n.js'
 import { SPRING_POP, SPRING_SHAPE, spring } from './motion.js'
-import { useDockHold } from './card-hold.js'
-import { useEscape } from './overlay-hooks.js'
+import { useDockHold } from './card-hold.ts'
+import { useEscape } from './overlay-hooks.ts'
 import { heldCardKey } from './sources.ts'
 
 const MIN_VALUE = 4

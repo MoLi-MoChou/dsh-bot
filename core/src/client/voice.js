@@ -4,7 +4,7 @@ import { MicIcon, CloseIcon } from './icons.js'
 import { BotMark, RoomAvatar } from './mark.js'
 import { speechApi, useDictation } from './composer.js'
 import { Shimmer } from './cells.js'
-import { useEscape, usePaneLeft } from './overlay-hooks.js'
+import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { t } from './i18n.js'
 import { openCapture, speechCatalog, transcribeWave, turnDetector } from './speech.js'
 

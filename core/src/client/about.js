@@ -7,7 +7,7 @@ import { dateLocale, hostText, t, productName } from './i18n.js'
 import { StarLineIcon } from './icons.js'
 import { SPRING_POP } from './motion.js'
 import { MoonBotMark } from './icons.js'
-import { showsDshRow } from './dsh-offer.js'
+import { showsDshRow } from './dsh-offer.ts'
 
 // The length of the mark's `done` hop (bt-done in styles.js).
 const CHEER_MS = 1800

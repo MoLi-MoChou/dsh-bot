@@ -1,5 +1,5 @@
 import { countCards, heldCardKey } from './sources.ts'
-import { noteClientError } from './diagnostics.js'
+import { noteClientError } from './diagnostics.ts'
 
 // The actions every window that draws the Bot views shares: dialogs and panels (the `ui`
 // source), requests to the host, and the notes the transcript keeps. The shell around the

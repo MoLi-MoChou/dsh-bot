@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createPayload, freshBotName, startModel } from '../src/client/bot-draft.js'
+import { createPayload, freshBotName, startModel } from '../src/client/bot-draft.ts'
 
 const models = [
   { ref: 'ollama/ds-flash', name: 'DS Flash', providerName: 'Ollama' },

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { thinkingStep, turnReasoning } from '../src/client/turn-reasoning.js'
+import { thinkingStep, turnReasoning } from '../src/client/turn-reasoning.ts'
 
 const step = (n, blocks, status = 'settled') => ({ turn: 1, step: n, status, blocks })
 const think = text => ({ kind: 'reasoning', text })

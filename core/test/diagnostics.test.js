@@ -270,7 +270,7 @@ test('a failed group turn fails its waiter; a stopped one counts as no answer', 
 })
 
 test('issueUrl fills the issue form, keeps the versions when the errors are too long, and falls back to the clipboard', async () => {
-  const { issueUrl } = await import('../src/client/diagnostics.js')
+  const { issueUrl } = await import('../src/client/diagnostics.ts')
   const base = 'https://github.com/MoLi-MoChou/moon-bot/issues/new'
   const short = issueUrl(base, { what: 'Writer failed\nin the group', diagnostics: '| DS Bot | 0.1.0 |' })
   assert.equal(short.inline, true)
@@ -295,7 +295,7 @@ test('issueUrl fills the issue form, keeps the versions when the errors are too 
 })
 
 test('a browser error is noted once, repeats are counted, and clear empties the list', async () => {
-  const { noteClientError, markNoted, clientErrors, clearClientErrors } = await import('../src/client/diagnostics.js')
+  const { noteClientError, markNoted, clientErrors, clearClientErrors } = await import('../src/client/diagnostics.ts')
   clearClientErrors()
   const shown = markNoted(new Error('Could not reach DSH.'))
   noteClientError('menu', shown)

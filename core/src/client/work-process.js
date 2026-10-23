@@ -9,7 +9,7 @@ import { callTree } from './cells.js'
 import { t } from './i18n.js'
 import { EASE_PANEL, PANEL_LINGER_MS, SPRING_SHAPE } from './motion.js'
 import { useTurnRetries } from './retry-cell.js'
-import { useEscape } from './overlay-hooks.js'
+import { useEscape } from './overlay-hooks.ts'
 import { framerMotion } from './vendor/framer-motion.js'
 
 // Steps carry no seq; both carry the time they began, which orders them.

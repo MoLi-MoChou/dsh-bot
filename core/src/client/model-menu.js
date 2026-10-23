@@ -5,7 +5,7 @@ import { CheckIcon, SlidersIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { KeyIcon, MaskedInput } from './secret-card.js'
 import { MENU_EXIT_MS, SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.js'
-import { useEscape, useMenuKeys } from './overlay-hooks.js'
+import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { hostText, t } from './i18n.js'
 
 // -------------------------------------------------------------------------

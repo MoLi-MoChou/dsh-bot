@@ -1344,7 +1344,7 @@ function quietShellRejectionCopy() {
   return () => observer.disconnect();
 }
 
-// src/client/diagnostics.js
+// src/client/diagnostics.ts
 var MAX = 30;
 var REPEAT_MS = 5 * 60 * 1e3;
 var entries = [];
@@ -1354,28 +1354,30 @@ var markNoted = (error) => {
   return error;
 };
 function noteClientError(where, error) {
+  const failure = error;
   if (error !== null && typeof error === "object") {
     if (noted.has(error)) return;
     noted.add(error);
   }
-  const message = String(error?.message ?? error ?? "error").slice(0, 300);
-  const code = typeof error?.code === "string" ? error.code : void 0;
+  const message = String(failure?.message ?? error ?? "error").slice(0, 300);
+  const code = typeof failure?.code === "string" ? failure.code : void 0;
   const text = `${where}: ${message}`;
   const now = Date.now();
   const last = entries.at(-1);
-  if (last && last.text === text && now - last.time < REPEAT_MS) {
+  if (last !== void 0 && last.text === text && now - last.time < REPEAT_MS) {
     last.time = now;
     last.count = (last.count ?? 1) + 1;
     return;
   }
-  entries.push({ time: now, level: "error", text, ...code ? { code } : {} });
+  const entry = { time: now, level: "error", text, ...code !== void 0 ? { code } : {} };
+  entries.push(entry);
   if (entries.length > MAX) entries.splice(0, entries.length - MAX);
 }
 var quietly = (where) => (error) => noteClientError(where, error);
 var clearClientErrors = () => {
   entries.length = 0;
 };
-var clientErrors = () => entries.map((entry) => entry.count > 1 ? { ...entry, text: `${entry.text} (×${entry.count})` } : { ...entry });
+var clientErrors = () => entries.map((entry) => entry.count !== void 0 && entry.count > 1 ? { ...entry, text: `${entry.text} (×${entry.count})` } : { ...entry });
 function clientFacts() {
   return {
     surface: window.dshDesktop ? "DSH Desktop" : "DSH Web",
@@ -1397,8 +1399,9 @@ var FAILURES = {
   SESSION_RESET: "Its group conversation could not open, so it starts a new one next time"
 };
 function failureLabel(code, message) {
-  if (FAILURES[code]) return t(FAILURES[code]);
-  return message || code || t("Unknown error");
+  const known = FAILURES[code];
+  if (known !== void 0) return t(known);
+  return message ?? code ?? t("Unknown error");
 }
 var URL_LIMIT = 7e3;
 var WHAT_MAX = 2e3;
@@ -1406,7 +1409,7 @@ var PASTE_NOTE = "DS Bot copied the diagnostics to the clipboard. Paste them her
 var REST_NOTE = "The recent errors do not fit in the link. DS Bot copied the diagnostics to the clipboard: paste them below this line.";
 function issueUrl(base, { what = "", diagnostics }) {
   const text = what.trim().slice(0, WHAT_MAX);
-  const title = text.split("\n")[0].slice(0, 80);
+  const title = text.split("\n")[0]?.slice(0, 80) ?? "";
   const build = (body) => `${base}?${new URLSearchParams({ template: "bug.yml", ...title ? { title } : {}, ...text ? { what: text } : {}, diagnostics: body })}`;
   const full2 = build(diagnostics);
   if (full2.length <= URL_LIMIT) return { url: full2, inline: true };
@@ -1416,10 +1419,10 @@ ${REST_NOTE}`);
   return { url: facts.length <= URL_LIMIT ? facts : build(PASTE_NOTE), inline: false };
 }
 
-// src/client/api.js
+// src/client/api.ts
 var ROUTE = "api/bot";
 var REFUSALS = /* @__PURE__ */ new Set(["bot/refused", "bot/invalid", "bot/read-only", "bot/not-found", "bot/browser-off"]);
-var call = async (endpoint, payload, signal) => {
+async function call(endpoint, payload, signal) {
   let response;
   try {
     response = await fetch(ROUTE, {
@@ -1427,11 +1430,12 @@ var call = async (endpoint, payload, signal) => {
       credentials: "same-origin",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ endpoint, payload: payload ?? null }),
-      signal
+      ...signal === void 0 ? {} : { signal }
     });
   } catch (error) {
-    if (error?.name === "AbortError") throw error;
-    noteClientError(endpoint, Object.assign(new Error(`network error: ${error?.message ?? error}`), { code: "NETWORK" }));
+    const failure = error;
+    if (failure.name === "AbortError") throw error;
+    noteClientError(endpoint, Object.assign(new Error(`network error: ${failure.message ?? String(error)}`), { code: "NETWORK" }));
     throw markNoted(Object.assign(new Error(errorCopy("NETWORK")), { code: "NETWORK", cause: error }));
   }
   if (!response.ok) {
@@ -1440,7 +1444,7 @@ var call = async (endpoint, payload, signal) => {
     throw error;
   }
   const result = await response.json();
-  if (!result.ok) {
+  if (result.ok !== true) {
     const code = result.error?.code ?? "bot/error";
     const message = errorCopy(code, result.error?.message ?? "Request failed");
     const error = Object.assign(new Error(message), { code });
@@ -1451,7 +1455,7 @@ var call = async (endpoint, payload, signal) => {
     throw error;
   }
   return result.value;
-};
+}
 
 // src/client/inks.ts
 var INKS = {
@@ -1603,7 +1607,7 @@ function maskOf(shape) {
 }
 var DEFAULT_MASK = maskOf(FALLBACK_SHAPE);
 
-// src/client/reconnect.js
+// src/client/reconnect.ts
 var RETRY_AFTER = 2;
 var NOTICE_ID = "bt-reconnect";
 function retryNotice(failures) {
@@ -7857,7 +7861,7 @@ var GROUP_TOOLS = ["create_group", "update_group", "delete_group", "post_to_grou
 var SCHEDULE_TOOLS = ["schedule_create", "schedule_update", "schedule_delete", "schedule_list"];
 var LEAN_HIDDEN_TOOLS = [...LEAN.groups ? [] : GROUP_TOOLS, ...LEAN.schedules ? [] : SCHEDULE_TOOLS];
 
-// src/client/dsh-primitives.js
+// src/client/dsh-primitives.ts
 var import_dsh_client_ui_primitives = require("@deepseek-ai/dsh-client-ui-primitives");
 
 // src/client/icons.js
@@ -7976,7 +7980,7 @@ function MoonBotMark({ size = 24 }) {
   return (0, import_react3.createElement)("span", { className: "bt-moon-mark", "aria-hidden": true, style: { width: size, height: size } });
 }
 
-// src/client/card-hold.js
+// src/client/card-hold.ts
 var import_react4 = require("react");
 function useDockHold(sessionId, kind, requestId, actions, inline) {
   const release = (0, import_react4.useRef)(null);
@@ -7987,7 +7991,7 @@ function useDockHold(sessionId, kind, requestId, actions, inline) {
     stop?.();
   }, [sessionId, kind, requestId, note, inline]);
   return () => {
-    if (inline || release.current || !note) return;
+    if (inline || release.current !== null || note === void 0) return;
     release.current = () => note(sessionId, kind, requestId, -1);
     note(sessionId, kind, requestId, 1);
   };
@@ -8866,13 +8870,13 @@ var WIDGET_CSS = `
 .bt-q-raised .bt-widget-stack>.bt-q-list{padding:0}
 `;
 
-// src/client/overlay-hooks.js
+// src/client/overlay-hooks.ts
 var import_react7 = require("react");
 var escapeLayers = [];
 var onEscapeKey = (event) => {
   if (event.key !== "Escape" || event.defaultPrevented || event.isComposing) return;
   const top = escapeLayers.at(-1);
-  if (!top) return;
+  if (top === void 0) return;
   event.preventDefault();
   event.stopPropagation();
   top.current();
@@ -8892,7 +8896,7 @@ function useEscape(onClose, enabled = true) {
   }, [enabled]);
 }
 function stepMenuFocus(menu, key) {
-  if (!menu) return false;
+  if (menu === null) return false;
   const items = [...menu.querySelectorAll('button[role^="menuitem"]:not(:disabled)')];
   if (items.length === 0) return false;
   const current = items.indexOf(document.activeElement);
@@ -8910,14 +8914,14 @@ function useMenuKeys(menuRef, isOpen) {
     if (!isOpen) return void 0;
     const raf = requestAnimationFrame(() => {
       const menu = menuRef.current;
-      if (!menu || menu.contains(document.activeElement)) return;
+      if (menu === null || menu.contains(document.activeElement)) return;
       const target = menu.querySelector('button[aria-checked="true"]:not(:disabled), button[role^="menuitem"]:not(:disabled)');
       target?.focus();
     });
     const onKey = (event) => {
       if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return;
       const menu = menuRef.current;
-      if (!menu) return;
+      if (menu === null) return;
       if (event.target instanceof HTMLElement && menu.contains(event.target) && event.target.matches("input,textarea,[contenteditable]")) return;
       if (stepMenuFocus(menu, event.key)) {
         event.preventDefault();
@@ -8929,7 +8933,7 @@ function useMenuKeys(menuRef, isOpen) {
       cancelAnimationFrame(raf);
       window.removeEventListener("keydown", onKey, true);
     };
-  }, [isOpen]);
+  }, [isOpen, menuRef]);
 }
 function usePaneLeft() {
   const [paneLeft, setPaneLeft] = (0, import_react7.useState)(280);
@@ -9385,16 +9389,24 @@ var SECRET_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-secret-glide{transition:none}.bt-secret-check,.bt-secret-done,.bt-secret-ok,.bt-secret-edit{animation:none}}
 `;
 
-// src/client/turn-reasoning.js
+// src/client/turn-reasoning.ts
 function turnReasoning(steps, current) {
-  const members = steps.length ? steps : [current];
-  if (members.findLast((step) => stepReasoning(step) !== "")?.step !== current.step) return "";
+  const members = steps.length > 0 ? steps : [current];
+  let lastReasoning;
+  for (let index = members.length - 1; index >= 0; index -= 1) {
+    const member = members[index];
+    if (member !== void 0 && stepReasoning(member) !== "") {
+      lastReasoning = member;
+      break;
+    }
+  }
+  if (lastReasoning?.step !== current.step) return "";
   return members.map(stepReasoning).filter(Boolean).join("\n\n");
 }
 var thinkingStep = (steps) => steps.find(thinkingLive);
-var thinkingLive = (step) => step.status === "running" && texts(step).length === 0 && step.blocks.some((block) => block.kind === "reasoning");
-var texts = (step) => step.blocks.filter((block) => block.kind === "text" && block.text.trim() !== "");
-var stepReasoning = (step) => step.blocks.filter((block) => block.kind === "reasoning").map((block) => block.text).join("\n").trim();
+var thinkingLive = (step) => step.status === "running" && texts(step).length === 0 && (step.blocks ?? []).some((block) => block.kind === "reasoning");
+var texts = (step) => (step.blocks ?? []).filter((block) => block.kind === "text" && String(block.text ?? "").trim() !== "");
+var stepReasoning = (step) => (step.blocks ?? []).filter((block) => block.kind === "reasoning").map((block) => String(block.text ?? "")).join("\n").trim();
 
 // src/client/fold.js
 var import_react9 = require("react");
@@ -10701,14 +10713,14 @@ var EMPTY_STATE_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-es{animation:none}.bt-es-action{transition:none}}
 `;
 
-// src/client/dsh-offer.js
+// src/client/dsh-offer.ts
 var APP_OFFER = /* @__PURE__ */ new Set(["available", "downloading", "verifying", "installing", "ready"]);
-var bare = (value) => String(value ?? "").trim().replace(/^v/i, "").split("+")[0];
+var bare = (value) => String(value ?? "").trim().replace(/^v/i, "").split("+")[0] ?? "";
 var sameVersion = (a, b) => bare(a) !== "" && bare(a) === bare(b);
 function showsDshRow(dsh, app) {
   if (!dsh?.verified || !dsh.current || sameVersion(dsh.verified, dsh.current)) return false;
   if (dsh.kind === "npm") return true;
-  return dsh.kind === "app" && APP_OFFER.has(app?.phase) && sameVersion(app.version, dsh.verified);
+  return dsh.kind === "app" && app?.phase !== void 0 && APP_OFFER.has(app.phase) && sameVersion(app.version, dsh.verified);
 }
 
 // src/client/sidebar.js
@@ -12407,7 +12419,7 @@ function turnDetector({ loud = 0.12, quiet = 0.06, quietMs = 1200 } = {}) {
   };
 }
 
-// src/client/surface.js
+// src/client/surface.ts
 function groupsFor({ mode, plain = false }) {
   return { shell: mode === "bot", conversation: mode === "bot" && !plain };
 }
@@ -12415,7 +12427,7 @@ var GROUPS = ["shell", "conversation"];
 function disposeAll(disposers, label) {
   for (const dispose of [...disposers].reverse()) {
     try {
-      dispose?.();
+      dispose();
     } catch (error) {
       console.warn(`[ds-bot] ${label}`, error);
     }
@@ -12435,7 +12447,10 @@ function surfaceGroups(install, { onError } = {}) {
         if (!wanted[group] || mounted[group].length > 0) continue;
         const disposers = [];
         try {
-          for (const step of install[group]()) if (step) disposers.push(step());
+          for (const step of install[group]()) {
+            const dispose = step();
+            if (dispose !== void 0) disposers.push(dispose);
+          }
           mounted[group] = disposers;
         } catch (error) {
           disposeAll(disposers, `roll back ${group}`);
@@ -12469,14 +12484,14 @@ function writeMode(mode, storage = globalThis.localStorage) {
   }
 }
 
-// src/client/header-navigation.js
-var navigationEntry = (entries2) => entries2.find((entry) => entry.store && typeof entry.inject === "function");
+// src/client/header-navigation.ts
+var navigationEntry = (entries2) => entries2.find((entry) => entry.store !== void 0 && typeof entry.inject === "function");
 function headerNavigation(entries2, face) {
   const source = navigationEntry(entries2);
   return {
-    ...source ? { store: source.store } : {},
+    ...source !== void 0 ? { store: source.store } : {},
     inject: (...args) => {
-      const navigation = source?.inject(...args) ?? {};
+      const navigation = source?.inject?.(...args) ?? {};
       const own = face();
       return { ...navigation, ...own, hooks: { ...navigation.hooks, ...own.hooks } };
     }
@@ -12489,7 +12504,7 @@ function installHeaderNavigation(slots, face, component, priority) {
   const refresh = () => {
     const entries2 = slots.entries(name).filter((entry) => entry.component !== component);
     const next = navigationEntry(entries2);
-    if (dispose && source === next) return;
+    if (dispose !== void 0 && source === next) return;
     dispose?.();
     source = next;
     dispose = slots.register({ name, priority: freePriority(entries2, { priority }), ...headerNavigation(entries2, face) }, component);
@@ -14635,7 +14650,7 @@ label.bt-bs-row{cursor:text}
 @media (prefers-reduced-motion:reduce){.bt-switch,.bt-switch-knob{transition:none}.bt-avedit :is(.bt-shapes,.bt-colors,.bt-dropzone){animation:none}}
 `;
 
-// src/client/bot-draft.js
+// src/client/bot-draft.ts
 function freshBotName(roster, base = "New Bot") {
   const taken = new Set(roster.bots.map((bot) => bot.name.toLowerCase()));
   if (!taken.has(base.toLowerCase())) return base;
@@ -14648,7 +14663,7 @@ function startModel(roster) {
   return (models.find((model) => model.ref === roster.defaultModel) ?? models[0])?.ref ?? "";
 }
 function createPayload({ name, look, image, model, effort, brief }) {
-  const payload = { name, color: look.color, avatar: image ? { shape: look.shape, image } : { shape: look.shape } };
+  const payload = { name, color: look.color, avatar: image !== void 0 ? { shape: look.shape, image } : { shape: look.shape } };
   if (model) payload.model = model;
   if (effort) payload.effort = effort;
   if (brief) payload.brief = brief;
@@ -20208,7 +20223,7 @@ var USER_MESSAGE_CSS = `
 .bt-umsg:hover .bt-utools,.bt-umsg:focus-within .bt-utools{opacity:1;visibility:visible}
 `;
 
-// src/client/approval-notices.js
+// src/client/approval-notices.ts
 function noticeApprovals({ work, roster, shownSession, openSession, since = Date.now() }) {
   const told = /* @__PURE__ */ new Set();
   const notify = () => {
@@ -20223,9 +20238,9 @@ function noticeApprovals({ work, roster, shownSession, openSession, since = Date
       if ((entry.at ?? 0) < since) continue;
       const place = entry.roomId ?? entry.sessionId;
       if (document.visibilityState === "visible" && shownSession() === place) continue;
-      const { byId, roomsById } = roster.getSnapshot();
-      const room2 = entry.roomId ? roomsById[entry.roomId] : void 0;
-      const note = new Notification(t("{name} is waiting for your approval", { name: byId[entry.botId]?.name ?? t("A Bot") }), {
+      const snapshot = roster.getSnapshot();
+      const room2 = entry.roomId !== void 0 ? snapshot.roomsById?.[entry.roomId] : void 0;
+      const note = new Notification(t("{name} is waiting for your approval", { name: snapshot.byId?.[entry.botId]?.name ?? t("A Bot") }), {
         body: [room2?.name, entry.tool].filter(Boolean).join(" · "),
         tag: `ds-bot-approval-${entry.id}`
       });
@@ -20240,18 +20255,18 @@ function noticeApprovals({ work, roster, shownSession, openSession, since = Date
   return work.subscribe(notify);
 }
 
-// src/client/approval-always.js
+// src/client/approval-always.ts
 var ONCE = /* @__PURE__ */ new Set(["允许一次", "Allow once"]);
 var PRESET = /\b(read-only|workspace-write|danger-full-access)\b/;
 function addAlwaysAllow({ work, shownSession, raise }) {
   const augment = () => {
     for (const once of document.querySelectorAll("button")) {
-      if (!ONCE.has(once.textContent.trim()) || once.dataset.dsBotAlways) continue;
+      if (!ONCE.has((once.textContent ?? "").trim()) || once.dataset.dsBotAlways !== void 0) continue;
       once.dataset.dsBotAlways = "1";
       let card = once.parentElement;
-      for (let i = 0; card && i < 6 && !PRESET.test(card.textContent); i++) card = card.parentElement;
-      const preset = card && PRESET.exec(card.textContent)?.[1];
-      if (!preset) continue;
+      for (let i = 0; card !== null && i < 6 && !PRESET.test(card.textContent ?? ""); i++) card = card.parentElement;
+      const preset = card === null ? void 0 : PRESET.exec(card.textContent ?? "")?.[1];
+      if (preset === void 0) continue;
       const always = document.createElement("button");
       always.type = "button";
       always.className = once.previousElementSibling?.className ?? once.className;
@@ -20259,11 +20274,11 @@ function addAlwaysAllow({ work, shownSession, raise }) {
       always.title = t("Saves this permission for the Bot, so it stops asking");
       always.addEventListener("click", async () => {
         const place = shownSession();
-        const waiting = (work.getSnapshot().approvals ?? []).filter((a) => !a.roomId);
+        const waiting = (work.getSnapshot().approvals ?? []).filter((a) => a.roomId === void 0);
         const entry = waiting.find((a) => a.sessionId === place) ?? (waiting.length === 1 ? waiting[0] : void 0);
         always.disabled = true;
         try {
-          if (entry?.botId) await raise(entry.botId, preset);
+          if (entry?.botId !== void 0) await raise(entry.botId, preset);
           else console.warn("ds-bot: always-allow found no waiting approval", place, waiting);
         } catch (error) {
           console.warn("ds-bot: always-allow could not save the permission", error);
@@ -20279,7 +20294,7 @@ function addAlwaysAllow({ work, shownSession, raise }) {
   return () => observer.disconnect();
 }
 
-// src/client/ime-guard.js
+// src/client/ime-guard.ts
 var COMPOSER = "[data-composer-input],[contenteditable=true],textarea";
 var STRAY_MS = 60;
 function installImeGuard(root = document) {
@@ -20288,13 +20303,14 @@ function installImeGuard(root = document) {
     endedAt = performance.now();
   };
   const keydown = (event) => {
-    if (event.key !== "Enter" && event.keyCode !== 229) return;
-    if (!(event.target instanceof Element) || !event.target.closest(COMPOSER)) return;
-    const composing = event.isComposing || event.keyCode === 229;
-    const stray = event.key === "Enter" && performance.now() - endedAt < STRAY_MS;
+    const key = event;
+    if (key.key !== "Enter" && key.keyCode !== 229) return;
+    if (!(key.target instanceof Element) || key.target.closest(COMPOSER) === null) return;
+    const composing = key.isComposing || key.keyCode === 229;
+    const stray = key.key === "Enter" && performance.now() - endedAt < STRAY_MS;
     if (!composing && !stray) return;
-    event.stopImmediatePropagation();
-    if (stray) event.preventDefault();
+    key.stopImmediatePropagation();
+    if (stray) key.preventDefault();
   };
   root.addEventListener("compositionend", ended, true);
   root.addEventListener("keydown", keydown, true);
@@ -20304,7 +20320,7 @@ function installImeGuard(root = document) {
   };
 }
 
-// src/client/open-listed.js
+// src/client/open-listed.ts
 function listedOpener({ list, open, refresh, current }) {
   let drop = () => {
   };

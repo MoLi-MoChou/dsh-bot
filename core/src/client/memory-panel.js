@@ -3,7 +3,7 @@
 // and "Ask or update", one model call that answers from the entries or changes them.
 // Modeled on ChatGPT's memory summary.
 import { createElement as h, Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { useEscape, useMenuKeys } from './overlay-hooks.js'
+import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.js'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.js'
 import { dateLocale, hostText, t } from './i18n.js'

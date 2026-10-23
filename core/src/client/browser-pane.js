@@ -11,7 +11,7 @@ import { installStyles } from './styles.js'
 import { EASE_OUT, PANEL_LINGER_MS, PANEL_TAB_EDGES, reducedMotion, SPRING_SHAPE } from './motion.js'
 import { DetailsDrawer } from './details-drawer.js'
 import { EmptyState } from './empty-state.js'
-import { useEscape } from './overlay-hooks.js'
+import { useEscape } from './overlay-hooks.ts'
 import { t } from './i18n.js'
 
 export { PANEL_LINGER_MS }

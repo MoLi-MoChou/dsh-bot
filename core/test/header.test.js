@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
-import { headerNavigation, installHeaderNavigation } from '../src/client/header-navigation.js'
+import { headerNavigation, installHeaderNavigation } from '../src/client/header-navigation.ts'
 
 const bundle = await build({
   entryPoints: [fileURLToPath(new URL('../src/client/header.js', import.meta.url))],

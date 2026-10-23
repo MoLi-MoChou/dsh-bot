@@ -6,7 +6,7 @@ import { Bubbles } from './cells.js'
 import { stripLongNote } from './fold.js'
 import { ChatsIcon } from './icons.js'
 import { SHEET_EXIT_MS, reducedMotion } from './motion.js'
-import { useEscape, usePaneLeft } from './overlay-hooks.js'
+import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.js'
 import { t } from './i18n.js'
 

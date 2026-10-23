@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { installLocale } from '../src/client/i18n.js'
-import { RETRY_AFTER, retryNotice, showReconnectNotice } from '../src/client/reconnect.js'
+import { RETRY_AFTER, retryNotice, showReconnectNotice } from '../src/client/reconnect.ts'
 
 // The locale service the shell provides, with Chinese copy for the plugin's namespace.
 function fakeLocale(active) {
