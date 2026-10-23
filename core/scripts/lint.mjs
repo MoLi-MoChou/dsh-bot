@@ -2,8 +2,12 @@
 // deepseek-harness checkout installs, so ds-bot needs no copy of its own. The places are
 // DSH_HARNESS, else dev/harness, else a checkout beside this checkout, else beside the main
 // worktree (a git worktree has no deepseek-harness of its own).
-// After oxlint, run the gates oxlint cannot do without type information: the layer
-// boundaries, the 350-line size limit, and floating promises (see check-gates.mjs).
+//
+// Then run the gates oxlint cannot express — layer boundaries, the 350-line limit for a
+// migrated logic file, and floating promises — from `check-gates.mjs`. `npm run lint` is
+// therefore one command for both, and the fixtures under test/fixtures/gates exercise the
+// same script.
+//
 // Usage: npm run lint [-- <oxlint options>]
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -24,8 +28,10 @@ if (!bin) {
 }
 const result = spawnSync(process.execPath, [bin, '-c', '.oxlintrc.json', ...process.argv.slice(2), 'index.js', 'web-search.js', 'src', 'dev', 'scripts', 'test'], { cwd: plugin, stdio: 'inherit' })
 if (result.error) console.error(`lint: ${result.error.message}`)
-if ((result.status ?? 1) !== 0) process.exit(result.status ?? 1)
 
-const gates = spawnSync(process.execPath, ['scripts/check-gates.mjs'], { cwd: plugin, stdio: 'inherit' })
+const gates = spawnSync(process.execPath, [join(plugin, 'scripts', 'check-gates.mjs')], { cwd: plugin, stdio: 'inherit' })
 if (gates.error) console.error(`lint: ${gates.error.message}`)
-process.exit(gates.status ?? 1)
+
+const oxlintStatus = result.status ?? 1
+const gatesStatus = gates.status ?? 1
+process.exit(oxlintStatus !== 0 ? oxlintStatus : gatesStatus)
