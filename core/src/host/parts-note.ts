@@ -198,6 +198,8 @@ export function createPartNote(options: PartNoteOptions): PartNote {
       // service gives the engine its own context, with the services it injects.
       // A Session with no engine is a host bug, noted like a failed pass below.
       if (engine === undefined) throw new Error('no compaction engine serves this Session')
+      // The old path passed no signal when a turn overflowed, so a stuck compaction had
+      // no limit at all; here it gets the note timeout, so a hung pass cannot hold the step.
       const result = inTurn
         ? await engine.compactIfNeeded(agent, 'context-overflow', signal ?? AbortSignal.timeout(NOTE_TIMEOUT_MS))
         : await engine.compactNow(agent, AbortSignal.timeout(NOTE_TIMEOUT_MS))

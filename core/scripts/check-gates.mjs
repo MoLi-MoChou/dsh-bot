@@ -36,7 +36,9 @@ const LINE_EXEMPTIONS = [
   'src/client/brand-art.ts', // TODO(phase2 split): static brand art (generated data URLs)
   // Third-party code is reviewed by its upstream, not reshaped by our size gate.
   'src/client/vendor/**',
-  // Declaration files describe types; they carry no runtime statements to split.
+  // Declaration files describe types; they carry no runtime statements to split. A .d.ts
+  // is a document of types, never a way to move logic out of the line gate: a module that
+  // holds code keeps it in a .ts and is split for real.
   '**/*.d.ts',
   // UI copy is a dictionary table (data), not a logic file.
   'src/client/i18n/zh.ts', // i18n dictionary table (data, not logic)
