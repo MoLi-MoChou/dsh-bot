@@ -1,9 +1,9 @@
-// The blueprint a `show_view` card carries, typed. The runtime validation lives in
-// `views.js` (the host checks a card before storing it, the client renders the same
-// blueprint); this module is the shared type layer both ends will move onto.
+// The blueprint a `show_view` card carries, typed. The host checks a card before
+// storing it and the client renders the same blueprint; the runtime validators live in
+// `views/validate.ts` and are re-exported here, so both ends import one module.
 //
 // Phase 1 declares `diff` and `diagram` as cards a Bot may name later. Nothing renders
-// them yet and no host accepts them: `views.js` still rejects them, by design.
+// them yet and no host accepts them: the validator still rejects them, by design.
 
 export type ViewComponentType = 'stack' | 'text' | 'metric' | 'table' | 'options' | 'confirm' | 'form' | 'progress'
 
@@ -99,6 +99,18 @@ export type ViewCheck =
   | { readonly ok: true; readonly interactive: boolean }
   | { readonly ok: false; readonly error: string }
 
+/** What `checkShownView` answers: the error, or the trimmed title and whether it waits. */
+export type ShownViewCheck =
+  | { readonly error: string; readonly title?: undefined; readonly interactive?: undefined }
+  | { readonly title: string; readonly interactive: boolean; readonly error?: undefined }
+
+/** What `validateViewAnswer` answers: an error, or the values it accepted. */
+export type ViewAnswerCheck =
+  | { readonly error: string }
+  | { readonly selected: readonly string[] }
+  | { readonly confirmed: boolean }
+  | { readonly fields: Readonly<Record<string, string>> }
+
 /** What the host keeps of a shown card, for the answer it later receives. */
 export interface ShownView {
   readonly id: string
@@ -115,3 +127,16 @@ export interface ViewAnswer {
   readonly values?: Readonly<Record<string, string>>
   readonly custom?: string
 }
+
+// ---------------------------------------------------------------------------
+// The runtime validators: pure, so the host and the client run the same checks.
+
+export {
+  VIEW_BYTE_LIMIT,
+  viewBytes,
+  normalizeView,
+  validateView,
+  checkShownView,
+  viewSummary,
+  validateViewAnswer,
+} from './views/validate.ts'

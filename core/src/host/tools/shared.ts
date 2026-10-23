@@ -21,7 +21,7 @@ import type {
 } from '../runtime.ts'
 import { MESSAGE_INLINE_MAX, SOURCE_KIND } from '../constants.ts'
 import { unquote } from '../text.ts'
-import { LEAN_HIDDEN_TOOLS } from '../../shared/lean.js'
+import { LEAN_HIDDEN_TOOLS } from '../../shared/lean.ts'
 
 /** What every tool answers: the value as the text the model reads. */
 export interface ToolOutput {

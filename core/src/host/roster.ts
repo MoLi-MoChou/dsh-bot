@@ -3,7 +3,7 @@
 // group chat rules in roster-rooms.ts.
 import { cleanAvatar, dropKickoff as dropHeldKickoff, kickoffText, sendKickoff } from './roster-kickoff.ts'
 import { currentColor, isColor, normalize } from './text.ts'
-import { nameProblem } from '../shared/mentions.js'
+import { nameProblem } from '../shared/mentions.ts'
 import { createRosterSetup } from './roster-setup.ts'
 import { createRosterRoles } from './roster-roles.ts'
 import { createRosterRooms } from './roster-rooms.ts'

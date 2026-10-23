@@ -5,7 +5,7 @@ import { t } from './i18n.js'
 import { AnsweredCell, keyLetter, useOptionKeys } from './questions.js'
 import { useDockHold } from './card-hold.ts'
 import { heldCardKey } from './sources.ts'
-import { checkShownView, normalizeView } from '../shared/views.js'
+import { checkShownView, normalizeView } from '../shared/views.ts'
 
 // -------------------------------------------------------------------------
 // View cards (show_view): a Bot draws a small declarative blueprint — text,

@@ -4,7 +4,7 @@
 // edits the team.
 import { randomUUID } from 'node:crypto'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import { validateViewAnswer as validateViewAnswerJs } from './views-bridge.js'
+import { validateViewAnswer } from '../../shared/views.ts'
 import type { RpcEndpoint } from '../../shared/rpc.ts'
 import { questionReply as questionReplyJs, viewReply as viewReplyJs } from '../parts.js'
 import type {
@@ -14,7 +14,6 @@ import type {
   ChannelResult,
   PendingQuestion,
   PendingView,
-  ViewAnswerCheck,
 } from './envelope.ts'
 import type { ChannelRuntime } from '../channel.ts'
 import { fail, ok } from './envelope.ts'
@@ -25,11 +24,10 @@ interface AnsweredReply {
   readonly source: Readonly<Record<string, unknown>>
 }
 
-// `parts.js` and `views.js` are still JavaScript; these are the contracts this module
-// relies on, said once instead of at every call.
+// `parts.js` is still JavaScript; these are the contracts this module relies on, said
+// once instead of at every call. `views.ts` carries its own types.
 const questionReply = questionReplyJs as (question: PendingQuestion, answer: unknown) => AnsweredReply | undefined
 const viewReply = viewReplyJs as (record: PendingView, action: unknown, values: unknown) => AnsweredReply | undefined
-const validateViewAnswer = validateViewAnswerJs as (view: unknown, action: unknown, values: unknown) => ViewAnswerCheck
 
 /** The handlers one endpoint group shares: load first, then run the group's call. */
 function grouped<E extends RpcEndpoint>(

@@ -68,7 +68,7 @@ test('the shared contract layer exists and names the endpoints both ends share',
   assert.match(views, /export interface DiagramView/)
   // The Phase 3 cards are declared, not accepted yet: the runtime validator still knows
   // only the eight components the UI can draw.
-  assert.doesNotMatch(read('src/shared/views.js'), /diff|diagram/)
+  assert.doesNotMatch(read('src/shared/views/validate.ts'), /diff|diagram/)
 })
 
 test('the host types name the DSH context without importing a DSH install', () => {
@@ -79,11 +79,10 @@ test('the host types name the DSH context without importing a DSH install', () =
   assert.doesNotMatch(types, /from '@deepseek-ai\//)
 })
 
-test('the mentions contract and its runtime agree on who is a Bot', () => {
+test('the mentions contract is its own runtime, so the two cannot drift apart', () => {
   const typed = read('src/shared/mentions.ts')
-  assert.match(typed, /export const mentionSpans/)
-  assert.match(typed, /export const nameProblem/)
-  // The JS the host and client load is a re-export of the implementation, so the typed
-  // layer and the running code cannot silently drift apart in resolution.
-  assert.match(read('src/shared/mentions.js'), /export \* from '\.\/mentions\.runtime\.js'/)
+  assert.match(typed, /export function mentionSpans/)
+  assert.match(typed, /export function nameProblem/)
+  // The typed module is the implementation now: no JS shim or separate runtime remains.
+  assert.doesNotMatch(typed, /mentions\.runtime/)
 })

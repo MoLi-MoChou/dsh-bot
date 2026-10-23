@@ -7,7 +7,7 @@ import { useEscape } from './overlay-hooks.ts'
 import { createPayload, freshBotName, startModel } from './bot-draft.ts'
 import { ModelMenu } from './model-menu.js'
 import { hostText, t } from './i18n.js'
-import { nameProblem } from '../shared/mentions.js'
+import { nameProblem } from '../shared/mentions.ts'
 
 const pick = list => list[Math.floor(Math.random() * list.length)]
 const randomLook = (avoid = {}) => {

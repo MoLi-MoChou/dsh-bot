@@ -2130,7 +2130,7 @@ function registerTheme(id, theme) {
 }
 var allThemes = () => ({ ...THEMES, ...customThemes });
 
-// src/shared/mentions.runtime.js
+// src/shared/mentions.ts
 var ALL_WORDS = ["all", "everyone", "所有人", "全体"];
 var USER_NAMES = ["user", "you"];
 var speakerOf = (line) => line.botId !== void 0 && USER_NAMES.includes(String(line.who ?? "").trim().toLowerCase()) ? `Bot "${line.who}"` : line.who;
@@ -2153,7 +2153,7 @@ function referenceSpans(text, labels = []) {
     const mention = `@${label}`;
     for (let at = text.indexOf(mention); at !== -1; at = text.indexOf(mention, at + 1)) {
       const end = at + mention.length;
-      if (at > 0 && ADDRESS_BEFORE.test(text[at - 1]) || NAME_GOES_ON.test(text.slice(end)) || overlaps(spans, at, end)) continue;
+      if (at > 0 && ADDRESS_BEFORE.test(text[at - 1] ?? "") || NAME_GOES_ON.test(text.slice(end)) || overlaps(spans, at, end)) continue;
       spans.push({ start: at, end, label });
       break;
     }
@@ -2163,17 +2163,17 @@ function referenceSpans(text, labels = []) {
 function mentionSpans(text, bots, { references = [] } = {}) {
   const value = String(text ?? "");
   const skip = [
-    ...[...value.matchAll(LITERAL)].map((match) => ({ start: match.index, end: match.index + match[0].length })),
+    ...[...value.matchAll(LITERAL)].map((match) => ({ start: match.index ?? 0, end: (match.index ?? 0) + (match[0] ?? "").length })),
     ...referenceSpans(value, references)
   ];
   const byLength = bots.filter((bot) => bot?.name).sort((a, b) => b.name.length - a.name.length);
   const spans = [];
   for (let at = value.indexOf("@"); at !== -1; at = value.indexOf("@", at + 1)) {
-    if (at > 0 && ADDRESS_BEFORE.test(value[at - 1]) || overlaps(skip, at, at + 1)) continue;
+    if (at > 0 && ADDRESS_BEFORE.test(value[at - 1] ?? "") || overlaps(skip, at, at + 1)) continue;
     const bot = byLength.find((candidate) => fitsAt(value, at + 1, candidate.name));
     const all = bot ? void 0 : ALL_WORDS.find((word) => fitsAt(value, at + 1, word));
     if (!bot && !all) continue;
-    const end = at + 1 + (bot ? bot.name.length : all.length);
+    const end = at + 1 + (bot ? bot.name.length : all === void 0 ? 0 : all.length);
     spans.push(bot ? { start: at, end, bot } : { start: at, end, all: true });
     at = end - 1;
   }
@@ -7874,7 +7874,7 @@ function framerMotion() {
   return loaded;
 }
 
-// src/shared/lean.js
+// src/shared/lean.ts
 var LEAN = { groups: false, schedules: false, dshAgent: false, classicMode: false };
 var GROUP_TOOLS = ["create_group", "update_group", "delete_group", "post_to_group", "read_group_chat"];
 var SCHEDULE_TOOLS = ["schedule_create", "schedule_update", "schedule_delete", "schedule_list"];
@@ -8270,7 +8270,7 @@ function AnsweredCell({ node }) {
   })));
 }
 
-// src/shared/views.js
+// src/shared/views/validate.ts
 var COMPONENTS = ["stack", "text", "metric", "table", "options", "confirm", "form", "progress"];
 var TONES = ["good", "warn", "bad"];
 var INTERACTIVE = /* @__PURE__ */ new Set(["options", "confirm", "form"]);
@@ -8297,23 +8297,30 @@ var SUMMARY_PART = 40;
 var SUMMARY_COUNT = 8;
 var VIEW_BYTE_LIMIT = 8192;
 var isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var isArray = (value) => Array.isArray(value);
+var isComponent = (value) => typeof value === "string" && COMPONENTS.includes(value);
 var quoted = (value) => JSON.stringify(value);
 var allowed = (list) => list.join(", ");
+var prop = (value, key) => {
+  if (value === null || typeof value !== "object") return void 0;
+  return value[key];
+};
 function viewBytes(title, view) {
-  return new TextEncoder().encode(`${JSON.stringify(view) ?? ""}${title ?? ""}`).length;
+  return new TextEncoder().encode(`${JSON.stringify(view) ?? ""}${String(title ?? "")}`).length;
 }
 function normalizeView(value) {
-  if (Array.isArray(value)) return value.map(normalizeView);
+  if (isArray(value)) return value.map(normalizeView);
   if (!isRecord(value)) return value;
   const keys = Object.keys(value);
   if (keys.length === 1 && keys[0] === "item") {
     const inner = normalizeView(value.item);
-    if (Array.isArray(inner)) return inner;
+    if (isArray(inner)) return inner;
   }
   const out = {};
   for (const key of keys) out[key] = normalizeView(value[key]);
   for (const field of ["value", "percent"]) {
-    if (typeof out[field] === "string" && out[field].trim() !== "" && !Number.isNaN(Number(out[field]))) out[field] = Number(out[field]);
+    const current = out[field];
+    if (typeof current === "string" && current.trim() !== "" && !Number.isNaN(Number(current))) out[field] = Number(current);
   }
   return out;
 }
@@ -8342,7 +8349,7 @@ function checkNode(node, path, depth, ctx) {
   ctx.nodes += 1;
   if (ctx.nodes > MAX_NODES) return `${path}: ${ctx.nodes} components exceeds the limit of ${MAX_NODES}`;
   const type = node.type;
-  if (!COMPONENTS.includes(type)) return `${path}.type: unknown component ${quoted(type)}; allowed: ${allowed(COMPONENTS)}`;
+  if (!isComponent(type)) return `${path}.type: unknown component ${quoted(type)}; allowed: ${allowed(COMPONENTS)}`;
   const props = PROPS[type];
   for (const key of Object.keys(node)) {
     if (key === "type" || props.includes(key)) continue;
@@ -8359,31 +8366,35 @@ function checkNode(node, path, depth, ctx) {
   return checkProgress(node, path);
 }
 function checkStack(node, path, depth, ctx) {
-  if (!Array.isArray(node.children)) return `${path}.children: expected an array of 1 to ${MAX_CHILDREN} components`;
-  if (node.children.length < 1 || node.children.length > MAX_CHILDREN) return `${path}.children: expected 1 to ${MAX_CHILDREN} children; got ${node.children.length}`;
-  for (let index = 0; index < node.children.length; index += 1) {
-    const error = checkNode(node.children[index], `${path}.children[${index}]`, depth + 1, ctx);
+  const children = node.children;
+  if (!isArray(children)) return `${path}.children: expected an array of 1 to ${MAX_CHILDREN} components`;
+  if (children.length < 1 || children.length > MAX_CHILDREN) return `${path}.children: expected 1 to ${MAX_CHILDREN} children; got ${children.length}`;
+  for (let index = 0; index < children.length; index += 1) {
+    const error = checkNode(children[index], `${path}.children[${index}]`, depth + 1, ctx);
     if (error !== void 0) return error;
   }
   return void 0;
 }
 function checkText(node, path) {
-  if (typeof node.text !== "string") return `${path}.text: expected a string`;
-  if (node.text.length > MAX_TEXT) return `${path}.text: ${node.text.length} characters exceeds the limit of ${MAX_TEXT}`;
+  const text = node.text;
+  if (typeof text !== "string") return `${path}.text: expected a string`;
+  if (text.length > MAX_TEXT) return `${path}.text: ${text.length} characters exceeds the limit of ${MAX_TEXT}`;
   return void 0;
 }
 function checkMetric(node, path) {
   if (typeof node.label !== "string") return `${path}.label: expected a string`;
-  if (typeof node.value !== "string" && typeof node.value !== "number") return `${path}.value: expected a string or a number`;
-  if (typeof node.value === "number" && !Number.isFinite(node.value)) return `${path}.value: expected a finite number`;
+  const value = node.value;
+  if (typeof value !== "string" && typeof value !== "number") return `${path}.value: expected a string or a number`;
+  if (typeof value === "number" && !Number.isFinite(value)) return `${path}.value: expected a finite number`;
   if (node.tone !== void 0 && !TONES.includes(node.tone)) return `${path}.tone: unknown tone ${quoted(node.tone)}; allowed: ${allowed(TONES)}`;
   return void 0;
 }
 function checkTable(node, path) {
-  if (!Array.isArray(node.columns)) return `${path}.columns: expected an array of at most ${MAX_COLUMNS} columns`;
-  if (node.columns.length > MAX_COLUMNS) return `${path}.columns: ${node.columns.length} columns exceeds the limit of ${MAX_COLUMNS}`;
-  for (let index = 0; index < node.columns.length; index += 1) {
-    const column = node.columns[index];
+  const columns = node.columns;
+  if (!isArray(columns)) return `${path}.columns: expected an array of at most ${MAX_COLUMNS} columns`;
+  if (columns.length > MAX_COLUMNS) return `${path}.columns: ${columns.length} columns exceeds the limit of ${MAX_COLUMNS}`;
+  for (let index = 0; index < columns.length; index += 1) {
+    const column = columns[index];
     const at = `${path}.columns[${index}]`;
     if (!isRecord(column)) return `${at}: expected a column object`;
     for (const key of Object.keys(column)) {
@@ -8392,11 +8403,12 @@ function checkTable(node, path) {
     if (typeof column.key !== "string" || column.key === "") return `${at}.key: expected a non-empty string`;
     if (typeof column.label !== "string") return `${at}.label: expected a string`;
   }
-  if (!Array.isArray(node.rows)) return `${path}.rows: expected an array of at most ${MAX_ROWS} rows`;
-  if (node.rows.length > MAX_ROWS) return `${path}.rows: ${node.rows.length} rows exceeds the limit of ${MAX_ROWS}`;
-  for (let row = 0; row < node.rows.length; row += 1) {
-    const cells = node.rows[row];
-    if (!Array.isArray(cells)) return `${path}.rows[${row}]: expected an array of cells`;
+  const rows = node.rows;
+  if (!isArray(rows)) return `${path}.rows: expected an array of at most ${MAX_ROWS} rows`;
+  if (rows.length > MAX_ROWS) return `${path}.rows: ${rows.length} rows exceeds the limit of ${MAX_ROWS}`;
+  for (let row = 0; row < rows.length; row += 1) {
+    const cells = rows[row];
+    if (!isArray(cells)) return `${path}.rows[${row}]: expected an array of cells`;
     for (let column = 0; column < cells.length; column += 1) {
       const text = cellText(cells[column]);
       if (text.length > MAX_CELL) return `${path}.rows[${row}][${column}]: ${text.length} characters exceeds the limit of ${MAX_CELL}`;
@@ -8408,11 +8420,12 @@ function checkOptions(node, path, ctx) {
   const idError = checkId(node, path, ctx);
   if (idError !== void 0) return idError;
   if (node.multi !== void 0 && typeof node.multi !== "boolean") return `${path}.multi: expected a boolean`;
-  if (!Array.isArray(node.options)) return `${path}.options: expected an array of 1 to ${MAX_OPTIONS} options`;
-  if (node.options.length < 1 || node.options.length > MAX_OPTIONS) return `${path}.options: expected 1 to ${MAX_OPTIONS} options; got ${node.options.length}`;
+  const options = node.options;
+  if (!isArray(options)) return `${path}.options: expected an array of 1 to ${MAX_OPTIONS} options`;
+  if (options.length < 1 || options.length > MAX_OPTIONS) return `${path}.options: expected 1 to ${MAX_OPTIONS} options; got ${options.length}`;
   const labels = /* @__PURE__ */ new Set();
-  for (let index = 0; index < node.options.length; index += 1) {
-    const option = node.options[index];
+  for (let index = 0; index < options.length; index += 1) {
+    const option = options[index];
     const at = `${path}.options[${index}]`;
     if (!isRecord(option)) return `${at}: expected an option object`;
     for (const key of Object.keys(option)) {
@@ -8436,11 +8449,12 @@ function checkForm(node, path, ctx) {
   const idError = checkId(node, path, ctx);
   if (idError !== void 0) return idError;
   if (node.submitLabel !== void 0 && typeof node.submitLabel !== "string") return `${path}.submitLabel: expected a string`;
-  if (!Array.isArray(node.fields)) return `${path}.fields: expected an array of at most ${MAX_FIELDS} fields`;
-  if (node.fields.length > MAX_FIELDS) return `${path}.fields: ${node.fields.length} fields exceeds the limit of ${MAX_FIELDS}`;
+  const fields = node.fields;
+  if (!isArray(fields)) return `${path}.fields: expected an array of at most ${MAX_FIELDS} fields`;
+  if (fields.length > MAX_FIELDS) return `${path}.fields: ${fields.length} fields exceeds the limit of ${MAX_FIELDS}`;
   const seen = /* @__PURE__ */ new Set();
-  for (let index = 0; index < node.fields.length; index += 1) {
-    const field = node.fields[index];
+  for (let index = 0; index < fields.length; index += 1) {
+    const field = fields[index];
     const at = `${path}.fields[${index}]`;
     if (!isRecord(field)) return `${at}: expected a field object`;
     for (const key of Object.keys(field)) {
@@ -8477,13 +8491,13 @@ function clip(text) {
   return flat.length <= SUMMARY_PART ? flat : flat.slice(0, SUMMARY_PART);
 }
 function componentSummary(node) {
-  if (node.type === "text") return `text: ${node.text ?? ""}`;
-  if (node.type === "metric") return `metric: ${node.label}=${node.value}`;
-  if (node.type === "table") return `table: ${(Array.isArray(node.columns) ? node.columns : []).map((column) => column?.label ?? column?.key ?? "").filter(Boolean).join("/")}`;
-  if (node.type === "options") return `options: ${(Array.isArray(node.options) ? node.options : []).map((option) => option?.label).filter(Boolean).join("/")}`;
+  if (node.type === "text") return `text: ${String(node.text ?? "")}`;
+  if (node.type === "metric") return `metric: ${String(node.label)}=${String(node.value)}`;
+  if (node.type === "table") return `table: ${(isArray(node.columns) ? node.columns : []).map((column) => prop(column, "label") ?? prop(column, "key") ?? "").filter(Boolean).join("/")}`;
+  if (node.type === "options") return `options: ${(isArray(node.options) ? node.options : []).map((option) => prop(option, "label")).filter(Boolean).join("/")}`;
   if (node.type === "confirm") return "confirm";
-  if (node.type === "form") return `form: ${(Array.isArray(node.fields) ? node.fields : []).map((field) => field?.label ?? field?.id).filter(Boolean).join("/")}`;
-  if (node.type === "progress") return `progress: ${node.label ? `${node.label} ` : ""}${node.percent}%`;
+  if (node.type === "form") return `form: ${(isArray(node.fields) ? node.fields : []).map((field) => prop(field, "label") ?? prop(field, "id")).filter(Boolean).join("/")}`;
+  if (node.type === "progress") return `progress: ${node.label ? `${String(node.label)} ` : ""}${String(node.percent)}%`;
   return void 0;
 }
 function viewSummary(view) {
@@ -8492,7 +8506,7 @@ function viewSummary(view) {
     if (parts.length >= SUMMARY_COUNT || !isRecord(node)) return;
     const line = componentSummary(node);
     if (line !== void 0) parts.push(clip(line));
-    if (parts.length >= SUMMARY_COUNT || node.type !== "stack" || !Array.isArray(node.children)) return;
+    if (parts.length >= SUMMARY_COUNT || node.type !== "stack" || !isArray(node.children)) return;
     for (const child of node.children) visit(child);
   };
   visit(view);
@@ -8500,40 +8514,43 @@ function viewSummary(view) {
 }
 function interactiveNodes(node, found = []) {
   if (!isRecord(node)) return found;
-  if (INTERACTIVE.has(node.type)) found.push(node);
-  if (node.type === "stack" && Array.isArray(node.children)) {
+  if (typeof node.type === "string" && INTERACTIVE.has(node.type)) found.push(node);
+  if (node.type === "stack" && isArray(node.children)) {
     for (const child of node.children) interactiveNodes(child, found);
   }
   return found;
 }
+var idsOf = (nodes) => nodes.map((node) => String(node.id));
 function validateViewAnswer(view, action, values) {
   const nodes = interactiveNodes(view);
-  if (typeof action !== "string" || action === "") return { error: `action: expected an interactive component id; allowed: ${allowed(nodes.map((node2) => node2.id))}` };
+  if (typeof action !== "string" || action === "") return { error: `action: expected an interactive component id; allowed: ${allowed(idsOf(nodes))}` };
   const node = nodes.find((item) => item.id === action);
-  if (node === void 0) return { error: `action: no interactive component with id ${quoted(action)}; allowed: ${allowed(nodes.map((item) => item.id))}` };
+  if (node === void 0) return { error: `action: no interactive component with id ${quoted(action)}; allowed: ${allowed(idsOf(nodes))}` };
   if (!isRecord(values)) return { error: "values: expected an object" };
   if (node.type === "options") return validateOptions(node, values);
   if (node.type === "confirm") return validateConfirm(values);
   return validateForm(node, values);
 }
 function validateOptions(node, values) {
-  if (!Array.isArray(values.selected)) return { error: "values.selected: expected an array of option labels" };
-  const labels = new Set((node.options ?? []).map((option) => option?.label));
-  const picked = values.selected.filter((label) => typeof label === "string" && labels.has(label));
-  const selected = node.multi === true ? [...new Set(picked)] : picked.slice(0, 1);
-  if (selected.length === 0) return { error: "values.selected: select at least one option" };
-  return { selected };
+  const selected = values.selected;
+  if (!isArray(selected)) return { error: "values.selected: expected an array of option labels" };
+  const labels = new Set((isArray(node.options) ? node.options : []).map((option) => prop(option, "label")));
+  const picked = selected.filter((label) => typeof label === "string" && labels.has(label));
+  const kept = node.multi === true ? [...new Set(picked)] : picked.slice(0, 1);
+  if (kept.length === 0) return { error: "values.selected: select at least one option" };
+  return { selected: kept };
 }
 function validateConfirm(values) {
   if (typeof values.confirmed !== "boolean") return { error: "values.confirmed: expected a boolean" };
   return { confirmed: values.confirmed };
 }
 function validateForm(node, values) {
-  if (!isRecord(values.fields)) return { error: "values.fields: expected an object of field ids to strings" };
-  const declared = (node.fields ?? []).map((field) => field?.id).filter((id) => typeof id === "string");
+  const given = values.fields;
+  if (!isRecord(given)) return { error: "values.fields: expected an object of field ids to strings" };
+  const declared = (isArray(node.fields) ? node.fields : []).map((field) => prop(field, "id")).filter((id) => typeof id === "string");
   const allowedIds = new Set(declared);
   const fields = {};
-  for (const [key, value] of Object.entries(values.fields)) {
+  for (const [key, value] of Object.entries(given)) {
     if (!allowedIds.has(key)) return { error: `values.fields.${key}: unknown field; allowed: ${allowed(declared)}` };
     if (typeof value !== "string") return { error: `values.fields.${key}: expected a string` };
     if (value.length > MAX_TEXT) return { error: `values.fields.${key}: ${value.length} characters exceeds the limit of ${MAX_TEXT}` };

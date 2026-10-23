@@ -20,7 +20,7 @@ import { HANDOFF_ACK, HISTORY_TIMEOUT_MS, REPLY_KIND, SOURCE_KIND } from './cons
 import { CHECKPOINT_PROMPT, STEWARD_SYSTEM, checkpointCount, checkpointTail, checkpointTailNote, checkpointText, linesFor, parseDecision, stewardRequest } from './steward.ts'
 import { RESUME_DELAY_MS } from './resume.ts'
 import { clip, createClock, escapeRegExp, estimateTokens, splitRef, textOf } from './text.ts'
-import { validateViewAnswer, viewSummary } from '../shared/views.js'
+import { validateViewAnswer, viewSummary } from '../shared/views.ts'
 
 // An ask_user card as the user saw it. The user's reply is often just an option label,
 // which means nothing without the card. Arguments the tool would refuse (no question,

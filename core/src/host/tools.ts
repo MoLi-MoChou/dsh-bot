@@ -3,7 +3,7 @@
 // in `tools/` by area.
 import type { Agent, Disposer, ToolExecution } from './dsh-types.js'
 import type { HostRuntime } from './runtime.ts'
-import { LEAN_HIDDEN_TOOLS } from '../shared/lean.js'
+import { LEAN_HIDDEN_TOOLS } from '../shared/lean.ts'
 import {
   BLOCKING_QUESTION_TOOL, GOAL_REFUSAL, HIDDEN_TOOLS, createShared,
   type ToolShared,

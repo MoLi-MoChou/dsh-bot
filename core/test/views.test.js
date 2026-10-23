@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { checkShownView, normalizeView, validateView, validateViewAnswer, VIEW_BYTE_LIMIT, viewBytes, viewSummary } from '../src/shared/views.js'
+import { checkShownView, normalizeView, validateView, validateViewAnswer, VIEW_BYTE_LIMIT, viewBytes, viewSummary } from '../src/shared/views.ts'
 
 const text = (value = 'hello') => ({ type: 'text', text: value })
 const metric = (label = '进度', value = '70%') => ({ type: 'metric', label, value })

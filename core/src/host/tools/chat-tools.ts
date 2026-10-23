@@ -5,7 +5,7 @@ import { defineTool, type ToolRunContext } from '@deepseek-ai/dsh-tools'
 import type { HostRuntime, StoredBot } from '../runtime.ts'
 import { absoluteLinks } from '../links.ts'
 import { mentionSpans } from '../../shared/mentions.ts'
-import { checkShownView, normalizeView } from './views-bridge.js'
+import { checkShownView, normalizeView } from '../../shared/views.ts'
 import {
   BLOCKING_QUESTION_TOOL, GROUP_REF, MODE_PARAM, WORK_DIR_PARAM,
   errorMessage, isRecord, output, type ToolShared,
@@ -53,11 +53,6 @@ interface ShowViewArgs {
   readonly view?: unknown
   readonly await_reply?: unknown
 }
-
-/** `checkShownView`'s answer: the error, or the trimmed title and whether it waits. */
-type ViewCheck =
-  | { readonly error: string; readonly title?: undefined; readonly interactive?: undefined }
-  | { readonly title: string; readonly interactive: boolean; readonly error?: undefined }
 
 const botName = (rt: HostRuntime, id: string): string => rt.botOf(id)?.name ?? id
 
@@ -308,7 +303,7 @@ export function installChatTools(rt: HostRuntime, shared: ToolShared): void {
       if (t.groupOwners.has(id)) return 'View cards only work in your own chat. In a group, ask in your message instead.'
       if (!t.chatOwners.has(id)) return `Only Bots on the team can use show_view. Use ${BLOCKING_QUESTION_TOOL} if it is available in this session, or ask the user in your reply.`
       const view: unknown = normalizeView(args.view)
-      const checked = checkShownView(args.title, view) as ViewCheck
+      const checked = checkShownView(args.title, view)
       if (checked.error !== undefined) return checked.error
       const title = checked.title
       if (!checked.interactive && args.await_reply === true) return 'This view has nothing to submit; call show_view with await_reply: false.'

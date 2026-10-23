@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
-import { mentionSpans, nameProblem, referenceSpans, speakerOf } from '../src/shared/mentions.js'
+import { mentionSpans, nameProblem, referenceSpans, speakerOf } from '../src/shared/mentions.ts'
 import { mentionsIn } from '../src/host/groups.ts'
 import { linkMentions, MENTION_ORIGIN } from '../src/client/text.ts'
 

@@ -1,4 +1,4 @@
-import { LEAN } from '../shared/lean.js'
+import { LEAN } from '../shared/lean.ts'
 import type { HostRuntime } from './runtime.js'
 // Prompt: one section whose text depends only on the rendering Session's own Bot
 // record, so the prefix stays byte-stable across turns and roster changes.

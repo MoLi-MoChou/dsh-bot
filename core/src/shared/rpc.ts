@@ -14,7 +14,7 @@ import type {
   RoomView,
   SchedulesView,
 } from './schema.js'
-import type { WidgetView } from './views.js'
+import type { WidgetView } from './views.ts'
 
 /** The error codes the host raises, plus the two the client makes up itself. */
 export type RpcErrorCode =

@@ -1,11 +1,11 @@
-// "@Name" is read by one rule everywhere: the group host picks who answers with it and
-// the client draws the same mentions in the bubbles, so what the user sees called is what
-// gets called.
-//
-// The runtime stays in `mentions.runtime.js` (Node loads `mentions.js`, which re-exports it);
-// this module is the typed layer both ends will import once the host/client move to TS.
-// Its signatures are the contract: change one and both sides fail to compile.
-import * as runtime from './mentions.runtime.js'
+// "@Name" is read by one rule everywhere: the group host picks who answers with it,
+// and the client draws the same mentions in the bubbles, so what the user sees called
+// is what gets called. Pure, so both sides import it.
+
+export const ALL_WORDS: readonly string[] = ['all', 'everyone', '所有人', '全体']
+// The speaker names a group log and a Bot's own chat give the user ("User: …",
+// "You: …"). A Bot with one of them would read as the user.
+export const USER_NAMES: readonly string[] = ['user', 'you']
 
 /** Someone `@` can call: a Bot on the team. */
 export interface MentionTarget {
@@ -31,36 +31,75 @@ export interface ReferenceSpan {
   readonly label: string
 }
 
-/** Words that call everyone in a group, in the languages the UI serves. */
-// The runtime module's inferred types are looser than the contract (it is plain JS); the
-// declared shape below is what both ends compile against.
-interface MentionsRuntime {
-  readonly ALL_WORDS: readonly string[]
-  readonly USER_NAMES: readonly string[]
-  speakerOf(line: LogLineLike): string | undefined
-  nameProblem(name: string): string | undefined
-  referenceSpans(text: string, labels?: readonly string[]): readonly ReferenceSpan[]
-  mentionSpans(text: string, bots: readonly MentionTarget[], options?: { readonly references?: readonly string[] }): readonly MentionSpan[]
+// The name a group log line goes by. A Bot named before such names were refused still
+// never reads as the user.
+export const speakerOf = (line: LogLineLike): string | null | undefined =>
+  line.botId !== undefined && USER_NAMES.includes(String(line.who ?? '').trim().toLowerCase()) ? `Bot "${line.who}"` : line.who
+
+// A letter, digit, "_" or "-" after a name means a longer word ("@Mi" in "@MiniMax"),
+// and "/", "\" or a "." that goes on into a word mean a path: DSH writes a file
+// reference as "@docs/guide.md", which must not call a Bot named Docs. A letter,
+// digit, "_", "." or "/" before "@" means an address ("a@b", "medium.com/@Writer").
+const NAME_GOES_ON = /^(?:[a-z0-9_\-/\\]|\.[a-z0-9_-])/i
+const ADDRESS_BEFORE = /[a-z0-9_./]/i
+// Code and Markdown links, with or without a title, are literal text.
+const LITERAL = /```[\s\S]*?(?:```|$)|`[^`\n]*`|\[[^\]\n]*\]\([^)\s]*(?:\s+(?:"[^"\n]*"|'[^'\n]*'))?\)/g
+
+const fitsAt = (text: string, at: number, word: string): boolean =>
+  text.slice(at, at + word.length).toLowerCase() === word.toLowerCase()
+  && !NAME_GOES_ON.test(text.slice(at + word.length))
+const overlaps = (spans: readonly { readonly start: number; readonly end: number }[], start: number, end: number): boolean =>
+  spans.some(span => start < span.end && span.start < end)
+
+// What a Bot may be named: something "@" can call without a second reading.
+export function nameProblem(name: string): string | undefined {
+  const text = String(name ?? '').trim()
+  if (text === '') return 'A Bot needs a name'
+  if (/[@`\r\n]/.test(text)) return 'A Bot name cannot contain @, ` or a line break'
+  if (ALL_WORDS.includes(text.toLowerCase())) return `"${text}" calls everyone in a group, so it cannot be a Bot name`
+  if (USER_NAMES.includes(text.toLowerCase())) return `"${text}" stands for the user in a chat, so it cannot be a Bot name`
+  return undefined
 }
-const impl = runtime as unknown as MentionsRuntime
 
-export const ALL_WORDS: readonly string[] = impl.ALL_WORDS
-/** Speaker names that stand for the user in a log line. */
-export const USER_NAMES: readonly string[] = impl.USER_NAMES
+// DSH writes each referenced conversation into the message once as "@label"; that one
+// occurrence per listed label is a reference, not a call. Longest labels go first so
+// "@K notes" is never read as the label "K".
+export function referenceSpans(text: string, labels: readonly string[] = []): ReferenceSpan[] {
+  const spans: ReferenceSpan[] = []
+  for (const label of [...labels].sort((a, b) => b.length - a.length)) {
+    const mention = `@${label}`
+    for (let at = text.indexOf(mention); at !== -1; at = text.indexOf(mention, at + 1)) {
+      const end = at + mention.length
+      if ((at > 0 && ADDRESS_BEFORE.test(text[at - 1] ?? '')) || NAME_GOES_ON.test(text.slice(end)) || overlaps(spans, at, end)) continue
+      spans.push({ start: at, end, label })
+      break
+    }
+  }
+  return spans.sort((a, b) => a.start - b.start)
+}
 
-/** The name a group log line goes by, so a Bot named "User" never reads as the user. */
-export const speakerOf = (line: LogLineLike): string | undefined => impl.speakerOf(line)
-
-/** What a Bot may be named: something `@` can call without a second reading. */
-export const nameProblem = (name: string): string | undefined => impl.nameProblem(name)
-
-/** The `@label` occurrences that are references to other conversations. */
-export const referenceSpans = (text: string, labels?: readonly string[]): readonly ReferenceSpan[] =>
-  impl.referenceSpans(text, labels ?? [])
-
-/** Every `@Name` and `@all` outside code, links and references, in order. */
-export const mentionSpans = (
+// Every "@Name" and "@all" outside code, links and references, in order. Longest names
+// match first, so "@新 Bot 2" is never "@新 Bot"; a name may hold spaces.
+export function mentionSpans(
   text: string,
   bots: readonly MentionTarget[],
-  options?: { readonly references?: readonly string[] },
-): readonly MentionSpan[] => impl.mentionSpans(text, bots, options ?? {})
+  { references = [] }: { readonly references?: readonly string[] } = {},
+): MentionSpan[] {
+  const value = String(text ?? '')
+  const skip: { readonly start: number; readonly end: number }[] = [
+    ...[...value.matchAll(LITERAL)].map(match => ({ start: match.index ?? 0, end: (match.index ?? 0) + (match[0] ?? '').length })),
+    ...referenceSpans(value, references),
+  ]
+  const byLength = bots.filter(bot => bot?.name).sort((a, b) => b.name.length - a.name.length)
+  const spans: MentionSpan[] = []
+  for (let at = value.indexOf('@'); at !== -1; at = value.indexOf('@', at + 1)) {
+    if ((at > 0 && ADDRESS_BEFORE.test(value[at - 1] ?? '')) || overlaps(skip, at, at + 1)) continue
+    const bot = byLength.find(candidate => fitsAt(value, at + 1, candidate.name))
+    const all = bot ? undefined : ALL_WORDS.find(word => fitsAt(value, at + 1, word))
+    if (!bot && !all) continue
+    const end = at + 1 + (bot ? bot.name.length : all === undefined ? 0 : all.length)
+    spans.push(bot ? { start: at, end, bot } : { start: at, end, all: true })
+    at = end - 1
+  }
+  return spans
+}

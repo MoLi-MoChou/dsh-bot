@@ -31,7 +31,7 @@ import { BlockAssembler } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { replaceFile } from './files.ts'
 import { splitRef, unquote } from './text.ts'
-import { speakerOf } from '../shared/mentions.js'
+import { speakerOf } from '../shared/mentions.ts'
 import { output } from './tools.ts'
 
 // Fixed sizes, in characters. Both MEMORY.md files ride in every request of every
