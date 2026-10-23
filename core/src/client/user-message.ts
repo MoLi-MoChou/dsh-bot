@@ -6,6 +6,32 @@ import { CheckIcon, CopyIcon } from './icons.ts'
 import { dateLocale, t } from './i18n.js'
 import { clockLabel, messageClock } from './text.ts'
 import { useFold } from './fold.ts'
+import type { MentionTarget } from '../shared/mentions.ts'
+
+// One block of a message: text, an attachment, or something DSH draws itself.
+export interface ContentBlock {
+  type?: string
+  text?: string
+  attachment?: { name: string; bytes?: number }
+}
+export interface TextPart { text: string }
+export interface MentionPart { bot: MentionTarget & { id: string; name: string }; label: string }
+export type UserTextPart = TextPart | MentionPart
+interface UserMessageCellProps {
+  node: { kind?: string; data?: { content?: unknown; referenceLabels?: readonly string[]; skillNames?: readonly string[]; time?: number } }
+  sessionId: string
+  useRoster: <T>(select: (value: UserRoster) => T) => T
+  actions: { openSession: (id: string) => void }
+  renderMessageImages?: (props: { images: readonly unknown[]; align: string; compact: boolean }) => ReturnType<typeof h> | null
+  openFile?: (path: string) => void
+  openSkill?: (name: string) => void
+}
+// The roster fields a user message reads to resolve its mentions.
+interface UserRoster {
+  bots: (MentionTarget & { id: string })[]
+  byId: Record<string, { id: string; name: string } | undefined>
+  roomsById: Record<string, { members: readonly string[] } | undefined>
+}
 
 // -------------------------------------------------------------------------
 // The user's own messages. DSH draws every "@word" in them as a file reference, and
@@ -16,11 +42,11 @@ import { useFold } from './fold.ts'
 // DSH releases without the text projection keep their own bubble.
 export const canDrawUserMessages = () => typeof ui.projectUserText === 'function'
 
-export function contentParts(content) {
-  const texts = []
-  const attachments = []
-  const rest = []
-  for (const block of Array.isArray(content) ? content : []) {
+export function contentParts(content: unknown): { text: string; attachments: ContentBlock[]; rest: ContentBlock[] } {
+  const texts: string[] = []
+  const attachments: ContentBlock[] = []
+  const rest: ContentBlock[] = []
+  for (const block of (Array.isArray(content) ? content : []) as ContentBlock[]) {
     if (block?.type === 'text' && typeof block.text === 'string') texts.push(block.text)
     else if ((block?.type === 'image' || block?.type === 'file') && block.attachment !== undefined) attachments.push(block)
     else rest.push(block)
@@ -30,40 +56,53 @@ export function contentParts(content) {
 }
 
 // In a group only its members are called; elsewhere a mention opens that Bot's chat.
-export function mentionableBots(roster, sessionId) {
+export function mentionableBots(roster: UserRoster, sessionId: string): (MentionTarget & { id: string })[] {
   const room = roster.roomsById[sessionId]
-  if (room) return room.members.map(id => roster.byId[id]).filter(Boolean)
+  if (room) return room.members.map(id => roster.byId[id]).filter((bot): bot is MentionTarget & { id: string } => bot !== undefined)
   return roster.byId[sessionId] ? roster.bots : []
 }
 
 // Runs of plain text and Bot mentions, in order.
-export function userTextParts(text, bots, referenceLabels = []) {
-  const parts = []
+export function userTextParts(text: string, bots: readonly MentionTarget[], referenceLabels: readonly string[] = []): UserTextPart[] {
+  const parts: UserTextPart[] = []
   let cursor = 0
   for (const span of mentionSpans(text, bots, { references: referenceLabels })) {
-    if (!span.bot) continue
+    // An "everyone" span names the group, not a Bot: it stays plain text here.
+    const bot = 'bot' in span ? span.bot : undefined
+    if (!bot) continue
     if (span.start > cursor) parts.push({ text: text.slice(cursor, span.start) })
-    parts.push({ bot: span.bot, label: text.slice(span.start + 1, span.end) })
+    parts.push({ bot: bot as MentionPart['bot'], label: text.slice(span.start + 1, span.end) })
     cursor = span.end
   }
   if (cursor < text.length) parts.push({ text: text.slice(cursor) })
   return parts
 }
 
-function UserText({ text, bots, referenceLabels, skillNames, references, actions }) {
-  return userTextParts(text, bots, referenceLabels).map((part, index) => (part.bot
+function UserText({ text, bots, referenceLabels, skillNames, references, actions }: {
+  text: string
+  bots: readonly MentionTarget[]
+  referenceLabels: readonly string[]
+  skillNames: readonly string[]
+  references: { openFile: (path: string) => void; openSkill: (name: string) => void } | undefined
+  actions: { openSession: (id: string) => void }
+}) {
+  return userTextParts(text, bots, referenceLabels).map((part, index) => ('bot' in part
     ? h('button', { key: index, type: 'button', className: 'bt-umention', title: `@${part.bot.name}`, onClick: () => actions.openSession(part.bot.id) },
       h(BotMark, { bot: part.bot, size: 16 }), part.label)
     : h(Fragment, { key: index }, ui.projectUserText(part.text, referenceLabels, skillNames, 'skill', references))))
 }
 
-function Attachments({ attachments, renderMessageImages }) {
+function Attachments({ attachments, renderMessageImages }: {
+  attachments: ContentBlock[]
+  renderMessageImages?: UserMessageCellProps['renderMessageImages']
+}) {
   const compact = attachments.length > 1
   return h('div', { className: 'bt-uattach' }, attachments.map((block, index) => {
     if (block.type === 'image') {
       return renderMessageImages ? h(Fragment, { key: index }, renderMessageImages({ images: [{ attachment: block.attachment }], align: 'end', compact })) : null
     }
     const file = block.attachment
+    if (file === undefined) return null
     const meta = [ui.fileExtension?.(file.name)?.toUpperCase().slice(0, 8), ui.fileSizeText?.(file.bytes)].filter(Boolean).join(' · ')
     return h('span', { key: index, className: 'bt-ufile', title: file.name },
       ui.FileTypeIcon ? h(ui.FileTypeIcon, { path: file.name, className: 'bt-ufile-icon' }) : null,
@@ -71,7 +110,7 @@ function Attachments({ attachments, renderMessageImages }) {
   }))
 }
 
-function CopyButton({ text }) {
+function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
     void navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1000) })
@@ -79,17 +118,18 @@ function CopyButton({ text }) {
   return h('button', { type: 'button', className: 'bt-tool', 'aria-label': copied ? t('Copied') : t('Copy'), title: copied ? t('Copied') : t('Copy'), onClick: copy }, copied ? h(CheckIcon) : h(CopyIcon))
 }
 
-const clock = time => (typeof time === 'number' ? new Date(time).toLocaleTimeString(dateLocale(), { hour: 'numeric', minute: '2-digit' }) : undefined)
+const clock = (time: number | undefined): string | undefined => (typeof time === 'number' ? new Date(time).toLocaleTimeString(dateLocale(), { hour: 'numeric', minute: '2-digit' }) : undefined)
 
 // A sent message, or one that joined a running turn ("steering").
-export function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageImages, openFile, openSkill }) {
+export function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageImages, openFile, openSkill }: UserMessageCellProps) {
   const roster = useRoster(value => value)
   const data = node.data ?? {}
   const { text, attachments, rest } = contentParts(data.content)
-  const referenceLabels = data.referenceLabels ?? []
+  const referenceLabels = data.referenceLabels ?? [] as readonly string[]
   const references = openFile && openSkill ? { openFile, openSkill } : undefined
   const steering = node.kind === 'steering'
-  const groupTime = roster.roomsById?.[sessionId] && Number.isFinite(data.time) ? messageClock(data.time) : undefined
+  const time = typeof data.time === 'number' && Number.isFinite(data.time) ? data.time : undefined
+  const groupTime = roster.roomsById?.[sessionId] && time !== undefined ? messageClock(time) : undefined
   const { shown, folded, control } = useFold(text, { markdown: false })
   const body = h(UserText, { text: shown, bots: mentionableBots(roster, sessionId), referenceLabels, skillNames: data.skillNames ?? [], references, actions })
   return h('div', { className: 'bt-umsg', 'data-steering': steering || undefined },
@@ -100,7 +140,7 @@ export function UserMessageCell({ node, sessionId, useRoster, actions, renderMes
         control,
         rest.map((block, index) => (ui.JsonBlock ? h(ui.JsonBlock, { key: index, label: t('Content'), payload: block }) : null))) : null,
       referenceLabels.length > 0 ? h('div', { className: 'bt-urefs' }, t('Referenced {labels}', { labels: referenceLabels.join(t(', ')) })) : null,
-      groupTime ? h('div', { className: 'bt-utime', title: clockLabel(data.time) }, groupTime) : null),
+      groupTime && time !== undefined ? h('div', { className: 'bt-utime', title: clockLabel(time) }, groupTime) : null),
     text === '' ? null : h('div', { className: 'bt-utools' }, h(CopyButton, { text })))
 }
 

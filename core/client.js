@@ -9631,14 +9631,15 @@ var RETRY_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-retry-dot{animation:none}}
 `;
 
-// src/client/work-process.js
+// src/client/work-process.ts
 var import_react11 = require("react");
 var import_react_dom = require("react-dom");
 var seqOf = (item) => item?.time ?? item?.root?.time ?? item?.finalNode?.seq ?? item?.seq ?? item?.root?.seq ?? 0;
 function turnCalls(tools) {
   const calls = [];
   for (const node of [...tools ?? []].sort((a, b) => seqOf(a) - seqOf(b))) {
-    if (node?.root) calls.push(...callTree(node.root).map((call2) => ({ call: call2, seq: seqOf(node) })));
+    const root = node.root;
+    if (root) calls.push(...callTree(root).map((call2) => ({ call: call2, seq: seqOf(node) })));
   }
   return calls;
 }
@@ -9651,7 +9652,7 @@ function summaryRows(steps, tools, retries2) {
   for (const step of steps ?? []) {
     for (const block of step?.blocks ?? []) {
       const text = String(block?.text ?? "").trim();
-      if (block?.kind === "reasoning" && text) rows.push({ seq: seqOf(step), kind: "reasoning", text: text.split("\n")[0].slice(0, 90) });
+      if (block?.kind === "reasoning" && text) rows.push({ seq: seqOf(step), kind: "reasoning", text: (text.split("\n")[0] ?? "").slice(0, 90) });
     }
   }
   turnCalls(tools).forEach(({ call: call2, seq }, index) => rows.push({ seq: seq + 0.5 + index / 1e3, kind: "tool", text: toolName(call2) ?? "?", failed: call2.kind === "tool-result" && call2.isError }));
@@ -20216,7 +20217,7 @@ function serveBrowserReads({ browsers, post, clientId = globalThis.crypto.random
   };
 }
 
-// src/client/user-message.js
+// src/client/user-message.ts
 var import_react42 = require("react");
 var ui = __toESM(require("@deepseek-ai/dsh-client-ui-primitives"), 1);
 var canDrawUserMessages = () => typeof ui.projectUserText === "function";
@@ -20233,23 +20234,24 @@ function contentParts(content) {
 }
 function mentionableBots(roster, sessionId) {
   const room2 = roster.roomsById[sessionId];
-  if (room2) return room2.members.map((id) => roster.byId[id]).filter(Boolean);
+  if (room2) return room2.members.map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   return roster.byId[sessionId] ? roster.bots : [];
 }
 function userTextParts(text, bots, referenceLabels = []) {
   const parts = [];
   let cursor = 0;
   for (const span of mentionSpans(text, bots, { references: referenceLabels })) {
-    if (!span.bot) continue;
+    const bot = "bot" in span ? span.bot : void 0;
+    if (!bot) continue;
     if (span.start > cursor) parts.push({ text: text.slice(cursor, span.start) });
-    parts.push({ bot: span.bot, label: text.slice(span.start + 1, span.end) });
+    parts.push({ bot, label: text.slice(span.start + 1, span.end) });
     cursor = span.end;
   }
   if (cursor < text.length) parts.push({ text: text.slice(cursor) });
   return parts;
 }
 function UserText({ text, bots, referenceLabels, skillNames, references, actions }) {
-  return userTextParts(text, bots, referenceLabels).map((part, index) => part.bot ? (0, import_react42.createElement)(
+  return userTextParts(text, bots, referenceLabels).map((part, index) => "bot" in part ? (0, import_react42.createElement)(
     "button",
     { key: index, type: "button", className: "bt-umention", title: `@${part.bot.name}`, onClick: () => actions.openSession(part.bot.id) },
     (0, import_react42.createElement)(BotMark, { bot: part.bot, size: 16 }),
@@ -20263,6 +20265,7 @@ function Attachments({ attachments, renderMessageImages }) {
       return renderMessageImages ? (0, import_react42.createElement)(import_react42.Fragment, { key: index }, renderMessageImages({ images: [{ attachment: block.attachment }], align: "end", compact: compact2 })) : null;
     }
     const file = block.attachment;
+    if (file === void 0) return null;
     const meta = [ui.fileExtension?.(file.name)?.toUpperCase().slice(0, 8), ui.fileSizeText?.(file.bytes)].filter(Boolean).join(" · ");
     return (0, import_react42.createElement)(
       "span",
@@ -20290,7 +20293,8 @@ function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageIma
   const referenceLabels = data.referenceLabels ?? [];
   const references = openFile && openSkill ? { openFile, openSkill } : void 0;
   const steering = node.kind === "steering";
-  const groupTime = roster.roomsById?.[sessionId] && Number.isFinite(data.time) ? messageClock(data.time) : void 0;
+  const time = typeof data.time === "number" && Number.isFinite(data.time) ? data.time : void 0;
+  const groupTime = roster.roomsById?.[sessionId] && time !== void 0 ? messageClock(time) : void 0;
   const { shown, folded, control } = useFold(text, { markdown: false });
   const body = (0, import_react42.createElement)(UserText, { text: shown, bots: mentionableBots(roster, sessionId), referenceLabels, skillNames: data.skillNames ?? [], references, actions });
   return (0, import_react42.createElement)(
@@ -20308,7 +20312,7 @@ function UserMessageCell({ node, sessionId, useRoster, actions, renderMessageIma
         rest.map((block, index) => ui.JsonBlock ? (0, import_react42.createElement)(ui.JsonBlock, { key: index, label: t("Content"), payload: block }) : null)
       ) : null,
       referenceLabels.length > 0 ? (0, import_react42.createElement)("div", { className: "bt-urefs" }, t("Referenced {labels}", { labels: referenceLabels.join(t(", ")) })) : null,
-      groupTime ? (0, import_react42.createElement)("div", { className: "bt-utime", title: clockLabel(data.time) }, groupTime) : null
+      groupTime && time !== void 0 ? (0, import_react42.createElement)("div", { className: "bt-utime", title: clockLabel(time) }, groupTime) : null
     ),
     text === "" ? null : (0, import_react42.createElement)("div", { className: "bt-utools" }, (0, import_react42.createElement)(CopyButton, { text }))
   );

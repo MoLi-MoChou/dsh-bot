@@ -14,7 +14,7 @@ import { failureLabel } from './diagnostics.ts'
 import { turnReasoning, thinkingStep } from './turn-reasoning.ts'
 import { FOLD_AT, FOLD_HUGE, stripLongNote, useFold } from './fold.ts'
 import { heldCardKey } from './sources.ts'
-import { WorkLine } from './work-process.js'
+import { WorkLine } from './work-process.ts'
 import { useMenuKeys } from './overlay-hooks.ts'
 
 export { clockLabel }

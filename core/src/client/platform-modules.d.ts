@@ -7,6 +7,12 @@ declare module '@deepseek-ai/dsh-client-ui-primitives' {
   import type { ReactElement } from 'react'
   export const FishLogo: (props: Record<string, unknown>) => ReactElement | null
   export const MarkdownText: (props: Record<string, unknown>) => ReactElement | null
+  // The rest of the shell's text and attachment helpers a message cell draws with.
+  export const projectUserText: (text: string, referenceLabels: readonly string[], skillNames: readonly string[], kind: string, references: unknown) => ReactElement | null
+  export const fileExtension: (name: string) => string | undefined
+  export const fileSizeText: (bytes: number | undefined) => string | undefined
+  export const FileTypeIcon: (props: { path: string; className?: string }) => ReactElement | null
+  export const JsonBlock: (props: { label: string; payload: unknown }) => ReactElement | null
 }
 
 // react-dom is a runtime dependency the shell supplies; only its types are missing here,

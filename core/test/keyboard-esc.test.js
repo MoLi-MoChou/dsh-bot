@@ -170,7 +170,7 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
     assert.match(stylesSrc, /:focus-visible\{outline:2px solid var\(--bt-accent\)/)
     assert.match(FILES_PANEL_CSS, /\.bt-fcard-download.*:focus-visible/)
     const browserSrc = readFileSync(join(ROOT, 'src/client/browser-pane.js'), 'utf8')
-    const processSrc = readFileSync(join(ROOT, 'src/client/work-process.js'), 'utf8')
+    const processSrc = readFileSync(join(ROOT, 'src/client/work-process.ts'), 'utf8')
     const memberSrc = readFileSync(join(ROOT, 'src/client/member-status.js'), 'utf8')
     assert.match(browserSrc, /\.bt-ptab.*:focus-visible/)
     assert.match(processSrc, /\.bt-process-close.*:focus-visible/)

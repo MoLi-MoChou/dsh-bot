@@ -11,39 +11,75 @@ import { EASE_PANEL, PANEL_LINGER_MS, SPRING_SHAPE } from './motion.js'
 import { useTurnRetries } from './retry-cell.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { framerMotion } from './vendor/framer-motion.js'
+import type { RetryEntry } from './retry-cell.ts'
+
+// A step of the turn as the transcript hands it over: thinking blocks, a tool root, or
+// the time it began, which is what orders it.
+interface WorkBlock { kind?: string; text?: unknown }
+interface WorkNode {
+  time?: number
+  seq?: number
+  root?: { time?: number; seq?: number }
+  finalNode?: { seq?: number }
+  blocks?: readonly WorkBlock[]
+}
+
+// One call of the turn, as the transcript's call tree states it.
+interface ToolCall {
+  name?: string
+  kind?: string
+  isError?: boolean
+  argsRaw?: string
+  call?: { argsRaw?: string }
+  content?: unknown
+  callId?: string
+}
+
+// A thinking step, a tool call, or a retry, as the panel lists them.
+type PanelItem =
+  | { seq: number; key: string; kind: 'tool'; call: ToolCall }
+  | { seq: number; key: string; kind: 'reasoning' | 'text'; text: string }
+  | { seq: number; key: string; kind: 'retry'; retry: RetryEntry }
 
 // Steps carry no seq; both carry the time they began, which orders them.
-const seqOf = item => item?.time ?? item?.root?.time ?? item?.finalNode?.seq ?? item?.seq ?? item?.root?.seq ?? 0
+const seqOf = (item: WorkNode | undefined): number => item?.time ?? item?.root?.time ?? item?.finalNode?.seq ?? item?.seq ?? item?.root?.seq ?? 0
 
 // Every call of the turn, sub-calls included, in the order they ran.
-export function turnCalls(tools) {
-  const calls = []
+export function turnCalls(tools: readonly WorkNode[] | undefined): { call: ToolCall; seq: number }[] {
+  const calls: { call: ToolCall; seq: number }[] = []
   for (const node of [...(tools ?? [])].sort((a, b) => seqOf(a) - seqOf(b))) {
-    if (node?.root) calls.push(...callTree(node.root).map(call => ({ call, seq: seqOf(node) })))
+    const root = node.root
+    if (root) calls.push(...(callTree(root as never) as ToolCall[]).map(call => ({ call, seq: seqOf(node) })))
   }
   return calls
 }
 
-export function processCount(steps, tools) {
+export function processCount(steps: readonly WorkNode[] | undefined, tools: readonly WorkNode[] | undefined): number {
   const thoughts = (steps ?? []).filter(step => (step?.blocks ?? []).some(block => block?.kind === 'reasoning' && String(block.text ?? '').trim() !== '')).length
   return thoughts + turnCalls(tools).length
 }
 
 // One line per step, for the fold under the work line.
-function summaryRows(steps, tools, retries) {
-  const rows = []
+function summaryRows(steps: readonly WorkNode[] | undefined, tools: readonly WorkNode[] | undefined, retries: readonly RetryEntry[]): { seq: number; kind: string; text: string; failed?: boolean | undefined }[] {
+  const rows: { seq: number; kind: string; text: string; failed?: boolean | undefined }[] = []
   for (const step of steps ?? []) {
     for (const block of step?.blocks ?? []) {
       const text = String(block?.text ?? '').trim()
-      if (block?.kind === 'reasoning' && text) rows.push({ seq: seqOf(step), kind: 'reasoning', text: text.split('\n')[0].slice(0, 90) })
+      if (block?.kind === 'reasoning' && text) rows.push({ seq: seqOf(step), kind: 'reasoning', text: (text.split('\n')[0] ?? '').slice(0, 90) })
     }
   }
-  turnCalls(tools).forEach(({ call, seq }, index) => rows.push({ seq: seq + 0.5 + index / 1000, kind: 'tool', text: toolName(call) ?? '?', failed: call.kind === 'tool-result' && call.isError }))
+  turnCalls(tools).forEach(({ call, seq }, index) => rows.push({ seq: seq + 0.5 + index / 1000, kind: 'tool', text: toolName(call as never) ?? '?', failed: call.kind === 'tool-result' && call.isError }))
   for (const retry of retries) rows.push({ seq: retry.seq, kind: 'retry', text: `${t('Retried')} ${retry.retry}/${retry.maximum}` })
   return rows.sort((a, b) => a.seq - b.seq)
 }
 
-export function WorkLine({ steps, tools, ms, sessionId, turn }) {
+export function WorkLine({ steps, tools, ms, sessionId, turn }: {
+  steps?: readonly WorkNode[] | undefined
+  tools?: readonly WorkNode[] | undefined
+  ms?: number | undefined
+  sessionId: string
+  turn: number | undefined
+}) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const retries = useTurnRetries(sessionId, turn)
@@ -65,16 +101,22 @@ export function WorkLine({ steps, tools, ms, sessionId, turn }) {
     h(framerMotion()?.AnimatePresence ?? Fragment, null, open ? h(ProcessPanel, { key: 'panel', steps, tools, retries, label, onClose: () => setOpen(false) }) : null))
 }
 
-function pretty(raw) {
+function pretty(raw: unknown): string {
   if (raw === undefined || raw === null || raw === '') return ''
-  try { return JSON.stringify(JSON.parse(raw), null, 2) } catch { return String(raw) }
+  try { return JSON.stringify(JSON.parse(raw as string), null, 2) } catch { return String(raw) }
 }
 
 const PANEL_SPRING = { type: 'spring', stiffness: 420, damping: 38 }
 
-function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
+function ProcessPanel({ steps, tools, retries = [], label, onClose }: {
+  steps?: readonly WorkNode[] | undefined
+  tools?: readonly WorkNode[] | undefined
+  retries?: readonly RetryEntry[] | undefined
+  label: string
+  onClose: () => void
+}) {
   useEscape(onClose)
-  const items = []
+  const items: PanelItem[] = []
   for (const step of steps ?? []) {
     for (const [index, block] of (step?.blocks ?? []).entries()) {
       const text = String(block?.text ?? '').trim()
@@ -87,7 +129,7 @@ function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
   items.sort((a, b) => a.seq - b.seq)
   const motion = framerMotion()?.motion ?? { div: 'div', aside: 'aside' }
   const moving = typeof motion.div !== 'string'
-  const anim = props => (moving ? props : {})
+  const anim = (props: Record<string, unknown>): Record<string, unknown> => (moving ? props : {})
   return createPortal(h(motion.div, { className: 'bt-process-scrim', ...anim({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.18 } }), onMouseDown: (event) => { if (event.target === event.currentTarget) onClose() } },
     h(motion.aside, { className: 'bt-process', role: 'dialog', 'aria-label': t('Work process'), ...anim({ initial: { x: 48, opacity: 0.6 }, animate: { x: 0, opacity: 1 }, exit: { x: 48, opacity: 0 }, transition: PANEL_SPRING }) },
       h('header', null,
@@ -106,12 +148,12 @@ function ProcessPanel({ steps, tools, retries = [], label, onClose }) {
               h('div', { className: 'bt-process-text' }, item.text))))))), document.body)
 }
 
-function ToolItem({ call }) {
+function ToolItem({ call }: { call: ToolCall }) {
   const done = call.kind === 'tool-result'
   const args = pretty(call.argsRaw ?? call.call?.argsRaw)
-  const output = done ? contentText(call.content) : ''
+  const output = done ? contentText(call.content as never) : ''
   return h(Fragment, null,
-    h('div', { className: 'bt-process-tag' }, t('Tool'), ' · ', h('code', null, toolName(call) ?? '?'),
+    h('div', { className: 'bt-process-tag' }, t('Tool'), ' · ', h('code', null, toolName(call as never) ?? '?'),
       done ? (call.isError ? h('span', { className: 'bt-process-err' }, ` · ${t('Failed')}`) : null) : ` · ${t('Running')}`),
     args ? h('details', null, h('summary', null, t('Input')), h('pre', null, args)) : null,
     output ? h('details', { open: output.length < 600 }, h('summary', null, t('Output')), h('pre', null, output)) : null)
