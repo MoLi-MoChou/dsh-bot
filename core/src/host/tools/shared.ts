@@ -113,7 +113,7 @@ export interface ToolsRuntime extends HostRuntime {
   ownsWork(botId: string | undefined, workId: string | undefined): boolean
   upstreamOf(workIds: readonly string[]): ReadonlySet<string>
   roomBusy(roomId: string): boolean
-  postToRoom(room: StoredRoom, bot: StoredBot, text: string, options: PostToRoomOptions, files?: readonly AttachmentRef[]): Promise<unknown>
+  postToRoom(room: StoredRoom, bot: StoredBot, text: string, options: PostToRoomOptions, files?: readonly AttachmentRef[]): Promise<void>
   createBot(options: Readonly<Record<string, unknown>>): Promise<StoredBot>
   updateBot(id: string, patch: Readonly<Record<string, unknown>>): Promise<StoredBot>
   createRoom(options: Readonly<Record<string, unknown>>): Promise<StoredRoom>

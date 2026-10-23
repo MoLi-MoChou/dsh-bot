@@ -288,10 +288,30 @@ export interface HostRuntime {
   browserChannel?: unknown
   browserOpen?: (value: unknown) => Record<string, { readonly url: string; readonly title: string }>
   deliver(args: DeliveryInput): Promise<string>
-  postToRoom(room: StoredRoom, bot: StoredBot, text: string, options: { readonly resumed?: boolean; readonly quiet?: boolean; readonly again?: boolean }): Promise<unknown>
+  postToRoom(
+    room: StoredRoom,
+    bot: StoredBot,
+    text: string,
+    options?: {
+      readonly late?: boolean | undefined
+      readonly quiet?: boolean | undefined
+      readonly progress?: boolean | undefined
+      readonly stopped?: boolean | undefined
+      readonly done?: boolean | undefined
+      readonly resumed?: boolean | undefined
+      readonly again?: boolean | undefined
+      readonly failed?: { readonly code?: string; readonly message?: string; readonly status?: number } | undefined
+      readonly askedBy?: string | undefined
+      readonly member?: boolean | undefined
+      readonly reportBack?: boolean | undefined
+      readonly sub?: string | undefined
+      readonly length?: number | undefined
+    },
+    files?: readonly AttachmentRef[],
+  ): Promise<void>
   unreadOf?(sessionId: string): Iterable<DeliveryInput>
   forgetDelivery?(exchangeId: string): void
-  own<T>(record: Readonly<Record<string, T>>, id: string | undefined): T | undefined
+  own<T>(record: Readonly<Record<string, T>> | null | undefined, id: string | undefined): T | undefined
   ensureWorkspace(): Promise<string>
   indexAgents?(): void
   dshSpawn?(command: string, argv: readonly string[], options: { readonly windowsHide?: boolean }): ChildProcess
