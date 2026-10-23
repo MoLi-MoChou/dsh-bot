@@ -166,7 +166,7 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
 
   /**
    * Ask the window that shows this Bot's browser to read its page.
-   * @returns {Promise<{page?:any, error?:string, absent?:boolean}>}
+   * The page it read, the error that stopped it, or that no window shows the Bot.
    */
   function read(botId: string, request: BrowserRequest = {}): Promise<ReadResult> {
     const client = clientFor(botId)

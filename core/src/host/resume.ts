@@ -93,9 +93,8 @@ export function install(rt: HostRuntime): void {
   // What the last run left; read before this run notes anything.
   let interrupted = readNotes(file)
 
-  /** @type {Record<string, {botId:string, roomId?:string, since:number, trigger?:any, approval?:{tool:string, reason:string}, resumed?:boolean}>} */
   let turns: Record<string, TurnNote> = {}
-  /** @type {Record<string, {at:number, args:any}[]>} deliveries no turn has taken up, by Session */
+  // Deliveries no turn has taken up, by Session.
   let queued: Record<string, QueuedNote[]> = {}
   let writing: Promise<unknown> = Promise.resolve()
   let stopped = false
