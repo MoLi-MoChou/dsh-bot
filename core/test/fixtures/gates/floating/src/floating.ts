@@ -61,3 +61,7 @@ export async function bareIdentifier(): Promise<void> {
   const pending = work()
   pending
 }
+
+export async function satisfies(): Promise<void> {
+  work() satisfies Promise<number>
+}

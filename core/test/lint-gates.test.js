@@ -39,6 +39,7 @@ const FLOATING_CASES = [
   [57, 'work()', 'left of a comma'],
   [57, 'other()', 'right of a comma'],
   [62, 'pending', 'promise held in a variable, then dropped'],
+  [66, 'work()', 'satisfies-expression around the call'],
 ]
 
 test('every floating form fails with its own file, line and call text', () => {
@@ -53,7 +54,7 @@ test('every floating form fails with its own file, line and call text', () => {
   }
   // Await, void, .then()/.catch()/.finally(), assignment and conditional branches under them
   // are the sanctioned forms; only the cases above are failures.
-  assert.match(text, /14 floating-promise/)
+  assert.match(text, /15 floating-promise/)
 })
 
 test('each layer boundary fails with a specific message', () => {
