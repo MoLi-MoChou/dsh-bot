@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { install as installModels } from '../src/host/models.js'
-import { checkKey, install, keyRefFor } from '../src/host/providers.js'
+import { install as installModels } from '../src/host/models.ts'
+import { checkKey, install, keyRefFor } from '../src/host/providers.ts'
 
 // A DSH with the official DeepSeek route, an account route, and the pi-ai adapter: its
 // directory offers catalog providers, and its settings take path writes the way DSH's

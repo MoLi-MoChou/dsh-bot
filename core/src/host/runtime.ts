@@ -131,10 +131,20 @@ export interface ModelEntry {
   reasoning?: ModelReasoning
 }
 
+/** The team's one plain DSH Agent, as `state.json` stores it. */
+export interface StoredAgent {
+  readonly id: string
+  readonly name: string
+  sessions: string[]
+  readonly createdAt?: number
+  readonly [key: string]: unknown
+}
+
 /** The team as `state.json` stores it. */
 export interface StoredState {
   revision: number
   bots: Record<string, StoredBot>
+  agents: Record<string, StoredAgent>
   rooms: Record<string, StoredRoom>
   exchangeTurns: Record<string, readonly number[]>
   workspaceId?: string
@@ -191,6 +201,9 @@ export interface HostRuntime {
   resolveAgent(sessionId: string): Promise<Agent>
   warn(template: string, ...args: readonly unknown[]): void
   save(): Promise<unknown>
+  own<T>(record: Readonly<Record<string, T>>, id: string | undefined): T | undefined
+  ensureWorkspace(): Promise<string>
+  indexAgents?(): void
   dshSpawn?(command: string, argv: readonly string[], options: { readonly windowsHide?: boolean }): ChildProcess
   loadSecrets(): Promise<unknown>
   secretValue(name: string): string | undefined
@@ -207,7 +220,9 @@ export interface HostRuntime {
   switchJobs?(): Iterable<{ readonly botId: string; readonly roomId?: string }>
   doingOf?(entry: LiveEntry): { readonly tool?: string; readonly target?: string; readonly said?: string }
   unreadOf?(sessionId: string): Iterable<{ readonly fromId: string }>
-  catalog(): Promise<readonly ModelEntry[]>
+  catalog(options?: { readonly fresh?: boolean }): Promise<readonly ModelEntry[]>
+  missingKeys?(providers: readonly string[]): Promise<ReadonlySet<string>> | ReadonlySet<string>
+  dropCatalog(): void
   defaultRef?(): string | undefined
   tagUsage(messages: readonly unknown[], tag: { readonly sessionId: string; readonly kind: string }): readonly unknown[]
 

@@ -1,3 +1,16 @@
+import type {
+  ConfigurableProvider, CredentialsService, SettingsSection, SettingsService,
+} from './dsh-types.js'
+import type { HostRuntime } from './runtime.js'
+
+type ProviderBody = Readonly<Record<string, unknown>>
+type Profile = Readonly<Record<string, unknown>>
+
+interface ProviderSeams {
+  readonly settings: SettingsService
+  readonly credentials: CredentialsService
+}
+
 // Model providers and their API keys, for a window that has no DSH Models page of its
 // own. DSH keeps all of it: a provider route in the settings of the adapter that serves
 // it, the route's key in DSH's credential store under the reference the route names.
@@ -11,13 +24,13 @@ const MAX_MODELS = 500
 
 // The reference DSH's own Models page derives for a route's key, so a provider added
 // here and one added there read the same key.
-export const keyRefFor = provider => `${provider.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_API_KEY`
+export const keyRefFor = (provider: string): string => `${provider.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_API_KEY`
 
-const invalid = message => Object.assign(new Error(message), { code: 'bot/invalid' })
+const invalid = (message: string): Error => Object.assign(new Error(message), { code: 'bot/invalid' })
 
 // What an HTTP header can carry, like DSH's own key check: a pasted `NAME=value` line
 // or a quoted value would be stored as the key and refused by the provider.
-export function checkKey(value) {
+export function checkKey(value: unknown): string {
   const key = typeof value === 'string' ? value.trim() : ''
   if (key === '') throw invalid('Enter the API key')
   if (/^[A-Za-z_][A-Za-z0-9_]*=[^=]/.test(key)) throw invalid('Paste only the key, not a NAME=value line')
@@ -26,7 +39,7 @@ export function checkKey(value) {
   return key
 }
 
-function checkEndpoint(value) {
+function checkEndpoint(value: unknown): string {
   const text = typeof value === 'string' ? value.trim() : ''
   let url
   try { url = new URL(text) } catch { throw invalid('Enter the endpoint as an http or https address') }
@@ -35,44 +48,46 @@ function checkEndpoint(value) {
 }
 
 // A model as the route stores it: what discovery told about it, under pi-ai's names.
-function modelEntry(model) {
-  const id = typeof model === 'string' ? model.trim() : typeof model?.id === 'string' ? model.id.trim() : ''
+function modelEntry(model: unknown): { readonly id: string; readonly name?: string | undefined; readonly contextWindow?: number | undefined; readonly maxTokens?: number | undefined; readonly input?: readonly string[] | undefined } {
+  const source = model as { readonly id?: unknown; readonly name?: unknown; readonly contextWindow?: unknown; readonly maxTokens?: unknown; readonly inputModalities?: readonly unknown[] } | undefined
+  const id = typeof model === 'string' ? model.trim() : typeof source?.id === 'string' ? source.id.trim() : ''
   if (id === '') throw invalid('Every model needs an id')
-  const whole = value => (Number.isInteger(value) && value > 0 ? value : undefined)
+  const whole = (value: unknown): number | undefined => (typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : undefined)
   return {
     id,
-    ...(typeof model?.name === 'string' && model.name.trim() !== '' ? { name: model.name.trim() } : {}),
-    ...(whole(model?.contextWindow) ? { contextWindow: model.contextWindow } : {}),
-    ...(whole(model?.maxTokens) ? { maxTokens: model.maxTokens } : {}),
-    ...(Array.isArray(model?.inputModalities) && model.inputModalities.length > 0 ? { input: model.inputModalities.filter(kind => typeof kind === 'string') } : {}),
+    ...(typeof source?.name === 'string' && source.name.trim() !== '' ? { name: source.name.trim() } : {}),
+    ...(whole(source?.contextWindow) ? { contextWindow: whole(source?.contextWindow) } : {}),
+    ...(whole(source?.maxTokens) ? { maxTokens: whole(source?.maxTokens) } : {}),
+    ...(Array.isArray(source?.inputModalities) && source.inputModalities.length > 0 ? { input: source.inputModalities.filter((kind): kind is string => typeof kind === 'string') } : {}),
   }
 }
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx } = rt
 
-  const seams = () => {
-    const settings = ctx.get?.('settings')
-    const credentials = ctx.get?.('credentials')
-    return settings && credentials && ctx.llm.listConfigurableProviders ? { settings, credentials } : undefined
+  const seams = (): ProviderSeams | undefined => {
+    const settings = ctx.get<SettingsService>('settings')
+    const credentials = ctx.get<CredentialsService>('credentials')
+    return settings !== undefined && credentials !== undefined ? { settings, credentials } : undefined
   }
-  const usable = () => {
+  const usable = (): ProviderSeams => {
     const found = seams()
     if (found === undefined) throw invalid('This DSH cannot set up model providers')
     return found
   }
-  const sections = settings => new Map(settings.describe({ redactSecrets: true }).map(section => [section.ns, section]))
-  const profileOf = (entry, map, layer = 'value') => entry.settingsPath.reduce((value, key) => value?.[key], map.get(entry.settingsNs)?.[layer])
-  const refOf = profile => (typeof profile?.apiKeyEnv === 'string' && profile.apiKeyEnv !== '' ? profile.apiKeyEnv : undefined)
-  const entryOf = provider => ctx.llm.listConfigurableProviders().find(entry => entry.provider === provider)
+  const sections = (settings: SettingsService): Map<string, SettingsSection> => new Map(settings.describe({ redactSecrets: true }).map(section => [section.ns, section]))
+  const profileOf = (entry: ConfigurableProvider, map: Map<string, SettingsSection>, layer: 'value' | 'user' | 'base' = 'value'): Profile | undefined =>
+    entry.settingsPath.reduce<unknown>((value, key) => (value as Profile | undefined)?.[key], map.get(entry.settingsNs)?.[layer]) as Profile | undefined
+  const refOf = (profile: Profile | undefined): string | undefined => (typeof profile?.apiKeyEnv === 'string' && profile.apiKeyEnv !== '' ? profile.apiKeyEnv : undefined)
+  const entryOf = (provider: string): ConfigurableProvider | undefined => ctx.llm.listConfigurableProviders().find(entry => entry.provider === provider)
 
   // Per provider route, the credential its DSH settings name as its API key. A
   // provider with none authenticates some other way.
-  function keyRefs() {
+  function keyRefs(): Map<string, string> {
     const found = seams()
     if (found === undefined) return new Map()
     const map = sections(found.settings)
-    const refs = new Map()
+    const refs = new Map<string, string>()
     for (const entry of ctx.llm.listConfigurableProviders()) {
       const ref = refOf(profileOf(entry, map))
       if (ref !== undefined) refs.set(entry.provider, ref)
@@ -80,12 +95,14 @@ export function install(rt) {
     return refs
   }
 
-  async function missingKeys(providers) {
-    let refs
+  async function missingKeys(providers: readonly string[]): Promise<Set<string>> {
+    let refs: Map<string, string>
     try { refs = keyRefs() } catch { return new Set() }
-    const missing = new Set()
+    const missing = new Set<string>()
     await Promise.all(providers.filter(id => refs.has(id)).map(async (id) => {
-      const info = await seams().credentials.describe(refs.get(id)).catch(() => undefined)
+      const ref = refs.get(id)
+      if (ref === undefined) return
+      const info = await seams()?.credentials.describe(ref).catch(() => undefined)
       if (info?.configured === false) missing.add(id)
     }))
     return missing
@@ -94,13 +111,13 @@ export function install(rt) {
   // The providers set up in DSH, with their models and key state, and the ones DSH
   // can add. A provider with no key and no models (DeepSeek's account route before a
   // sign-in) is left out.
-  async function providersView() {
+  async function providersView(): Promise<Record<string, unknown>> {
     const found = seams()
     if (found === undefined) return { available: false }
     const map = sections(found.settings)
     const catalog = await rt.catalog({ fresh: true })
-    const providers = []
-    const addable = []
+    const providers: Record<string, unknown>[] = []
+    const addable: Record<string, unknown>[] = []
     for (const entry of ctx.llm.listConfigurableProviders()) {
       const profile = profileOf(entry, map)
       if (entry.settingsNs === PI_AI && profile === undefined) {
@@ -126,7 +143,7 @@ export function install(rt) {
     return { available: true, providers, addable, protocols: PROTOCOLS }
   }
 
-  async function writableRef(provider) {
+  async function writableRef(provider: string): Promise<string> {
     const ref = keyRefs().get(provider)
     if (ref === undefined) throw invalid(`${provider} takes no API key here`)
     if ((await usable().credentials.describe(ref)).writable === false) throw invalid(`The API key for ${provider} is set outside DS Bot and cannot be changed here`)
@@ -134,13 +151,13 @@ export function install(rt) {
   }
 
   // A key is only ever written; nothing here reads one back.
-  async function setProviderKey(provider, value) {
+  async function setProviderKey(provider: string, value: unknown): Promise<void> {
     const key = checkKey(value)
     await usable().credentials.set(await writableRef(provider), key)
     rt.dropCatalog()
   }
 
-  async function clearProviderKey(provider) {
+  async function clearProviderKey(provider: string): Promise<void> {
     await usable().credentials.unset(await writableRef(provider))
     rt.dropCatalog()
   }
@@ -148,7 +165,7 @@ export function install(rt) {
   // `provider` from DSH's directory, or a route the user declares (`custom`) for an
   // endpoint DSH ships nothing about. The route goes in first, then its key, as DSH's
   // own Models page does it: a failed key write leaves a provider that asks for one.
-  async function addProvider(body) {
+  async function addProvider(body: ProviderBody): Promise<Record<string, unknown>> {
     const { settings, credentials } = usable()
     const provider = String(body.provider ?? '').trim()
     const map = sections(settings)
@@ -164,7 +181,7 @@ export function install(rt) {
     if (key !== undefined && info.writable === false) throw invalid(`The API key for ${provider} is set outside DS Bot and cannot be changed here`)
     // A blank key keeps a key that is already there, else the provider's own sign-in.
     const keyed = key !== undefined || info.configured === true
-    const profile = custom ? customProfile(body) : {}
+    const profile: Record<string, unknown> = custom ? customProfile(body) : {}
     if (keyed) profile.apiKeyEnv = ref
     await settings.mutate(PI_AI, [{ op: 'set', path: entry?.settingsPath ?? ['providers', provider], value: profile }], map.get(PI_AI)?.revision)
     if (key !== undefined) await credentials.set(ref, key)
@@ -172,25 +189,26 @@ export function install(rt) {
     return providersView()
   }
 
-  function customProfile(body) {
-    if (!PROTOCOLS.includes(body.api)) throw invalid(`The protocol must be one of ${PROTOCOLS.join(', ')}`)
+  function customProfile(body: ProviderBody): Record<string, unknown> {
+    const api = typeof body.api === 'string' ? body.api : ''
+    if (!PROTOCOLS.includes(api)) throw invalid(`The protocol must be one of ${PROTOCOLS.join(', ')}`)
     const models = Array.isArray(body.models) ? body.models.slice(0, MAX_MODELS).map(modelEntry) : []
     if (models.length === 0) throw invalid('Add at least one model')
     if (new Set(models.map(model => model.id)).size !== models.length) throw invalid('Two models have the same id')
     const name = typeof body.name === 'string' ? body.name.trim().slice(0, 80) : ''
-    return { ...(name ? { displayName: name } : {}), api: body.api, baseURL: checkEndpoint(body.baseURL), models }
+    return { ...(name ? { displayName: name } : {}), api, baseURL: checkEndpoint(body.baseURL), models }
   }
 
   // The models an endpoint (or a provider DSH ships) says it serves. The key typed for
   // the question goes with it and is not stored.
-  async function discoverModels(body) {
+  async function discoverModels(body: ProviderBody): Promise<readonly Record<string, unknown>[]> {
     usable()
     const provider = typeof body.provider === 'string' && body.provider !== '' ? body.provider : undefined
     const request = provider !== undefined && entryOf(provider)?.declared === false
       ? { provider }
       : {
           baseURL: checkEndpoint(body.baseURL),
-          ...(PROTOCOLS.includes(body.api) ? { api: body.api } : {}),
+          ...(typeof body.api === 'string' && PROTOCOLS.includes(body.api) ? { api: body.api } : {}),
           ...(typeof body.key === 'string' && body.key.trim() !== '' ? { apiKey: checkKey(body.key) } : {}),
         }
     const models = await ctx.llm.discoverModels(PI_AI, request)
@@ -205,7 +223,7 @@ export function install(rt) {
 
   // Only a route the user added goes; its key goes with it when it is the one this page
   // derives and no other provider names it.
-  async function removeProvider(provider) {
+  async function removeProvider(provider: string): Promise<Record<string, unknown>> {
     const { settings, credentials } = usable()
     const map = sections(settings)
     const entry = entryOf(provider)

@@ -77,6 +77,8 @@ export interface Agent {
   readonly session: AgentSession
   readonly inbox?: SessionInbox
   readonly status?: string
+  /** A DSH Agent carries its own tool surface, which the Agent page restricts. */
+  readonly ctx?: { readonly tools?: { restrict?(options: { readonly deny: readonly string[] }): void } }
   followup(message: unknown): void
   steer(message: unknown): void
   inject(message: unknown): void
@@ -131,7 +133,7 @@ export interface SessionController {
     readonly beforeSeq?: number
     readonly maxMessages?: number
   }, signal?: AbortSignal): Promise<SessionPage>
-  selectModel(sessionId: string, route: unknown): Promise<void>
+  selectModel(options: { readonly sessionId: string; readonly provider: string; readonly model: string; readonly reasoningEffort?: string }): Promise<{ readonly selected?: ModelSelection }>
 }
 
 export interface SessionsService {
@@ -204,17 +206,19 @@ export interface ToolExecution {
 export interface ToolsService {
   register(tool: ToolDefinition): Disposer
   guard(guard: (exec: ToolExecution) => Promise<unknown> | unknown): void
-  schemas(): readonly unknown[]
+  schemas(agent?: unknown): readonly { readonly name: string }[]
 }
 
 // ---------------------------------------------------------------------------
 // LLM, workspaces, connections
 
 export interface LlmService {
-  listProviders?(): readonly unknown[]
-  listModels?(): Promise<readonly unknown[]>
-  resolveModelInfo?(ref: string): Promise<unknown>
-  stream?(options: unknown): AsyncIterable<unknown>
+  listProviders(): readonly LlmProvider[]
+  listModels(providerId: string): Promise<readonly LlmModel[]>
+  resolveModelInfo(provider: string, model: string): Promise<LlmModelInfo>
+  stream(options: unknown): AsyncIterable<unknown>
+  listConfigurableProviders(): readonly ConfigurableProvider[]
+  discoverModels(adapter: string, request: unknown): Promise<readonly LlmModel[]>
 }
 
 export interface Workspace {
@@ -317,6 +321,96 @@ export interface AgentPresetsService {
 
 export interface LocaleService {
   getLocale(): { readonly active: string }
+}
+
+/** A provider a Session may run on. */
+export interface LlmProvider {
+  readonly id: string
+  readonly name?: string
+}
+
+/** A model a provider serves. */
+export interface LlmModel {
+  readonly id: string
+  readonly name?: string
+  readonly inputModalities?: readonly string[]
+  readonly contextWindow?: number
+  readonly maxTokens?: number
+}
+
+/** One thinking level a model serves. */
+export interface LlmReasoningEffort {
+  readonly id: string
+  readonly name?: string
+  readonly description?: string
+}
+
+export interface LlmReasoning {
+  readonly efforts?: readonly LlmReasoningEffort[]
+  readonly defaultEffort?: string
+}
+
+/** What a model declares: its modalities and thinking levels. */
+export interface LlmModelInfo {
+  readonly id?: string
+  readonly name?: string
+  readonly inputModalities?: readonly string[]
+  readonly reasoning?: LlmReasoning
+}
+
+/** A model selection, as the profile's default model and a Session keep it. */
+export interface ModelSelection {
+  readonly provider?: string
+  readonly model?: string
+  readonly reasoningEffort?: string
+}
+
+/** The profile's default model service (`agentDefaultModel`). */
+export interface AgentDefaultModelService {
+  currentSelection?(): ModelSelection | undefined
+  saveSelection?(selection: ModelSelection): Promise<unknown>
+}
+
+/** One provider DSH's directory of configurable providers offers. */
+export interface ConfigurableProvider {
+  readonly provider: string
+  readonly displayName: string
+  readonly settingsNs: string
+  readonly settingsPath: readonly string[]
+  readonly declared?: boolean
+  readonly error?: string
+}
+
+/** One settings section as `settings.describe` shows it. */
+export interface SettingsSection {
+  readonly ns: string
+  readonly revision?: number
+  readonly value?: Readonly<Record<string, unknown>>
+  readonly user?: Readonly<Record<string, unknown>>
+  readonly base?: Readonly<Record<string, unknown>>
+}
+
+export interface SettingsOperation {
+  readonly op: string
+  readonly path: readonly string[]
+  readonly value?: unknown
+}
+
+export interface SettingsService {
+  describe(options: { readonly redactSecrets: boolean }): readonly SettingsSection[]
+  mutate(ns: string, operations: readonly SettingsOperation[], revision?: number): Promise<unknown>
+}
+
+/** Whether a credential reference holds a value, and whether this plugin may change it. */
+export interface CredentialInfo {
+  readonly configured?: boolean
+  readonly writable?: boolean
+}
+
+export interface CredentialsService {
+  describe(ref: string): Promise<CredentialInfo>
+  set(ref: string, value: string): Promise<unknown>
+  unset(ref: string): Promise<unknown>
 }
 
 /** The services `ctx.get(name)` may return, by the names the host asks for. */

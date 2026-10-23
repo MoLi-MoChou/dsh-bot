@@ -1,14 +1,18 @@
+import { clearInterval, setInterval } from 'node:timers'
+import type { Agent } from './dsh-types.js'
+import type { HostRuntime, StoredAgent } from './runtime.ts'
+
 // The DSH Agent: a team's one plain dsh entry, listed beside the Bots but not one of
 // them. Its Sessions are ordinary root Sessions in the DS Bot workspace, so they get
 // the whole dsh conversation surface and none of the team tools.
 import { randomUUID } from 'node:crypto'
 import { AGENT_NAME, AGENT_SESSION_TITLE_MAX, TEAM_TOOLS } from './constants.ts'
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, state } = rt
 
   /** @type {Map<string, string>} Session id -> DSH Agent record id. */
-  const sessionIndex = new Map()
+  const sessionIndex = new Map<string, string>()
   // store.js calls this from indexSessions after every adopt and save.
   rt.indexAgents = () => {
     sessionIndex.clear()
@@ -17,32 +21,35 @@ export function install(rt) {
     }
   }
   // The DSH Agent a Session belongs to; Bot and group Sessions get undefined.
-  const agentOf = sessionId => state.agents[sessionIndex.get(sessionId)]
+  const agentOf = (sessionId: string): StoredAgent | undefined => {
+    const id = sessionIndex.get(sessionId)
+    return id === undefined ? undefined : state.agents[id]
+  }
 
   // A DSH Agent Session must not offer the team tools: its agent sees only the
   // global dsh surface minus this plugin's registrations. A Session whose deny
   // has not landed yet (schemas not up, restrict hook missing, a transient
   // throw) stays on the retry list until it sticks or the Session leaves.
-  const restricted = new WeakSet()
+  const restricted = new WeakSet<Agent>()
   const RETRY_MS = 5_000
-  const pendingRestrict = new Set()
-  let retryTimer
+  const pendingRestrict = new Set<Agent>()
+  let retryTimer: ReturnType<typeof setInterval> | undefined
   const stopRetry = () => {
     if (retryTimer !== undefined) clearInterval(retryTimer)
     retryTimer = undefined
   }
   ctx.effect(() => stopRetry, 'ds-bot: agent tool restrict retry')
-  const scheduleRetry = (agent) => {
+  const scheduleRetry = (agent: Agent): void => {
     pendingRestrict.add(agent)
     if (retryTimer === undefined) {
       retryTimer = setInterval(() => {
         for (const waiting of [...pendingRestrict]) void restrictTeamTools(waiting)
         if (pendingRestrict.size === 0) stopRetry()
       }, RETRY_MS)
-      retryTimer.unref?.()
+      retryTimer.unref()
     }
   }
-  const restrictTeamTools = async (agent) => {
+  const restrictTeamTools = async (agent: Agent | undefined): Promise<void> => {
     if (agent === undefined || restricted.has(agent)) return
     if (agentOf(agent.session?.id) === undefined) {
       pendingRestrict.delete(agent)
@@ -67,7 +74,7 @@ export function install(rt) {
     }
   }
   // Fires when a root Session resolves its agent, including sessions saved earlier.
-  ctx.on('agent/created', ({ agent }) => {
+  ctx.on<{ readonly agent: Agent }>('agent/created', ({ agent }) => {
     void rt.load()
       .then(() => restrictTeamTools(agent))
       .catch(error => rt.warn('ds-bot: tool restrict on agent/created failed: %s', error))
@@ -77,13 +84,13 @@ export function install(rt) {
     const readOnly = rt.readOnly()
     if (readOnly !== undefined) throw new Error(readOnly)
   }
-  const record = (agentId) => {
+  const record = (agentId: string): StoredAgent => {
     const agent = rt.own(state.agents, agentId)
     if (agent === undefined) throw new Error('Unknown DSH Agent')
     return agent
   }
 
-  async function createAgentSession(agentId, workspaceId) {
+  async function createAgentSession(agentId: string, workspaceId?: unknown): Promise<string> {
     writeCheck()
     const agent = record(agentId)
     // A known workspace id wins (the Agent's latest Session may live outside the
@@ -102,7 +109,7 @@ export function install(rt) {
   // A root Session the user opened from a DSH Agent page (the hero's workspace
   // picker or a fork) is adopted into the same Agent: it keeps dsh's surface and
   // the team tools stay hidden.
-  async function adoptAgentSession(agentId, sessionId) {
+  async function adoptAgentSession(agentId: string, sessionId: string): Promise<string> {
     writeCheck()
     const agent = record(agentId)
     if (agent.sessions.includes(sessionId)) return sessionId
@@ -116,10 +123,10 @@ export function install(rt) {
     return sessionId
   }
 
-  async function addAgent() {
+  async function addAgent(): Promise<StoredAgent> {
     writeCheck()
     if (Object.keys(state.agents).length > 0) throw new Error('The team already has a DSH Agent')
-    const agent = { id: randomUUID(), name: AGENT_NAME, sessions: [], createdAt: Date.now() }
+    const agent: StoredAgent = { id: randomUUID(), name: AGENT_NAME, sessions: [], createdAt: Date.now() }
     state.agents[agent.id] = agent
     try {
       await createAgentSession(agent.id)
@@ -136,7 +143,7 @@ export function install(rt) {
     return agent
   }
 
-  async function archiveAgentSession(agentId, sessionId) {
+  async function archiveAgentSession(agentId: string, sessionId: string): Promise<void> {
     writeCheck()
     const agent = record(agentId)
     if (!agent.sessions.includes(sessionId)) throw new Error('Session does not belong to the DSH Agent')
@@ -147,7 +154,7 @@ export function install(rt) {
     await rt.save()
   }
 
-  async function renameAgentSession(agentId, sessionId, title) {
+  async function renameAgentSession(agentId: string, sessionId: string, title: unknown): Promise<void> {
     writeCheck()
     const agent = record(agentId)
     if (!agent.sessions.includes(sessionId)) throw new Error('Session does not belong to the DSH Agent')
@@ -157,12 +164,12 @@ export function install(rt) {
     await ctx.sessionTitle.rename(agent_.session, clean.slice(0, AGENT_SESSION_TITLE_MAX))
   }
 
-  async function removeAgent(agentId) {
+  async function removeAgent(agentId: string): Promise<void> {
     writeCheck()
     const agent = record(agentId)
     const sessions = [...agent.sessions]
-    const kept = []
-    let failure
+    const kept: string[] = []
+    let failure: unknown
     for (const sessionId of sessions) {
       try {
         await ctx.workspaceRegistry.archiveSession(sessionId)
