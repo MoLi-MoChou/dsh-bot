@@ -39,7 +39,7 @@ const el = (attrs = {}, ...children) => {
 }
 
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../src/client/activity-row.js', import.meta.url))],
+  entryPoints: [fileURLToPath(new URL('../src/client/activity-row.ts', import.meta.url))],
   bundle: true, format: 'cjs', platform: 'node', write: false,
   external: ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives'],
 })

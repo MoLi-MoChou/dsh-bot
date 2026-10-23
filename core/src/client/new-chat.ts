@@ -9,20 +9,65 @@ import { EmptyState } from './empty-state.ts'
 import { CreateBot } from './create-bot.ts'
 import { QUICK_EDGES, useFlip, useGlide, useMorph } from './motion.js'
 import { t } from './i18n.js'
+import type { MarkBot } from './mark.ts'
+import type { CreateRoster, CreateBotActions } from './create-bot.ts'
 
-export function NewChat({ mode, roster, actions }) {
+/** A Bot as the roster lists it: the mark's shape, plus what the picker shows. */
+interface ListedBot extends MarkBot {
+  readonly id: string
+  name: string
+  role?: string | undefined
+  hidden?: boolean | undefined
+}
+
+/** The roster fields the picker reads; the rest of a roster passes through untouched. */
+export interface NewChatRoster extends CreateRoster {
+  bots: ListedBot[]
+  byId: Record<string, ListedBot | undefined>
+  agents?: readonly unknown[] | undefined
+}
+
+export interface NewChatActions extends CreateBotActions {
+  openSession(id: string): void
+  showDetails(id: string, page: string): void
+  send(id: string, text: string): Promise<unknown>
+  setFlags(id: string, flags: { hidden: boolean }): Promise<unknown>
+  createRoom(members: readonly string[], options?: { admin?: string | undefined; greet?: boolean | undefined }): Promise<{ id: string }>
+  addAgent?(): Promise<unknown>
+}
+
+export interface NewChatProps {
+  mode: string
+  roster: NewChatRoster
+  actions: NewChatActions
+}
+
+/** The Create Bot form, opened from 'create' mode or from the list. */
+interface Draft { name: string; fromList: boolean }
+
+/** One row of the picker. */
+interface Option {
+  key: string
+  label: string
+  run: () => void
+  icon?: unknown
+  hint?: string | undefined
+  bot?: ListedBot | undefined
+}
+
+export function NewChat({ mode, roster, actions }: NewChatProps) {
   const [query, setQuery] = useState('')
-  const [picked, setPicked] = useState([])
+  const [picked, setPicked] = useState<string[]>([])
   const [group, setGroup] = useState(mode === 'group')
   // A new group chat picks its admin first, then the other members.
-  const [admin, setAdmin] = useState(null)
+  const [admin, setAdmin] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [cursor, setCursor] = useState(0)
   // The Create Bot form, opened straight from 'create' mode or from the list.
-  const [draft, setDraft] = useState(mode === 'create' ? { name: '', fromList: false } : null)
-  const inputRef = useRef(null)
+  const [draft, setDraft] = useState<Draft | null>(mode === 'create' ? { name: '', fromList: false } : null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   const close = () => actions.closeOverlay()
   useEscape(close)
   const paneLeft = usePaneLeft()
@@ -30,26 +75,26 @@ export function NewChat({ mode, roster, actions }) {
   const matches = roster.bots.filter(bot => !picked.includes(bot.id) && bot.id !== admin && (wanted === '' || bot.name.toLowerCase().includes(wanted) || (bot.role ?? '').toLowerCase().includes(wanted)))
   const choosingAdmin = group && admin === null
   const exact = roster.bots.some(bot => bot.name.toLowerCase() === wanted)
-  const pickedBots = picked.map(id => roster.byId[id]).filter(Boolean)
-  const run = async (task) => {
+  const pickedBots = picked.map(id => roster.byId[id]).filter((bot): bot is ListedBot => bot !== undefined)
+  const run = async (task: () => Promise<unknown>) => {
     if (busy) return
     setError('')
     setBusy(true)
-    try { await task() } catch (failure) { setError(failure?.message ?? String(failure)) } finally { setBusy(false) }
+    try { await task() } catch (failure) { setError((failure as { readonly message?: string } | undefined)?.message ?? String(failure)) } finally { setBusy(false) }
   }
-  const pick = (bot) => {
+  const pick = (bot: ListedBot): void => {
     setPicked(current => [...current, bot.id])
     setQuery('')
     setCursor(0)
     inputRef.current?.focus()
   }
-  const chooseAdmin = (bot) => {
+  const chooseAdmin = (bot: ListedBot): void => {
     setAdmin(bot.id)
     setQuery('')
     setCursor(0)
     inputRef.current?.focus()
   }
-  const openBot = bot => run(async () => {
+  const openBot = (bot: ListedBot) => run(async () => {
     if (choosingAdmin) { chooseAdmin(bot); return }
     if (group || picked.length > 0) { pick(bot); return }
     if (bot.hidden) await actions.setFlags(bot.id, { hidden: false })
@@ -64,7 +109,7 @@ export function NewChat({ mode, roster, actions }) {
   }
   // Close first: closing the new-chat pane keeps the details panel, while closing
   // nothing would clear it.
-  const created = (bot) => {
+  const created = (bot: { readonly id: string }): void => {
     close()
     actions.openSession(bot.id)
     actions.showDetails(bot.id, 'settings')
@@ -85,8 +130,9 @@ export function NewChat({ mode, roster, actions }) {
     if (group && admin !== null) { await makeGroup(); return }
     if (text === '' || picked.length === 0) return
     if (picked.length === 1) {
-      await actions.send(picked[0], text)
-      actions.openSession(picked[0])
+      const only = picked[0] as string
+      await actions.send(only, text)
+      actions.openSession(only)
       close()
       return
     }
@@ -95,13 +141,13 @@ export function NewChat({ mode, roster, actions }) {
     actions.openSession(room.id)
     close()
   })
-  const options = []
+  const options: Option[] = []
   if (!group && picked.length === 0 && mode !== 'search' && wanted === '') {
     options.push({ key: 'new', icon: h(PlusIcon), label: t('Create new Bot'), run: createBot })
     if (LEAN.groups) options.push({ key: 'group', icon: h(PeopleIcon), label: t('Create group chat'), run: () => { setGroup(true); setCursor(0); inputRef.current?.focus() } })
     // A team holds at most one DSH Agent; the entry exists only while there is none.
-    if (LEAN.dshAgent && (roster.agents ?? []).length === 0 && actions.addAgent) {
-      options.push({ key: 'agent', icon: h(FishLogo, { size: 16 }), label: t('Add DSH Agent'), run: () => run(async () => { await actions.addAgent(); close() }) })
+    if (LEAN.dshAgent && (roster.agents ?? []).length === 0 && actions.addAgent !== undefined) {
+      options.push({ key: 'agent', icon: h(FishLogo, { size: 16 }), label: t('Add DSH Agent'), run: () => run(async () => { await actions.addAgent?.(); close() }) })
     }
   }
   for (const bot of matches) {
@@ -112,7 +158,7 @@ export function NewChat({ mode, roster, actions }) {
   const listed = options.map(option => option.key).join('\n')
   const glide = useGlide(`${active}\n${listed}`, { axis: 'y', ...QUICK_EDGES })
   useFlip(glide.box, listed, '[data-flip]')
-  const drop = useRef(null)
+  const drop = useRef<HTMLDivElement | null>(null)
   useMorph(drop, listed)
   if (draft) {
     return h('div', { className: 'bt-pane', style: { left: paneLeft } },
@@ -148,7 +194,7 @@ export function NewChat({ mode, roster, actions }) {
             if (event.nativeEvent.isComposing) return
             if (event.key === 'ArrowDown') { event.preventDefault(); setCursor(Math.min(active + 1, options.length - 1)) }
             else if (event.key === 'ArrowUp') { event.preventDefault(); setCursor(Math.max(active - 1, 0)) }
-            else if (event.key === 'Enter' && options[active]) { event.preventDefault(); options[active].run() }
+            else if (event.key === 'Enter' && options[active] !== undefined) { event.preventDefault(); options[active]?.run() }
             else if (event.key === 'Backspace' && query === '') unpick()
           },
         }),
@@ -162,14 +208,14 @@ export function NewChat({ mode, roster, actions }) {
         options.length === 0 ? h(EmptyState, {
             compact: true, icon: h(mode === 'search' ? SearchIcon : PlusIcon),
             title: mode === 'search' ? t('No Bots match') : t('Type a name to create a Bot'),
-            hint: mode === 'search' && wanted ? t('Try another name, or clear the search.') : undefined,
-            action: mode === 'search' && query ? { label: t('Clear search'), onClick: () => { setQuery(''); setCursor(0); inputRef.current?.focus() } } : undefined,
+            ...(mode === 'search' && wanted ? { hint: t('Try another name, or clear the search.') } : {}),
+            ...(mode === 'search' && query ? { action: { label: t('Clear search'), onClick: () => { setQuery(''); setCursor(0); inputRef.current?.focus() } } } : {}),
           })
           : options.map((option, index) => h('button', {
               key: option.key, type: 'button', role: 'option', className: 'bt-option', 'aria-selected': index === active, 'data-flip': option.key,
               onMouseEnter: () => setCursor(index), onClick: option.run,
             },
-            option.bot ? h(BotMark, { bot: option.bot, size: 22 }) : h('span', { className: 'bt-option-icon' }, option.icon),
+            option.bot ? h(BotMark, { bot: option.bot, size: 22 }) : h('span', { className: 'bt-option-icon' }, option.icon as never),
             h('span', { className: 'bt-option-label' }, option.label),
             option.hint && index === active ? h('span', { className: 'bt-option-hint' }, option.hint) : null)))),
       h('div', { className: 'bt-nc-spacer' }),
@@ -179,9 +225,9 @@ export function NewChat({ mode, roster, actions }) {
           h('span', { className: 'bt-nc-plus', 'aria-hidden': true }, h(PlusIcon)),
           h('textarea', {
             rows: 1, value: message, placeholder, 'aria-label': placeholder,
-            onChange: event => setMessage(event.target.value),
+            onChange: event => setMessage((event.target as HTMLTextAreaElement).value),
             onKeyDown: (event) => {
-              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); sendMessage() }
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void sendMessage() }
             },
           }),
           h('button', { type: 'button', className: 'bt-nc-send', 'aria-label': t('Send message'), disabled: busy || message.trim() === '' || picked.length === 0, onClick: sendMessage }, h(ArrowUpIcon))))))

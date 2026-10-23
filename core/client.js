@@ -14918,7 +14918,7 @@ function CreateBot({ roster, actions, start, brief = "", onBack, canGoBack, onCr
   );
 }
 
-// src/client/new-chat.js
+// src/client/new-chat.ts
 var import_react26 = require("react");
 function NewChat({ mode, roster, actions }) {
   const [query, setQuery] = (0, import_react26.useState)("");
@@ -14938,7 +14938,7 @@ function NewChat({ mode, roster, actions }) {
   const matches = roster.bots.filter((bot) => !picked.includes(bot.id) && bot.id !== admin && (wanted === "" || bot.name.toLowerCase().includes(wanted) || (bot.role ?? "").toLowerCase().includes(wanted)));
   const choosingAdmin = group && admin === null;
   const exact = roster.bots.some((bot) => bot.name.toLowerCase() === wanted);
-  const pickedBots = picked.map((id) => roster.byId[id]).filter(Boolean);
+  const pickedBots = picked.map((id) => roster.byId[id]).filter((bot) => bot !== void 0);
   const run = async (task) => {
     if (busy) return;
     setError("");
@@ -15004,8 +15004,9 @@ function NewChat({ mode, roster, actions }) {
     }
     if (text === "" || picked.length === 0) return;
     if (picked.length === 1) {
-      await actions.send(picked[0], text);
-      actions.openSession(picked[0]);
+      const only = picked[0];
+      await actions.send(only, text);
+      actions.openSession(only);
       close();
       return;
     }
@@ -15022,9 +15023,9 @@ function NewChat({ mode, roster, actions }) {
       setCursor(0);
       inputRef.current?.focus();
     } });
-    if (LEAN.dshAgent && (roster.agents ?? []).length === 0 && actions.addAgent) {
+    if (LEAN.dshAgent && (roster.agents ?? []).length === 0 && actions.addAgent !== void 0) {
       options.push({ key: "agent", icon: (0, import_react26.createElement)(import_dsh_client_ui_primitives.FishLogo, { size: 16 }), label: t("Add DSH Agent"), run: () => run(async () => {
-        await actions.addAgent();
+        await actions.addAgent?.();
         close();
       }) });
     }
@@ -15109,9 +15110,9 @@ ${listed}`, { axis: "y", ...QUICK_EDGES });
             } else if (event.key === "ArrowUp") {
               event.preventDefault();
               setCursor(Math.max(active - 1, 0));
-            } else if (event.key === "Enter" && options[active]) {
+            } else if (event.key === "Enter" && options[active] !== void 0) {
               event.preventDefault();
-              options[active].run();
+              options[active]?.run();
             } else if (event.key === "Backspace" && query === "") unpick();
           }
         }),
@@ -15132,12 +15133,12 @@ ${listed}`, { axis: "y", ...QUICK_EDGES });
           compact: true,
           icon: (0, import_react26.createElement)(mode === "search" ? SearchIcon : PlusIcon),
           title: mode === "search" ? t("No Bots match") : t("Type a name to create a Bot"),
-          hint: mode === "search" && wanted ? t("Try another name, or clear the search.") : void 0,
-          action: mode === "search" && query ? { label: t("Clear search"), onClick: () => {
+          ...mode === "search" && wanted ? { hint: t("Try another name, or clear the search.") } : {},
+          ...mode === "search" && query ? { action: { label: t("Clear search"), onClick: () => {
             setQuery("");
             setCursor(0);
             inputRef.current?.focus();
-          } } : void 0
+          } } } : {}
         }) : options.map((option, index) => (0, import_react26.createElement)(
           "button",
           {
@@ -15173,7 +15174,7 @@ ${listed}`, { axis: "y", ...QUICK_EDGES });
             onKeyDown: (event) => {
               if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault();
-                sendMessage();
+                void sendMessage();
               }
             }
           }),

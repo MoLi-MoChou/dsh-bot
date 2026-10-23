@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { currentPart, latestMemoryChange } from './text.ts'
 import { ArrowUpIcon, CloseIcon, ArrowDownIcon, MemoryIcon, SidePanelIcon } from './icons.ts'
 import { botState, BotAvatar, RoomAvatar } from './mark.ts'
-import { ActivityIndicator } from './activity-row.js'
+import { ActivityIndicator } from './activity-row.ts'
 import { clockLabel, openingTurn, unseenSince } from './cells.js'
 import { t } from './i18n.js'
 

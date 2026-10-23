@@ -1,7 +1,8 @@
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CommandPalette } from './palette.ts'
-import { NewChat } from './new-chat.js'
+import { NewChat } from './new-chat.ts'
+import type { NewChatActions, NewChatRoster } from './new-chat.ts'
 import { ExchangeDialog } from './exchange.ts'
 import { VoiceMode } from './voice.js'
 import { SettingsDialog } from './settings.js'
@@ -97,7 +98,7 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
       useBrowserTabs: useBrowserTabs as unknown as BrowserTabsHook,
       useBrowserPages: useBrowserPages as unknown as BrowserPagesHook,
     }), document.body) : null,
-    ui.newChat ? createPortal(h(NewChat, { key: ui.newChat, mode: ui.newChat, roster, actions }), document.body) : null,
+    ui.newChat ? createPortal(h(NewChat, { key: ui.newChat, mode: ui.newChat, roster: roster as unknown as NewChatRoster, actions: actions as unknown as NewChatActions }), document.body) : null,
     ui.palette ? createPortal(h(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster: roster as never, actions: actions as never, useSessions: useSessions as never }), document.body) : null,
     ui.exchange ? createPortal(h(ExchangeDialog, { pair: ui.exchange, roster: roster as never, actions: actions as unknown as ExchangeActions }), document.body) : null,
     ui.voice ? createPortal(h(VoiceMode, { key: ui.voice, sessionId: ui.voice, roster, actions, useSessions, useSessionStatus }), document.body) : null,
