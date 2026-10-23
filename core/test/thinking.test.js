@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { install as installChannel } from '../src/host/channel.js'
+import { install as installChannel } from '../src/host/channel.ts'
 import { install as installThinking, thinkingMs } from '../src/host/thinking.ts'
 
 const reasoningRun = (time0, gaps, texts) => ({ type: 'reasoning-chunks', time0, index: 0, dt: gaps, texts })

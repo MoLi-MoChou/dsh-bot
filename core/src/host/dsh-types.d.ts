@@ -177,6 +177,14 @@ export interface SessionController {
     readonly maxMessages?: number
   }, signal?: AbortSignal): Promise<SessionPage>
   selectModel(options: { readonly sessionId: string; readonly provider: string; readonly model: string; readonly reasoningEffort?: string }): Promise<{ readonly selected?: ModelSelection }>
+  /** Admit one prompt after explicitly resuming its Session. */
+  prompt(request: {
+    readonly requestId: string
+    readonly sessionId: string
+    readonly mode: 'queue' | 'steer'
+    readonly content: readonly MessageContentBlock[]
+    readonly clientTimeZone?: string
+  }, signal?: AbortSignal): Promise<{ readonly accepted: true }>
 }
 
 export interface SessionsService {

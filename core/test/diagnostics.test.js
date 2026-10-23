@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { cleanText, install as installDiagnostics, reportMarkdown } from '../src/host/diagnostics.ts'
 import { failureLine, failureSay, install as installTurns, turnFailure } from '../src/host/turns.js'
-import { errorCode } from '../src/host/channel.js'
+import { errorCode } from '../src/host/channel.ts'
 import { SOURCE_KIND } from '../src/host/constants.ts'
 
 test('cleanText hides keys, tokens and the home folder', () => {

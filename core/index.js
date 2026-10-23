@@ -32,7 +32,7 @@ import * as usage from './src/host/usage.ts'
 import * as update from './src/host/update.ts'
 import * as dshUpdate from './src/host/dsh-update.ts'
 import * as thinking from './src/host/thinking.ts'
-import * as channel from './src/host/channel.js'
+import * as channel from './src/host/channel.ts'
 import * as feed from './src/host/feed.ts'
 import * as workspaceFiles from './src/host/workspace-files.ts'
 
