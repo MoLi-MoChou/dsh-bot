@@ -3,13 +3,13 @@
     "about.js": {
       "#e3a008": 2
     },
-    "bot-browsers.js": {
+    "bot-browsers.ts": {
       "#fff": 1
     },
     "bot-settings.js": {
       "#fff": 1
     },
-    "browser-pane.js": {
+    "browser-pane.ts": {
       "#4d6bfe": 3,
       "#fff": 1
     },
@@ -84,7 +84,7 @@
     }
   },
   "radii": {
-    "browser-pane.js": {
+    "browser-pane.ts": {
       "2px": 1,
       "3px": 2,
       "5px": 1,

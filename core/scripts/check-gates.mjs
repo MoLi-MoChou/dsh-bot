@@ -40,14 +40,14 @@ const LINE_EXEMPTIONS = [
   '**/*.d.ts',
   // UI copy is a dictionary table (data), not a logic file.
   'src/client/i18n.js', // i18n dictionary table
-  // TODO(phase2 split): existing client JS still over 350 lines; Phase 2 moves it to TS
-  // and splits these modules. They are pending, not accepted new debt.
+  // TODO(phase2 split): existing client modules still over 350 lines; Phase 2 moves the
+  // rest to TS and splits these modules. They are pending, not accepted new debt.
   'src/client/cells.js',
   'src/client/index.js',
   'src/client/usage-page.ts',
   'src/client/sidebar.js',
-  'src/client/browser-pane.js',
-  'src/client/bot-browsers.js',
+  'src/client/browser-pane.ts',
+  'src/client/bot-browsers.ts',
   'src/client/model-menu.js',
   'src/client/secret-card.js',
 ]

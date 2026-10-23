@@ -1125,6 +1125,16 @@ const KEEP_NAME = new Set(['Based on DS Bot'])
 export const productName = () => 'Moon Bot'
 export const brand = text => (typeof text === 'string' ? text.replace(/\b(?:DS Bot|DeepSeek Bot)\b/g, productName()) : text)
 
+/**
+ * The English interface copy is the key table; text from the host or a webview that is
+ * not a key comes back unchanged.
+ * @typedef {keyof typeof ZH | (string & {})} I18nKey
+ */
+/**
+ * @param {I18nKey} key
+ * @param {Record<string, unknown>} [params]
+ * @returns {string}
+ */
 export function t(key, params) {
   const text = bound ? bound(key, params) : fill(key, params)
   return KEEP_NAME.has(key) ? text : brand(text)

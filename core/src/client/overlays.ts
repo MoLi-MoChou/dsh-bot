@@ -6,7 +6,8 @@ import { ExchangeDialog } from './exchange.ts'
 import { VoiceMode } from './voice.js'
 import { SettingsDialog } from './settings.js'
 import { ContextMenu } from './context-menu.ts'
-import { BotPanel } from './browser-pane.js'
+import { BotPanel } from './browser-pane.ts'
+import type { BrowserPagesHook, BrowserTabsHook, PanelActions } from './browser-pane.ts'
 import { MemoryDialog } from './memory-panel.js'
 import { DIALOG_EXIT_MS, MENU_EXIT_MS, PANEL_LINGER_MS, reducedMotion, useLinger } from './motion.js'
 import type { ExchangeActions } from './exchange.ts'
@@ -84,7 +85,18 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
   const owner = memory ? memoryOwner(memory) : null
   const [menu, menuLeaving] = useLinger(ui.menu, MENU_EXIT_MS)
   return h(Fragment, null,
-    pane ? createPortal(h(BotPanel, { pane, leaving: open === null, roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages }), document.body) : null,
+    pane ? createPortal(h(BotPanel, {
+      pane,
+      leaving: open === null,
+      roster,
+      actions: actions as unknown as PanelActions,
+      useSessions,
+      useSessionStatus,
+      useActivity,
+      useWork,
+      useBrowserTabs: useBrowserTabs as unknown as BrowserTabsHook,
+      useBrowserPages: useBrowserPages as unknown as BrowserPagesHook,
+    }), document.body) : null,
     ui.newChat ? createPortal(h(NewChat, { key: ui.newChat, mode: ui.newChat, roster, actions }), document.body) : null,
     ui.palette ? createPortal(h(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster: roster as never, actions: actions as never, useSessions: useSessions as never }), document.body) : null,
     ui.exchange ? createPortal(h(ExchangeDialog, { pair: ui.exchange, roster: roster as never, actions: actions as unknown as ExchangeActions }), document.body) : null,

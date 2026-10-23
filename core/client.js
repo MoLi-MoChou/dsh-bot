@@ -18749,7 +18749,7 @@ function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, roster, a
   ];
 }
 
-// src/client/browser-pane.js
+// src/client/browser-pane.ts
 var import_react40 = require("react");
 var import_react_dom9 = require("react-dom");
 var WIDTH_KEY = STORAGE.browserWidth;
@@ -18762,6 +18762,7 @@ var READ_FLASH_MS = 2400;
 var EMPTY_PAGE = { url: "", title: "", favicon: null, loading: false, canGoBack: false, canGoForward: false, error: null, excerpt: "" };
 var EMPTY_TABS2 = { ids: [], active: null };
 var { lead: SPRING_LEAD2, trail: SPRING_TRAIL2 } = PANEL_TAB_EDGES;
+var OPEN_ENTRIES = ["openBrowser", "browserNewTab", "browserPick"];
 var icon = (paths) => function BrowserIcon() {
   return (0, import_react40.createElement)(
     "svg",
@@ -18782,6 +18783,7 @@ function Favicon({ src, className }) {
   if (!src || failed === src) return (0, import_react40.createElement)("span", { className: `${className} bt-ptab-globe` }, (0, import_react40.createElement)(GlobeIcon));
   return (0, import_react40.createElement)("img", { className, src, alt: "", "aria-hidden": true, onError: () => setFailed(src) });
 }
+var isCssAnimation = (animation) => "animationName" in animation;
 var savedWidth = () => {
   try {
     const value = Number(localStorage.getItem(WIDTH_KEY));
@@ -18794,17 +18796,18 @@ var widthRange = (view, viewport) => view === "browser" ? [MIN_WIDTH, viewport -
 var fitWidth = (width, [low, high]) => Math.round(Math.max(low, Math.min(width, high)));
 var room = { rule: null, selector: "" };
 var roomRule = () => {
-  const live = room.rule?.parentStyleSheet?.ownerNode?.isConnected;
-  if (live && room.selector) return room.rule;
+  if (room.rule !== null && room.rule.parentStyleSheet?.ownerNode?.isConnected === true && room.selector !== "") return room.rule;
   const column = document.querySelector('[class*="_centerCol"]');
   const selector = column ? [...column.classList].filter((name) => name.includes("_centerCol")).map((name) => `.${CSS.escape(name)}`).join(",") : "";
-  if (live && !selector) return room.rule;
+  if (room.rule !== null && room.rule.parentStyleSheet?.ownerNode?.isConnected === true && selector === "") return room.rule;
   const declarations2 = room.rule?.style.cssText ?? "";
   room.rule?.parentStyleSheet?.ownerNode?.remove();
   const style = installStyles(`${selector || '[class*="_centerCol"]'}{${declarations2}}`, "chat-room");
-  room.rule = style.sheet.cssRules[0];
+  const rule = style.sheet?.cssRules[0];
+  if (!(rule instanceof CSSStyleRule)) throw new Error("the chat-room rule did not install");
+  room.rule = rule;
   room.selector = selector;
-  return room.rule;
+  return rule;
 };
 var roomHold = 0;
 var chatRoom = {
@@ -18947,7 +18950,7 @@ function PanelStrip({ bot, subject, view, ids, active, reading, onView, actions,
   );
 }
 function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages }) {
-  const page = useBrowserPages((pages) => pages[tabId ?? ""]) ?? EMPTY_PAGE;
+  const page = useBrowserPages((pages) => pages[tabId ?? ""] ?? EMPTY_PAGE) ?? EMPTY_PAGE;
   const frame = (0, import_react40.useRef)(null);
   const input = (0, import_react40.useRef)(null);
   const [draft, setDraft] = (0, import_react40.useState)(null);
@@ -18958,12 +18961,13 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages }) 
       void actions.browserShow(null);
       return void 0;
     }
+    const shownTab = tabId;
     let raf = 0;
     const measure = () => {
       cancelAnimationFrame(raf);
       raf = 0;
       const box = element.getBoundingClientRect();
-      void actions.browserShow(tabId, showGuest ? { left: box.left, top: box.top, width: box.width, height: box.height } : null);
+      void actions.browserShow(shownTab, showGuest ? { left: box.left, top: box.top, width: box.width, height: box.height } : null);
     };
     const schedule = () => {
       if (!raf) raf = requestAnimationFrame(measure);
@@ -19047,9 +19051,9 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages }) 
         icon: (0, import_react40.createElement)(GlobeIcon),
         title: t("This page didn’t load"),
         hint: t(page.error),
-        action: page.url ? { label: t("Try again"), onClick: () => {
+        ...page.url ? { action: { label: t("Try again"), onClick: () => {
           void actions.browserNavigate(tabId, page.url);
-        } } : void 0
+        } } } : {}
       })) : !page.url ? (0, import_react40.createElement)("div", { className: "bt-browser-empty" }, (0, import_react40.createElement)(EmptyState, {
         art: (0, import_react40.createElement)(BotMark, { bot, size: 48, state: "idle", live: true }),
         title: t("{name}'s browser", { name: bot.name }),
@@ -19125,7 +19129,7 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
     return () => clearTimeout(timer);
   }, []);
   (0, import_react40.useEffect)(() => {
-    if (canBrowse) actions.browserEnsure(bot.id);
+    if (canBrowse && bot) actions.browserEnsure(bot.id);
   }, [bot?.id, canBrowse]);
   (0, import_react40.useEffect)(() => {
     if (view === "browser" && (active === null || !tabState.ids.includes(active))) actions.setPanelView("details");
@@ -19151,7 +19155,7 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
       ghostEl.className = "bt-panel-ghost";
       ghostEl.style.width = `${outgoing.offsetWidth}px`;
       ghostEl.append(outgoing.cloneNode(true));
-      outgoing.parentElement.append(ghostEl);
+      outgoing.parentElement?.append(ghostEl);
       void ghostEl.animate([
         { opacity: 1, transform: "scale(1)" },
         { opacity: 0, transform: "scale(0.985)" }
@@ -19159,7 +19163,10 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
       }).finally(() => ghostEl.remove());
     }
     const source = next === "browser" ? panel?.querySelector(".bt-drawer-id .bt-mark") : panel?.querySelector(".bt-ptab-bot .bt-mark");
-    if (source) fly.current = { node: source.cloneNode(true), from: source.getBoundingClientRect() };
+    if (source) {
+      const clone = source.cloneNode(true);
+      if (clone instanceof HTMLElement) fly.current = { node: clone, from: source.getBoundingClientRect() };
+    }
   };
   const switchView = (next) => {
     if (next === view || leaving) return;
@@ -19167,10 +19174,10 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
     actions.setPanelView(next);
   };
   const panelActions = { ...actions };
-  for (const name of ["openBrowser", "browserNewTab", "browserPick"]) {
+  for (const name of OPEN_ENTRIES) {
     if (actions[name]) panelActions[name] = (...args) => {
       if (view !== "browser") beginSwitch("browser");
-      return actions[name](...args);
+      return actions[name]?.(...args);
     };
   }
   (0, import_react40.useLayoutEffect)(() => {
@@ -19179,13 +19186,19 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
     fly.current = null;
     const target = view === "browser" ? root.current?.querySelector(".bt-ptab-bot .bt-mark") : root.current?.querySelector(".bt-drawer-id .bt-mark");
     if (!target || move.from.width === 0 || reducedMotion()) return;
-    const growing = root.current.getAnimations({ subtree: true }).filter((animation) => animation.animationName === "bt-strip-in");
-    const at = growing.map((animation) => animation.currentTime);
-    for (const animation of growing) animation.currentTime = animation.effect.getComputedTiming().endTime;
+    const panel = root.current;
+    if (!panel) return;
+    const growing = panel.getAnimations({ subtree: true }).filter((animation) => isCssAnimation(animation) && animation.animationName === "bt-strip-in");
+    const at = new Map(growing.map((animation) => [animation, animation.currentTime]));
+    for (const animation of growing) {
+      const end = animation.effect?.getComputedTiming().endTime;
+      if (end !== void 0) animation.currentTime = end;
+    }
     const to = target.getBoundingClientRect();
-    growing.forEach((animation, index) => {
-      animation.currentTime = at[index];
-    });
+    for (const animation of growing) {
+      const start = at.get(animation);
+      if (start !== void 0) animation.currentTime = start;
+    }
     const clone = move.node;
     Object.assign(clone.style, {
       position: "fixed",
@@ -19216,6 +19229,7 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
     if (event.button !== 0 || leaving) return;
     event.preventDefault();
     const panel = root.current;
+    if (!panel) return;
     const grip = event.currentTarget;
     grip.setPointerCapture?.(event.pointerId);
     const range = widthRange(view, window.innerWidth);
@@ -19234,7 +19248,7 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
     };
     const ends = ["pointerup", "pointercancel", "lostpointercapture"];
     const onEnd = (end) => {
-      if (end.type === "pointerup") onMove(end);
+      if (end.type === "pointerup" && end instanceof PointerEvent) onMove(end);
       grip.removeEventListener("pointermove", onMove);
       for (const name of ends) grip.removeEventListener(name, onEnd);
       chatRoom.set(next);
@@ -19277,7 +19291,7 @@ function BotPanel({ pane, leaving, roster, actions, useSessions, useSessionStatu
     // Over the whole window while dragging: the cursor stays a resize cursor and the
     // pages underneath (the chat, the guest) see no pointer.
     dragging ? (0, import_react_dom9.createPortal)((0, import_react40.createElement)("div", { className: "bt-drag-shield", "aria-hidden": true }), document.body) : null,
-    hasStrip ? (0, import_react40.createElement)(PanelStrip, { bot, subject: pane.id, view, ids: tabState.ids, active, reading, onView: switchView, actions: panelActions, useBrowserPages }) : null,
+    hasStrip && bot ? (0, import_react40.createElement)(PanelStrip, { bot, subject: pane.id, view, ids: tabState.ids, active, reading, onView: switchView, actions: panelActions, useBrowserPages }) : null,
     view === "browser" && bot ? (0, import_react40.createElement)(BrowserView, { key: `browser:${active}`, bot, tabId: active, leaving, landed: landed && !settling, actions, useBrowserPages }) : (0, import_react40.createElement)(
       "div",
       { key: `details:${pane.id}:${pane.renaming ? "rename" : ""}:${pane.tab ?? ""}`, className: "bt-panel-view" },
@@ -19416,7 +19430,18 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   return (0, import_react41.createElement)(
     import_react41.Fragment,
     null,
-    pane ? (0, import_react_dom10.createPortal)((0, import_react41.createElement)(BotPanel, { pane, leaving: open === null, roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages }), document.body) : null,
+    pane ? (0, import_react_dom10.createPortal)((0, import_react41.createElement)(BotPanel, {
+      pane,
+      leaving: open === null,
+      roster,
+      actions,
+      useSessions,
+      useSessionStatus,
+      useActivity,
+      useWork,
+      useBrowserTabs,
+      useBrowserPages
+    }), document.body) : null,
     ui2.newChat ? (0, import_react_dom10.createPortal)((0, import_react41.createElement)(NewChat, { key: ui2.newChat, mode: ui2.newChat, roster, actions }), document.body) : null,
     ui2.palette ? (0, import_react_dom10.createPortal)((0, import_react41.createElement)(CommandPalette, { key: ui2.palette.token, start: ui2.palette.query, token: ui2.palette.token, roster, actions, useSessions }), document.body) : null,
     ui2.exchange ? (0, import_react_dom10.createPortal)((0, import_react41.createElement)(ExchangeDialog, { pair: ui2.exchange, roster, actions }), document.body) : null,
@@ -19815,7 +19840,7 @@ function noteLeft(seen, ids, now) {
   return next;
 }
 
-// src/client/bot-browsers.js
+// src/client/bot-browsers.ts
 var STORE_KEY = STORAGE.browsers;
 var MAX_LIVE = 6;
 var READ_TIMEOUT_MS = 1e4;
@@ -19837,7 +19862,7 @@ function browserAddress(input) {
   if (text === "") return null;
   if (/^[a-z][a-z\d+.-]*:\/\//i.test(text)) return /^https?:\/\//i.test(text) && URL.canParse(text) ? new URL(text).href : null;
   if (/^(about|javascript|data|file|blob|chrome|devtools|view-source):/i.test(text)) return null;
-  const host = text.split(/[/?#]/)[0];
+  const host = text.split(/[/?#]/)[0] ?? "";
   const local = /^(localhost|127(\.\d+){3}|10(\.\d+){3}|192\.168(\.\d+){2}|172\.(1[6-9]|2\d|3[01])(\.\d+){2}|\[[\da-f:]+\])(:\d+)?$/i.test(host);
   const looksLikeHost = !/\s/.test(text) && (local || /^[^\s.]+(\.[^\s.]+)+(:\d+)?$/.test(host));
   if (looksLikeHost && URL.canParse(`http://${text}`)) return new URL(`${local ? "http" : "https"}://${text}`).href;
@@ -19854,10 +19879,10 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
   let shown = null;
   let rect = null;
   let visible = false;
-  let resizeLater = 0;
+  let resizeLater;
   let disposed = false;
   let serial = 0;
-  const savedTab = (botId, tabId) => saved[botId]?.tabs?.find((entry) => entry.id === tabId);
+  const savedTab = (botId, tabId) => botId === void 0 ? void 0 : saved[botId]?.tabs.find((entry) => entry.id === tabId);
   const publish2 = (tabId, patch) => pages.set((state) => {
     const botId = owner.get(tabId);
     return { ...state, [tabId]: { ...EMPTY, ...savedTab(botId, tabId), ...state[tabId], ...patch } };
@@ -19877,13 +19902,15 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     if (tabs.getSnapshot()[botId] !== void 0) return;
     const entries2 = saved[botId]?.tabs ?? [];
     const ids = entries2.map((entry) => entry.id);
-    const active = ids.includes(saved[botId]?.active) ? saved[botId].active : ids.at(-1) ?? null;
+    const savedActive = saved[botId]?.active ?? null;
+    const active = savedActive !== null && ids.includes(savedActive) ? savedActive : ids.at(-1) ?? null;
     for (const entry of entries2) owner.set(entry.id, botId);
     tabs.set((state) => ({ ...state, [botId]: { ids, active } }));
     for (const entry of entries2) publish2(entry.id, { url: entry.url ?? "", title: entry.title ?? "", live: false });
   };
   const ensureLayer = () => {
-    if (layer?.isConnected) return layer;
+    const current = layer;
+    if (current?.isConnected) return current;
     layer = doc.createElement("div");
     layer.className = "bt-browser-layer";
     Object.assign(layer.style, { position: "fixed", inset: "0", zIndex: "41", pointerEvents: "none" });
@@ -19932,7 +19959,7 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     persist(entry.botId);
   };
   async function create(tabId) {
-    const botId = owner.get(tabId);
+    const botId = owner.get(tabId) ?? "";
     const reservation = await bridge.acquire(`bot:${botId}`);
     if (disposed) {
       await bridge.release(reservation.lease).catch(() => {
@@ -19947,9 +19974,18 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     element.setAttribute("partition", reservation.partition);
     element.setAttribute("allowpopups", "");
     element.setAttribute("src", `about:blank#${reservation.lease}`);
-    const entry = { botId, tabId, element, lease: reservation.lease, ready: false, fresh: true, pending: pages.getSnapshot()[tabId]?.url || savedTab(botId, tabId)?.url, usedAt: Date.now() };
     const lifetime = new AbortController();
-    entry.stop = () => lifetime.abort();
+    const entry = {
+      botId,
+      tabId,
+      element,
+      lease: reservation.lease,
+      ready: false,
+      fresh: true,
+      pending: pages.getSnapshot()[tabId]?.url || savedTab(botId, tabId)?.url,
+      usedAt: Date.now(),
+      stop: () => lifetime.abort()
+    };
     const { signal } = lifetime;
     const unsubscribe = bridge.onOpenRequested(reservation.lease, (url) => void openTab(botId, url));
     signal.addEventListener("abort", unsubscribe, { once: true });
@@ -20004,9 +20040,12 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     if (job === void 0) {
       job = create(tabId).catch((error) => {
         console.warn("[ds-bot] browser acquire", error);
-        publish2(tabId, { loading: false, error: String(error?.message ?? error) });
+        const failure = error;
+        publish2(tabId, { loading: false, error: String(failure?.message ?? error) });
         return void 0;
-      }).finally(() => opening.delete(tabId));
+      }).finally(() => {
+        opening.delete(tabId);
+      });
       opening.set(tabId, job);
       void job.then(() => trim());
     }
@@ -20014,7 +20053,10 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
   }
   function trim() {
     const idle = [...views.values()].filter((entry) => entry.tabId !== shown).sort((a, b) => a.usedAt - b.usedAt);
-    while (views.size > MAX_LIVE && idle.length > 0) void release(idle.shift().tabId);
+    while (views.size > MAX_LIVE && idle.length > 0) {
+      const entry = idle.shift();
+      if (entry !== void 0) void release(entry.tabId);
+    }
   }
   async function release(tabId) {
     const entry = views.get(tabId);
@@ -20059,7 +20101,7 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     owner.delete(tabId);
     pages.set((snapshot) => {
       if (snapshot[tabId] === void 0) return snapshot;
-      const { [tabId]: _, ...rest } = snapshot;
+      const { [tabId]: _dropped, ...rest } = snapshot;
       return rest;
     });
     persist(botId);
@@ -20102,7 +20144,7 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     const entry = await open(tabId);
     if (entry === void 0) return false;
     publish2(tabId, { url, loading: true, error: null });
-    persist(owner.get(tabId));
+    persist(owner.get(tabId) ?? "");
     if (!entry.ready) entry.pending = url;
     else void entry.element.loadURL(url).catch(() => {
     });
@@ -20118,13 +20160,13 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
       owner.delete(tabId);
       pages.set((snapshot) => {
         if (snapshot[tabId] === void 0) return snapshot;
-        const { [tabId]: _, ...rest } = snapshot;
+        const { [tabId]: _dropped, ...rest } = snapshot;
         return rest;
       });
     }
     tabs.set((snapshot) => {
       if (snapshot[botId] === void 0) return snapshot;
-      const { [botId]: _, ...rest } = snapshot;
+      const { [botId]: _dropped, ...rest } = snapshot;
       return rest;
     });
     save(botId, void 0);
@@ -20132,7 +20174,6 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
   return {
     tabs,
     pages,
-    /** Restore a Bot's saved strip (or an empty one) so the panel can render it. */
     ensureTabs,
     openTab,
     closeTab,
@@ -20151,7 +20192,6 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     focus(tabId) {
       views.get(tabId)?.element.focus();
     },
-    /** Pages a read can reach: each Bot's active tab, live and showing a document. */
     openPages() {
       const open2 = {};
       const snapshot = pages.getSnapshot();
@@ -20163,7 +20203,6 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
       }
       return open2;
     },
-    /** A Bot's read reaches its active tab. */
     async read(botId) {
       const tabId = activeTab(botId);
       const entry = tabId ? views.get(tabId) : void 0;
@@ -20184,7 +20223,6 @@ function createBotBrowsers({ bridge, createSource: createSource2, storage = glob
     },
     release,
     forget,
-    /** Forget every Bot outside `botIds`, as when Bots were deleted from another window. */
     retain(botIds) {
       const keep = new Set(botIds);
       const known = /* @__PURE__ */ new Set([...Object.keys(tabs.getSnapshot()), ...Object.keys(saved), ...owner.values()]);
@@ -20218,23 +20256,27 @@ function serveBrowserReads({ browsers, post, clientId = globalThis.crypto.random
         }
       })();
       answered.set(id, job);
-      if (answered.size > 200) answered.delete(answered.keys().next().value);
+      if (answered.size > 200) {
+        const oldest = answered.keys().next().value;
+        if (oldest !== void 0) answered.delete(oldest);
+      }
     }
     await post("browser-result", await job).catch((error) => console.warn("[ds-bot] browser result", error));
   };
   const loop = async () => {
     let failures = 0;
     while (!stopped) {
-      poll = new AbortController();
+      const controller = new AbortController();
+      poll = controller;
       const open = browsers.openPages();
       reported = JSON.stringify(open);
       try {
-        const requests = await post("browser-wait", { clientId, open }, poll.signal);
+        const requests = await post("browser-wait", { clientId, open }, controller.signal);
         failures = 0;
         for (const request of Array.isArray(requests) ? requests : []) void answer(request);
       } catch {
         if (stopped) return;
-        if (poll.signal.aborted) continue;
+        if (controller.signal.aborted) continue;
         failures += 1;
         await sleep(Math.min(3e4, retryMs * 2 ** Math.min(failures, 5)));
       }

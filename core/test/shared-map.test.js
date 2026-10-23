@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createBotBrowsers } from '../src/client/bot-browsers.js'
+import { createBotBrowsers } from '../src/client/bot-browsers.ts'
 import { noteLeft, setUnread, sharedMap, toggleReaction } from '../src/client/shared-map.ts'
 import { STORAGE } from '../src/client/storage.ts'
 
