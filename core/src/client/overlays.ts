@@ -9,7 +9,8 @@ import { SettingsDialog } from './settings.js'
 import { ContextMenu } from './context-menu.ts'
 import { BotPanel } from './browser-pane.ts'
 import type { BrowserPagesHook, BrowserTabsHook, PanelActions } from './browser-pane.ts'
-import { MemoryDialog } from './memory-panel.js'
+import { MemoryDialog } from './memory-panel.ts'
+import type { MemoryActions } from './memory-panel.ts'
 import { DIALOG_EXIT_MS, MENU_EXIT_MS, PANEL_LINGER_MS, reducedMotion, useLinger } from './motion.js'
 import type { ExchangeActions } from './exchange.ts'
 import type { ContextMenuActions, ContextRoster } from './context-menu.ts'
@@ -104,5 +105,5 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
     ui.voice ? createPortal(h(VoiceMode, { key: ui.voice, sessionId: ui.voice, roster, actions, useSessions, useSessionStatus }), document.body) : null,
     menu ? createPortal(h(ContextMenu, { key: `${menu.kind ?? ''}:${menu.id}:${menu.x}:${menu.y}`, menu: menu as never, roster: roster as unknown as ContextRoster, actions: actions as unknown as ContextMenuActions, leaving: menuLeaving }), document.body) : null,
     settings ? createPortal(h(SettingsDialog, { page: settings.page, id: settings.id, roster, actions, useUpdate, leaving: settingsLeaving }), document.body) : null,
-    owner ? createPortal(h(MemoryDialog, { key: owner.id, owner, actions, leaving: memoryLeaving }), document.body) : null)
+    owner ? createPortal(h(MemoryDialog, { key: owner.id, owner, actions: actions as unknown as MemoryActions, leaving: memoryLeaving }), document.body) : null)
 }

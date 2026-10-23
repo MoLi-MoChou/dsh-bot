@@ -13972,7 +13972,7 @@ function BotCapabilitiesCard({ bot, roster, actions, run, Card: Card2, SwitchRow
   );
 }
 
-// src/client/memory-panel.js
+// src/client/memory-panel.ts
 var import_react23 = require("react");
 var POLL_MS2 = 1500;
 var MENU_EXIT_MS2 = 120;
@@ -14162,7 +14162,7 @@ function Reply({ answer, dismiss }) {
       import_react23.Fragment,
       null,
       answer.reply ? (0, import_react23.createElement)("div", { className: "bt-mem-reply-text" }, answer.reply) : null,
-      answer.changes.length > 0 ? (0, import_react23.createElement)("ul", { className: "bt-mem-changes" }, answer.changes.map((change, index) => (0, import_react23.createElement)(
+      (answer.changes?.length ?? 0) > 0 ? (0, import_react23.createElement)("ul", { className: "bt-mem-changes" }, (answer.changes ?? []).map((change, index) => (0, import_react23.createElement)(
         "li",
         { key: index, "data-ok": change.ok || void 0 },
         change.ok ? (0, import_react23.createElement)(CheckIcon) : (0, import_react23.createElement)(CloseIcon),
@@ -14174,7 +14174,7 @@ function Reply({ answer, dismiss }) {
 function useMemoryView(id, actions) {
   const [view, setView] = (0, import_react23.useState)(null);
   const [error, setError] = (0, import_react23.useState)("");
-  const timer = (0, import_react23.useRef)(0);
+  const timer = (0, import_react23.useRef)(void 0);
   const latest = (0, import_react23.useRef)(0);
   const alive = (0, import_react23.useRef)(true);
   const show = (0, import_react23.useCallback)((next) => {

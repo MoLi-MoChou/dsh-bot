@@ -8,7 +8,7 @@ import { ModelMenu, modelOf } from './model-menu.js'
 import { FolderMenu } from './folder-menu.ts'
 import { BotSchedules } from './schedules.js'
 import { BotCapabilitiesCard } from './capability-settings.ts'
-import { useMemoryCount } from './memory-panel.js'
+import { useMemoryCount } from './memory-panel.ts'
 import { SPRING_SHAPE, SPRING_TAP, spring, useGlide } from './motion.js'
 import { t } from './i18n.ts'
 
