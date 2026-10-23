@@ -4,7 +4,10 @@
 //   live      work changed without a new revision: ask for `state` again
 //   message   a new entry of a Bot's own chat, as the `chat` endpoint returns it
 //   stream    the reply a Bot is writing: a start, its text as it comes, an end
+import { clearInterval, setInterval, setTimeout } from 'node:timers'
 import { ROUTE } from './constants.ts'
+import type { AgentStatusEvent, AssistantStreamEvent, SessionEvent } from './dsh-types.ts'
+import type { HostRuntime } from './runtime.ts'
 
 export const FEED_ROUTE = `${ROUTE}/feed`
 // A comment line now and then keeps an idle connection open.
@@ -15,19 +18,19 @@ const LIVE_DELAY_MS = 150
 // reconnects and catches up from `hello`.
 const MAX_QUEUED = 512
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, state } = rt
   const encoder = new TextEncoder()
   /** @type {Set<ReadableStreamDefaultController<Uint8Array>>} */
-  const clients = new Set()
-  const send = (controller, chunk) => {
+  const clients = new Set<ReadableStreamDefaultController<Uint8Array>>()
+  const send = (controller: ReadableStreamDefaultController<Uint8Array>, chunk: Uint8Array): void => {
     if ((controller.desiredSize ?? 0) < -MAX_QUEUED) {
       leave(controller)
       return
     }
     try { controller.enqueue(chunk) } catch { clients.delete(controller) }
   }
-  const publish = (event, data) => {
+  const publish = (event: string, data: unknown): void => {
     const chunk = encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
     for (const controller of clients) send(controller, chunk)
   }
@@ -36,7 +39,7 @@ export function install(rt) {
     if (clients.size > 0) publish('revision', { revision: state.revision })
   }
 
-  let liveTimer
+  let liveTimer: ReturnType<typeof setTimeout> | undefined
   const live = () => {
     if (clients.size === 0 || liveTimer !== undefined) return
     liveTimer = setTimeout(() => {
@@ -44,11 +47,11 @@ export function install(rt) {
       publish('live', {})
     }, LIVE_DELAY_MS)
   }
-  ctx.on('agent/status', ({ agent }) => {
+  ctx.on<AgentStatusEvent>('agent/status', ({ agent }) => {
     if (rt.selfOf(agent.id) !== undefined) live()
   })
 
-  ctx.on('session/event', (session, event) => {
+  ctx.on<{ readonly id: string }, SessionEvent>('session/event', (session, event) => {
     if (clients.size === 0) return
     const botId = rt.chatOwners.get(session.id)
     if (botId === undefined) return
@@ -58,11 +61,11 @@ export function install(rt) {
 
   // Attempts being streamed, by id. A turn that answers another Bot is hidden from the
   // chat (turns.js marks it before the model is called), so its text is not streamed.
-  const writing = new Map()
-  ctx.on('agent/assistant-stream', ({ agent, frame }) => {
+  const writing = new Map<string, { readonly botId: string; readonly sessionId: string }>()
+  ctx.on<AssistantStreamEvent>('agent/assistant-stream', ({ agent, frame }) => {
     if (frame.type === 'start') {
       const botId = rt.chatOwners.get(agent.id)
-      if (clients.size === 0 || botId === undefined || (state.exchangeTurns[agent.id] ?? []).includes(frame.turn)) return
+      if (clients.size === 0 || botId === undefined || frame.turn !== undefined && (state.exchangeTurns[agent.id] ?? []).includes(frame.turn)) return
       writing.set(frame.attemptId, { botId, sessionId: agent.id })
       publish('stream', { botId, sessionId: agent.id, attemptId: frame.attemptId, phase: 'start' })
       return
@@ -76,7 +79,7 @@ export function install(rt) {
     }
   })
 
-  const leave = (controller) => {
+  const leave = (controller: ReadableStreamDefaultController<Uint8Array>): void => {
     clients.delete(controller)
     if (clients.size === 0) writing.clear()
     try { controller.close() } catch { /* already closed or errored */ }
@@ -86,8 +89,8 @@ export function install(rt) {
     path: FEED_ROUTE,
     methods: ['GET'],
     requestBody: 'buffered',
-    fetch: async (request) => {
-      let controller
+    fetch: async (request: Request): Promise<Response> => {
+      let controller: ReadableStreamDefaultController<Uint8Array>
       const body = new ReadableStream({
         start(own) {
           controller = own

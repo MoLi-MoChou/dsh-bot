@@ -34,7 +34,7 @@ export function install(rt: HostRuntime): void {
   })
   const zone = formatter.resolvedOptions().timeZone
 
-  ctx.on<PreStepPayload, PreStepDecision>('agent/pre-step', async ({ agent, signal }, next) => {
+  ctx.on<PreStepPayload, () => Promise<PreStepDecision>>('agent/pre-step', async ({ agent, signal }, next) => {
     const decision = await next()
     if (decision.kind === 'reject' || signal.aborted) return decision
     await rt.load()

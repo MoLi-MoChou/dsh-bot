@@ -75,6 +75,25 @@ export interface Agent {
   runMaintenance?<T>(work: (signal: AbortSignal) => Promise<T>): Promise<T>
 }
 
+/** `agent/status`: a Bot's agent changed status. */
+export interface AgentStatusEvent {
+  readonly agent: Agent
+}
+
+/** One frame of the reply a model is writing. */
+export interface AssistantStreamFrame {
+  readonly type: string
+  readonly attemptId: string
+  readonly turn?: number
+  readonly chunk?: { readonly type?: string; readonly text?: string }
+}
+
+/** `agent/assistant-stream`: an attempt starts, streams a chunk, or ends. */
+export interface AssistantStreamEvent {
+  readonly agent: Agent
+  readonly frame: AssistantStreamFrame
+}
+
 export interface SessionCreateOptions {
   /** A folder outside the team workspace; DSH makes the session by cwd alone. */
   readonly cwd?: string
@@ -303,10 +322,11 @@ export type DshServiceName = keyof DshServices
 export interface DshContext {
   readonly logger: Logger
   get<T>(name: string): T | undefined
-  // A waterfall listener gets the payload and `next()`; a plain listener only the payload.
-  on<TPayload = unknown, TResult = unknown>(
+  // The second argument is `next()` for a waterfall event and another value for events
+  // that pass one (a Session and its new event, say), so the caller names its type.
+  on<TPayload = unknown, TSecond = unknown>(
     name: string,
-    listener: (payload: TPayload, next: () => Promise<TResult>) => unknown,
+    listener: (payload: TPayload, second: TSecond) => unknown,
     options?: { readonly prepend?: boolean },
   ): Disposer
   emit?(name: string, payload: unknown): void

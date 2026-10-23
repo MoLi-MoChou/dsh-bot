@@ -33,8 +33,8 @@ import * as update from './src/host/update.js'
 import * as dshUpdate from './src/host/dsh-update.js'
 import * as thinking from './src/host/thinking.ts'
 import * as channel from './src/host/channel.js'
-import * as feed from './src/host/feed.js'
-import * as workspaceFiles from './src/host/workspace-files.js'
+import * as feed from './src/host/feed.ts'
+import * as workspaceFiles from './src/host/workspace-files.ts'
 
 export { COLORS } from './src/host/constants.ts'
 

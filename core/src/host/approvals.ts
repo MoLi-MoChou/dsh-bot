@@ -32,7 +32,7 @@ export function install(rt: HostRuntime): void {
   const pending = new Map<string, PendingApproval>()
 
   // Ahead of DSH's own answerer, which would hold a hidden Session's request unseen.
-  ctx.on<ApprovalRequestPayload, string>('approval/request', (request, next) => {
+  ctx.on<ApprovalRequestPayload, () => Promise<string>>('approval/request', (request, next) => {
     const sessionId = request.agent?.session?.id ?? request.agent?.id
     const owner = sessionId === undefined ? undefined : rt.groupOwners.get(sessionId)
     const botId = owner?.botId ?? (sessionId === undefined ? undefined : rt.chatOwners.get(sessionId))

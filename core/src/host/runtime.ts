@@ -44,6 +44,15 @@ export interface StoredRoom {
   readonly [key: string]: unknown
 }
 
+/** The team as `state.json` stores it. */
+export interface StoredState {
+  revision: number
+  bots: Record<string, StoredBot>
+  rooms: Record<string, StoredRoom>
+  exchangeTurns: Record<string, readonly number[]>
+  readonly [key: string]: unknown
+}
+
 /** An approval entry as the team view reads it. */
 export interface ApprovalDetail {
   readonly text?: string
@@ -64,6 +73,7 @@ export interface HostRuntime {
   readonly defaults: HostDefaults
 
   // --- provided by store.ts
+  readonly state: StoredState
   readonly chatOwners: Map<string, string>
   readonly groupOwners: Map<string, { readonly botId: string; readonly roomId: string }>
   load(): Promise<unknown>
@@ -91,6 +101,16 @@ export interface HostRuntime {
   yieldRoomTurn?(sessionId: string | undefined): void
   noteApproval?(sessionId: string | undefined, note: ApprovalNote | undefined): void
 
-  // --- provided by thinking.ts
+  // --- provided by parts.ts and folders.ts
+  displayItems(sessionId: string, events: readonly SessionEvent[]): readonly unknown[]
+  teamFolder?(): string | undefined
+  defaultTeamFolder?(): string | undefined
+
+  // --- provided by thinking.ts and feed.ts
   thinkingOf?: (sessionId: string, turn: number) => Promise<number | undefined>
+  stateSaved?: () => void
+
+  // --- provided by workspace-files.ts
+  workspaceDownload?: (path: string) => Promise<unknown>
+  workspaceDescribe?: (path: string) => Promise<unknown>
 }
