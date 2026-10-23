@@ -14374,9 +14374,9 @@ function MemoryDialog({ owner, actions, leaving = false }) {
   );
 }
 
-// src/client/bot-settings.js
+// src/client/bot-settings.ts
 var import_react24 = require("react");
-var capitalize = (word) => word[0].toUpperCase() + word.slice(1);
+var capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);
 async function avatarImage(file) {
   if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) throw new Error(t("Choose a PNG, JPEG, WebP, or GIF image"));
   if (file.size > 25 * 1024 * 1024) throw new Error(t("Choose an image smaller than 25 MB"));
@@ -14386,6 +14386,7 @@ async function avatarImage(file) {
   canvas.width = side;
   canvas.height = side;
   const context = canvas.getContext("2d");
+  if (context === null) throw new Error("canvas 2d context unavailable");
   context.imageSmoothingQuality = "high";
   const crop = Math.min(bitmap.width, bitmap.height);
   context.drawImage(bitmap, (bitmap.width - crop) / 2, (bitmap.height - crop) / 2, crop, crop, 0, 0, side, side);
@@ -14411,7 +14412,7 @@ function InlineText({ label, value, placeholder, required = false, maxLength, mu
     if (next === void 0 || next === (value ?? "") || required && next === "") return;
     void onSave(next);
   };
-  return (0, import_react24.createElement)(multiline ? "textarea" : "input", {
+  const shared2 = {
     className: multiline ? "bt-bs-input bt-bs-area" : "bt-bs-input",
     value: draft ?? value ?? "",
     placeholder,
@@ -14429,7 +14430,8 @@ function InlineText({ label, value, placeholder, required = false, maxLength, mu
       }
       if (event.key === "Enter" && !multiline && !event.nativeEvent.isComposing) event.currentTarget.blur();
     }
-  });
+  };
+  return multiline ? (0, import_react24.createElement)("textarea", shared2) : (0, import_react24.createElement)("input", shared2);
 }
 function Row({ label, hint, stack = false, children }) {
   return (0, import_react24.createElement)(
@@ -14506,6 +14508,7 @@ function AvatarEditor({ bot, actions, run, onClose }) {
   const [over, setOver] = (0, import_react24.useState)(false);
   const ref = (0, import_react24.useRef)(null);
   const fileRef = (0, import_react24.useRef)(null);
+  const storedShape = bot.avatar?.shape;
   const upload = (file) => {
     if (file) void run(avatarImage(file).then((image) => actions.updateBot(bot.id, { avatar: { ...bot.avatar ?? {}, image } })));
   };
@@ -14588,7 +14591,7 @@ function AvatarEditor({ bot, actions, run, onClose }) {
         "div",
         { className: "bt-actions", style: { justifyContent: "center" } },
         (0, import_react24.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => fileRef.current?.click() }, hasPhoto ? t("Replace") : t("Browse files")),
-        hasPhoto ? (0, import_react24.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => run(actions.updateBot(bot.id, { avatar: hasShape(bot.avatar?.shape) ? { shape: bot.avatar.shape } : null })) }, t("Remove photo")) : null
+        hasPhoto ? (0, import_react24.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: () => run(actions.updateBot(bot.id, { avatar: hasShape(storedShape) ? { shape: storedShape } : null })) }, t("Remove photo")) : null
       ),
       (0, import_react24.createElement)("input", { ref: fileRef, type: "file", accept: "image/png,image/jpeg,image/webp,image/gif", hidden: true, onChange: (event) => {
         const file = event.target.files?.[0];
@@ -18057,7 +18060,7 @@ function SettingsDialog({ page, id, roster, actions, useUpdate, leaving = false 
           shown === "models" ? (0, import_react36.createElement)(ProvidersPage, { actions, run, Section: SetSection }) : null,
           bot ? (0, import_react36.createElement)("div", { className: "bt-settings-form" }, (0, import_react36.createElement)(BotSettingsForm, { key: bot.id, bot, roster, actions, run })) : null,
           shown === "bots" && !bot ? (0, import_react36.createElement)(BotsPage, { roster, actions, run }) : null,
-          room2 ? (0, import_react36.createElement)("div", { className: "bt-settings-form" }, (0, import_react36.createElement)(GroupSettingsForm, { key: room2.id, room: room2, roster, actions, run, onDeleted: void 0 })) : null,
+          room2 ? (0, import_react36.createElement)("div", { className: "bt-settings-form" }, (0, import_react36.createElement)(GroupSettingsForm, { key: room2.id, room: room2, roster, actions, run })) : null,
           shown === "groups" && !room2 ? (0, import_react36.createElement)(GroupsPage, { roster, actions, run }) : null,
           shown === "connectors" ? (0, import_react36.createElement)(ConnectorsPage, { roster, actions }) : null,
           shown === "capabilities" ? (0, import_react36.createElement)(CapabilitiesPage, { roster, actions, run }) : null,

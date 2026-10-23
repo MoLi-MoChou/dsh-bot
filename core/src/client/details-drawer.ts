@@ -8,7 +8,7 @@ import { GlobeIcon, Favicon } from './browser-pane.ts'
 import type { BrowserPagesHook, BrowserTabsHook, ForwardedHook, PanelPage, PanelPages, PanelTabs, PanelView } from './browser-pane.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
-import { BotSettingsForm } from './bot-settings.js'
+import { BotSettingsForm } from './bot-settings.ts'
 import { GroupSettingsForm, ROOM_MODES, roomSubtitle, shownMode } from './group-settings.ts'
 import { ModelMenu, modelOf } from './model-menu.ts'
 import { FolderMenu } from './folder-menu.ts'
@@ -254,7 +254,7 @@ export function DetailsDrawer({ sessionId, startRenaming, startTab, hasStrip, ro
         h('span', { className: 'bt-subhead-title' }, bot ? t('Settings') : t('Group settings')),
         hasStrip ? null : h('button', { type: 'button', className: 'bt-icon-btn', 'aria-label': t('Close details'), onClick: close }, h(CloseIcon))),
       h('div', { key: 'set-body', className: 'bt-drawer-body bt-set-body', 'data-move': move }, errorLine,
-        bot ? h(BotSettingsForm, { bot, roster, actions, run }) : h(GroupSettingsForm, { room: room as never, roster: roster as never, actions: actions as never, run, onDeleted: close })),
+        bot ? h(BotSettingsForm, { bot: bot as never, roster: roster as never, actions: actions as never, run }) : h(GroupSettingsForm, { room: room as never, roster: roster as never, actions: actions as never, run, onDeleted: close })),
     ]
   }
   const top = h('div', { className: 'bt-drawer-top', 'data-move': side },

@@ -11,11 +11,12 @@ import { BotCapabilitiesCard } from './capability-settings.ts'
 import { useMemoryCount } from './memory-panel.ts'
 import { SPRING_SHAPE, SPRING_TAP, spring, useGlide } from './motion.js'
 import { t } from './i18n.ts'
+import type { AvatarEditorProps, BotPatch, BotSettingsFormProps, CardProps, CharacterGridProps, InlineTextProps, RowProps, SettingsActions, SettingsBot, SettingsRoster, SwitchProps, SwitchRowProps } from './settings-types.ts'
 
-const capitalize = word => word[0].toUpperCase() + word.slice(1)
+const capitalize = (word: string): string => word.charAt(0).toUpperCase() + word.slice(1)
 
 // Uploaded avatars are center-cropped to a small square so state.json stays light.
-export async function avatarImage(file) {
+export async function avatarImage(file: File): Promise<string> {
   if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) throw new Error(t('Choose a PNG, JPEG, WebP, or GIF image'))
   if (file.size > 25 * 1024 * 1024) throw new Error(t('Choose an image smaller than 25 MB'))
   const bitmap = await createImageBitmap(file)
@@ -24,6 +25,7 @@ export async function avatarImage(file) {
   canvas.width = side
   canvas.height = side
   const context = canvas.getContext('2d')
+  if (context === null) throw new Error('canvas 2d context unavailable')
   context.imageSmoothingQuality = 'high'
   const crop = Math.min(bitmap.width, bitmap.height)
   context.drawImage(bitmap, (bitmap.width - crop) / 2, (bitmap.height - crop) / 2, crop, crop, 0, 0, side, side)
@@ -39,59 +41,58 @@ export async function avatarImage(file) {
 
 // Settings save on blur or Enter, with no Save button; Escape puts the
 // saved value back. A required field never saves empty.
-/**
- * A value edited in place. Only the props a caller varies are typed until this file
- * migrates; the rest keep their defaults.
- * @param {{ label?: string, value?: string, placeholder?: string, required?: boolean, maxLength?: number, multiline?: boolean, onSave?: (value: string) => unknown }} props
- */
-export function InlineText({ label, value, placeholder, required = false, maxLength, multiline = false, onSave }) {
-  const [draft, setDraft] = useState(null)
+export function InlineText({ label, value, placeholder, required = false, maxLength, multiline = false, onSave }: InlineTextProps) {
+  const [draft, setDraft] = useState<string | null>(null)
   const reverting = useRef(false)
-  const commit = () => {
+  const commit = (): void => {
     const next = draft?.trim()
     setDraft(null)
     if (reverting.current) { reverting.current = false; return }
     if (next === undefined || next === (value ?? '') || (required && next === '')) return
     void onSave(next)
   }
-  return h(multiline ? 'textarea' : 'input', {
-    className: multiline ? 'bt-bs-input bt-bs-area' : 'bt-bs-input', value: draft ?? value ?? '', placeholder, maxLength, required, 'aria-label': label, spellCheck: false,
-    onChange: event => setDraft(event.target.value),
+  const shared = {
+    className: multiline ? 'bt-bs-input bt-bs-area' : 'bt-bs-input',
+    value: draft ?? value ?? '',
+    placeholder,
+    maxLength,
+    required,
+    'aria-label': label,
+    spellCheck: false,
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(event.target.value),
     onBlur: commit,
-    onKeyDown: (event) => {
+    onKeyDown: (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       if (event.key === 'Escape') { event.stopPropagation(); reverting.current = true; event.currentTarget.blur() }
       if (event.key === 'Enter' && !multiline && !event.nativeEvent.isComposing) event.currentTarget.blur()
     },
-  })
+  }
+  return multiline ? h('textarea', shared) : h('input', shared)
 }
 
 // One labelled card row with its control on the right, or below when `stack`.
-/** @param {{ label?: unknown, hint?: unknown, stack?: boolean, children?: unknown }} props */
-export function Row({ label, hint, stack = false, children }) {
+export function Row({ label, hint, stack = false, children }: RowProps) {
   return h('label', { className: stack ? 'bt-set-row bt-bs-row bt-bs-stack' : 'bt-set-row bt-bs-row' },
     h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, label), hint ? h('span', { className: 'bt-set-hint' }, hint) : null),
     children)
 }
 
-/** @param {{ title?: unknown, children?: unknown }} props */
-export function Card({ title, children }) {
+export function Card({ title, children }: CardProps) {
   return h('section', { className: 'bt-set-section' }, title ? h('h3', null, title) : null, h('div', { className: 'bt-set-card' }, children))
 }
 
-export function Switch({ on, label, disabled, onChange }) {
+export function Switch({ on, label, disabled, onChange }: SwitchProps) {
   return h('button', { type: 'button', role: 'switch', className: 'bt-switch', 'aria-checked': on, 'aria-label': label, disabled, onClick: () => onChange(!on) },
     h('span', { className: 'bt-switch-knob', 'aria-hidden': true }))
 }
 
 // A row with a switch. Not a label: a click on the copy must not flip it twice.
-/** @param {{ label?: unknown, hint?: unknown, on?: boolean, disabled?: boolean, onChange?: (on: boolean) => unknown }} props */
-export function SwitchRow({ label, hint, on, disabled, onChange }) {
+export function SwitchRow({ label, hint, on, disabled, onChange }: SwitchRowProps) {
   return h('div', { className: 'bt-set-row bt-bs-row' },
     h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, label), hint ? h('span', { className: 'bt-set-hint' }, hint) : null),
     h(Switch, { on, label, disabled, onChange }))
 }
 
-function modelHint(bot, roster) {
+function modelHint(bot: SettingsBot, roster: SettingsRoster): string {
   const shown = modelOf(bot, roster)
   if (shown === undefined) return t('Pick the model this Bot runs on.')
   if (!shown.served && (roster.models ?? []).length > 0) return t('This model is not available now. Pick another one.')
@@ -100,7 +101,7 @@ function modelHint(bot, roster) {
 }
 
 // The selection ring of a picker cell follows the shape: a 1px line 3px outside it.
-function ShapeRing({ shape, size }) {
+function ShapeRing({ shape, size }: { shape: string; size: number }) {
   const maskId = useRef('')
   if (maskId.current === '') maskId.current = `bt-ring-${nextMarkSerial()}`
   const def = shapeOf(shape)
@@ -110,10 +111,10 @@ function ShapeRing({ shape, size }) {
 }
 
 // Every character shape, six to a row, then the color swatches.
-export function CharacterGrid({ look, hasPhoto = false, onShape, onColor }) {
+export function CharacterGrid({ look, hasPhoto = false, onShape, onColor }: CharacterGridProps) {
   const shapes = [...PICKER_SHAPES, ...Object.keys(SHAPES).filter(id => !Object.hasOwn(CHARACTERS, id))]
   if (!shapes.includes(look.shape)) shapes.push(look.shape)
-  const rows = []
+  const rows: string[][] = []
   for (let index = 0; index < shapes.length; index += PICKER_COLUMNS) rows.push(shapes.slice(index, index + PICKER_COLUMNS))
   return h(Fragment, null,
     h('div', { className: 'bt-shapes', role: 'group', 'aria-label': t('Character shape') }, rows.map((row, index) => h('div', { key: index, className: 'bt-shape-row' }, row.map(id => h('button', {
@@ -128,28 +129,29 @@ export function CharacterGrid({ look, hasPhoto = false, onShape, onColor }) {
 
 // The avatar editor: the Bot tab picks a character (every click saves), the
 // Upload tab takes a photo, and Reset returns to the look the Bot id gives.
-function AvatarEditor({ bot, actions, run, onClose }) {
+function AvatarEditor({ bot, actions, run, onClose }: AvatarEditorProps) {
   const look = lookOf(bot)
-  const [tab, setTab] = useState(look.image ? 'upload' : 'bot')
+  const [tab, setTab] = useState<'bot' | 'upload'>(look.image ? 'upload' : 'bot')
   const [over, setOver] = useState(false)
-  const ref = useRef(null)
-  const fileRef = useRef(null)
-  const upload = (file) => {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const storedShape = bot.avatar?.shape
+  const upload = (file: File | undefined): void => {
     if (file) void run(avatarImage(file).then(image => actions.updateBot(bot.id, { avatar: { ...(bot.avatar ?? {}), image } })))
   }
   useEffect(() => {
-    const onDown = (event) => {
+    const onDown = (event: MouseEvent): void => {
       if (!(event.target instanceof Element) || ref.current?.contains(event.target) || event.target.closest('.bt-avatar-trigger')) return
       onClose()
     }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }
+    const onKey = (event: KeyboardEvent): void => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey, true) }
   }, [onClose])
   useEffect(() => {
     if (tab !== 'upload') return undefined
-    const onPaste = (event) => {
+    const onPaste = (event: ClipboardEvent): void => {
       const file = [...(event.clipboardData?.files ?? [])].find(item => item.type.startsWith('image/'))
       if (file) { event.preventDefault(); upload(file) }
     }
@@ -162,7 +164,7 @@ function AvatarEditor({ bot, actions, run, onClose }) {
     h('div', { className: 'bt-avedit-top' },
       h('div', { ref: glide.box, role: 'tablist', 'aria-label': t('Avatar source'), className: 'bt-avedit-tabs' },
         h('span', { ref: glide.thumb, className: 'bt-thumb', 'aria-hidden': true }),
-        [['bot', 'Bot'], ['upload', 'Upload']].map(([id, label]) => h('button', { key: id, type: 'button', role: 'tab', className: 'bt-avedit-tab', 'aria-selected': tab === id, onClick: () => setTab(id) }, t(label)))),
+        ([['bot', 'Bot'], ['upload', 'Upload']] as const).map(([id, label]) => h('button', { key: id, type: 'button', role: 'tab', className: 'bt-avedit-tab', 'aria-selected': tab === id, onClick: () => setTab(id) }, t(label)))),
       h('button', {
         type: 'button', className: 'bt-avedit-tab bt-avedit-reset', title: t('Reset character to default'),
         onClick: () => run(actions.updateBot(bot.id, { avatar: null, color: null })),
@@ -174,20 +176,20 @@ function AvatarEditor({ bot, actions, run, onClose }) {
     }) : null,
     tab === 'upload' ? h('div', {
       className: 'bt-dropzone', 'data-over': over || undefined,
-      onDragOver: (event) => { event.preventDefault(); setOver(true) },
+      onDragOver: (event: React.DragEvent<HTMLDivElement>) => { event.preventDefault(); setOver(true) },
       onDragLeave: () => setOver(false),
-      onDrop: (event) => { event.preventDefault(); setOver(false); upload(event.dataTransfer.files?.[0]) },
+      onDrop: (event: React.DragEvent<HTMLDivElement>) => { event.preventDefault(); setOver(false); upload(event.dataTransfer.files?.[0]) },
     },
     hasPhoto ? h('img', { src: look.image, alt: '' }) : null,
     h('div', null, t('Drag, drop, or paste an image')),
     h('div', { className: 'bt-actions', style: { justifyContent: 'center' } },
       h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => fileRef.current?.click() }, hasPhoto ? t('Replace') : t('Browse files')),
-      hasPhoto ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => run(actions.updateBot(bot.id, { avatar: hasShape(bot.avatar?.shape) ? { shape: bot.avatar.shape } : null })) }, t('Remove photo')) : null),
-    h('input', { ref: fileRef, type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onChange: (event) => { const file = event.target.files?.[0]; event.target.value = ''; upload(file) } })) : null)
+      hasPhoto ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => run(actions.updateBot(bot.id, { avatar: hasShape(storedShape) ? { shape: storedShape } : null })) }, t('Remove photo')) : null),
+    h('input', { ref: fileRef, type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true, onChange: (event: React.ChangeEvent<HTMLInputElement>) => { const file = event.target.files?.[0]; event.target.value = ''; upload(file) } })) : null)
 }
 
-function MemoryCard({ bot, actions }) {
-  const count = useMemoryCount(bot.id, actions)
+function MemoryCard({ bot, actions }: { bot: SettingsBot; actions: SettingsActions }) {
+  const count = useMemoryCount(bot.id, actions as never)
   const label = count === null ? t('Loading…') : count === 0 ? t('Nothing saved yet') : count === 1 ? t('1 entry') : t('{count} entries', { count })
   return h(Card, { title: t('Memory') },
     h('button', { type: 'button', className: 'bt-set-row bt-bs-row', 'aria-label': t("Manage {name}'s memory", { name: bot.name }), onClick: () => actions.openMemory(bot.id) },
@@ -198,7 +200,7 @@ function MemoryCard({ bot, actions }) {
 // A Bot's settings as grouped cards: who it is (avatar, name, label), what it runs on
 // (model), what it does (instructions), its memory and tasks, its Main Bot role, its
 // sidebar place, and copies.
-export function BotSettingsForm({ bot, roster, actions, run }) {
+export function BotSettingsForm({ bot, roster, actions, run }: BotSettingsFormProps) {
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const closeEditor = useCallback(() => setEditing(false), [])
@@ -210,9 +212,9 @@ export function BotSettingsForm({ bot, roster, actions, run }) {
   const isMainBot = isMainOf(roster, bot.id)
   const onlyMain = isMainBot && (roster.mainBotIds ?? []).length === 1
   const isTile = roster.mainBotId === bot.id
-  const save = patch => run(actions.updateBot(bot.id, patch))
-  const duplicate = () => run(actions.duplicateBot(bot.id).then(copy => actions.openSession(copy.id)))
-  const remove = () => { if (confirming) void run(actions.deleteBot(bot.id)); else setConfirming(true) }
+  const save = (patch: BotPatch): Promise<boolean> => run(actions.updateBot(bot.id, patch))
+  const duplicate = (): Promise<boolean> => run(actions.duplicateBot(bot.id).then(copy => actions.openSession(copy.id)))
+  const remove = (): void => { if (confirming) void run(actions.deleteBot(bot.id)); else setConfirming(true) }
   // DSH settings can change the model list at any time; the hint should match it.
   useEffect(() => { void actions.refreshModels?.() }, [bot.id])
   return h('div', { className: 'bt-bs' },
@@ -239,7 +241,7 @@ export function BotSettingsForm({ bot, roster, actions, run }) {
     h(Card, { title: t('Instructions') },
       h(Row, { label: t('What this Bot does'), hint: t('Its job on the team. Part of the Bot\'s system prompt.'), stack: true },
         h(InlineText, { label: t('Instructions'), value: bot.instructions, multiline: true, placeholder: t('What this Bot is responsible for…'), onSave: instructions => save({ instructions }) }))),
-    h(BotCapabilitiesCard, { bot, roster, actions, run, Card, SwitchRow }),
+    h(BotCapabilitiesCard, { bot: bot as never, roster: roster as never, actions: actions as never, run, Card: Card as never, SwitchRow: SwitchRow as never }),
     roster.memory === false ? null : h(MemoryCard, { bot, actions }),
     h(BotSchedules, { bot, roster, actions }),
     h(Card, { title: t('Main Bot') },

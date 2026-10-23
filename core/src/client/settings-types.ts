@@ -1,11 +1,12 @@
-// The team records and actions the settings surfaces read. Kept apart from the pages so
-// the settings dialog and the forms it shows describe the same contract.
+// The records, actions and component props the settings surfaces share. Kept apart from
+// the pages so the settings dialog and the forms it shows describe one contract.
 import type { ModelEntry } from './model-menu.ts'
 import type { SecretActions, SecretEntry, SecretRequest } from './secret-card.ts'
 import type { Connector, ConnectorActions } from './connectors.ts'
 import type { FolderMenuActions } from './folder-menu.ts'
 import type { UsagePageProps } from './usage-page.ts'
 import type { DiagnosticsReport } from './feedback.ts'
+import type { ReactNode } from 'react'
 
 // The team records the settings page and its forms read; the rest passes through.
 export interface SettingsBot {
@@ -52,18 +53,17 @@ export interface SettingsRoster {
 }
 // A patch to one Bot; every field the forms save is optional.
 export interface BotPatch {
-  [key: string]: unknown
-  name?: string
-  role?: string
-  instructions?: string
-  workDir?: string
-  model?: string
-  effort?: string | null
-  avatar?: { shape?: string; image?: string } | null
-  color?: string | null
-  pinned?: boolean
-  hidden?: boolean
-  permission?: string
+  name?: string | undefined
+  role?: string | undefined
+  instructions?: string | undefined
+  workDir?: string | undefined
+  model?: string | undefined
+  effort?: string | null | undefined
+  avatar?: { shape?: string; image?: string } | null | undefined
+  color?: string | null | undefined
+  pinned?: boolean | undefined
+  hidden?: boolean | undefined
+  permission?: string | undefined
 }
 export interface SettingsActions extends FolderMenuActions, SecretActions, ConnectorActions {
   closeSettings: () => void
@@ -90,3 +90,56 @@ export interface SettingsActions extends FolderMenuActions, SecretActions, Conne
   dismissToast: (token: string) => void
 }
 export type RunWork = (work: Promise<unknown>) => Promise<boolean>
+
+// Component props shared by the dialog and the Bot settings form.
+export interface InlineTextProps {
+  label: string
+  value?: string | null | undefined
+  placeholder?: string | undefined
+  required?: boolean | undefined
+  maxLength?: number | undefined
+  multiline?: boolean | undefined
+  onSave: (next: string) => unknown
+}
+export interface RowProps {
+  label: ReactNode
+  hint?: ReactNode
+  stack?: boolean | undefined
+  children?: ReactNode
+}
+export interface CardProps {
+  title?: ReactNode
+  children?: ReactNode
+}
+export interface SwitchProps {
+  on: boolean
+  label: string
+  disabled?: boolean | undefined
+  onChange: (on: boolean) => void
+}
+export interface SwitchRowProps {
+  label: string
+  hint?: string | undefined
+  on: boolean
+  disabled?: boolean | undefined
+  onChange: (on: boolean) => void
+}
+export interface CharacterLook { shape: string; color: string }
+export interface CharacterGridProps {
+  look: CharacterLook
+  hasPhoto?: boolean | undefined
+  onShape: (shape: string) => unknown
+  onColor: (color: string) => unknown
+}
+export interface AvatarEditorProps {
+  bot: SettingsBot
+  actions: SettingsActions
+  run: RunWork
+  onClose: () => void
+}
+export interface BotSettingsFormProps {
+  bot: SettingsBot
+  roster: SettingsRoster
+  actions: SettingsActions
+  run: RunWork
+}

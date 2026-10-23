@@ -9,7 +9,7 @@ import { CloseIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, ConnectorIcon,
 import { EmptyState } from './empty-state.ts'
 import { AdminStar, BotAvatar, RoomAvatar } from './mark.ts'
 import { useEscape } from './overlay-hooks.ts'
-import { BotSettingsForm } from './bot-settings.js'
+import { BotSettingsForm } from './bot-settings.ts'
 import { Segmented, useGlide } from './motion.js'
 import { GroupSettingsForm, NewGroupForm } from './group-settings.ts'
 import { CreateBot } from './create-bot.ts'
