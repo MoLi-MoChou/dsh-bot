@@ -48,7 +48,7 @@ import { ChatWelcome, WELCOME_CSS } from './chat-welcome.js'
 import { PROCESS_CSS } from './work-process.js'
 import { installFilesPanel, FILES_PANEL_CSS } from './files-panel.js'
 import { RetryCell, RETRY_CSS } from './retry-cell.js'
-import { StarterChips, STARTERS_CSS } from './starters.js'
+import { StarterChips, STARTERS_CSS } from './starters.tsx'
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
 
 export function apply(ctx) {

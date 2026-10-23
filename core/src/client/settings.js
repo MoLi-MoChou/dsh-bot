@@ -1,5 +1,5 @@
 import { createElement as h, useCallback, useEffect, useRef, useState } from 'react'
-import { LEAN } from './lean.js'
+import { LEAN } from './lean.ts'
 import { ACCENT_INKS, INKS } from './inks.js'
 import { isMainOf } from './sources.js'
 import { allThemes, resolveThemeId } from './themes.js'

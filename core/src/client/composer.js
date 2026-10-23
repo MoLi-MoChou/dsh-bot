@@ -1,5 +1,5 @@
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { LEAN } from './lean.js'
+import { LEAN } from './lean.ts'
 import { createPortal } from 'react-dom'
 import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, WaveIcon } from './icons.js'
 import { BotMark } from './mark.js'

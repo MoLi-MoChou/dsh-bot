@@ -1,5 +1,5 @@
 import { createElement as h, useRef, useState } from 'react'
-import { LEAN } from './lean.js'
+import { LEAN } from './lean.ts'
 import { FishLogo } from './dsh-primitives.js'
 import { PlusIcon, PeopleIcon, ArrowUpIcon } from './icons.js'
 import { AdminStar, BotMark } from './mark.js'
