@@ -46,7 +46,7 @@ export function surfaceGroups(
         if (!wanted[group] || mounted[group].length > 0) continue
         const disposers: (() => void)[] = []
         try {
-          for (const step of install[group]()) { const dispose = step(); if (dispose !== undefined) disposers.push(dispose) }
+          for (const step of install[group]()) { if (!step) continue; const dispose = step(); if (dispose !== undefined) disposers.push(dispose) }
           mounted[group] = disposers
         } catch (error) {
           disposeAll(disposers, `roll back ${group}`)

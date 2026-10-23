@@ -12475,6 +12475,7 @@ function surfaceGroups(install, { onError } = {}) {
         const disposers = [];
         try {
           for (const step of install[group]()) {
+            if (!step) continue;
             const dispose = step();
             if (dispose !== void 0) disposers.push(dispose);
           }
