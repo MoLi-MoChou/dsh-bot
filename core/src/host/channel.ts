@@ -25,6 +25,7 @@ import { errorCode, fail, failureCodeOf, messageOf, recordOf, stackOf } from './
 import { hostHandlers } from './channel/ops-host.ts'
 import { teamHandlers } from './channel/ops-team.ts'
 import type { LocaleState } from './channel/ops-team.ts'
+import type { SecretView } from './secrets/store.ts'
 
 /** What a Bot is created with; `roster.js` normalizes every field itself. */
 export interface CreateBotOptions {
@@ -105,7 +106,7 @@ export interface ChannelRuntime extends HostRuntime {
 
   roomProgress: ReadonlyMap<string, RoomProgress>
 
-  secretsView(): readonly Readonly<Record<string, unknown>>[]
+  secretsView(): readonly SecretView[]
   capabilityLibraryView(): readonly Readonly<Record<string, unknown>>[]
   capabilityStatusesView(): Readonly<Record<string, Readonly<Record<string, unknown>>>>
   permissionCatalog?(): PermissionCatalog | undefined

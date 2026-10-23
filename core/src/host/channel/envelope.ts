@@ -6,6 +6,7 @@
 // because it is only this module's slice of the plugin, and the file gate keeps the
 // shared interface from growing without bound.
 import type { RpcEndpoint, RpcErrorCode, RpcResultBody, WorkBot } from '../../shared/rpc.ts'
+import type { SecretView } from '../secrets/store.ts'
 import type { ModelEntry, StoredAgent } from '../runtime.ts'
 
 /** A decoded `payload`; JSON has no schema, so every field is read as unknown. */
@@ -55,7 +56,7 @@ export interface TeamView {
   readonly questions: Readonly<Record<string, unknown>> | undefined
   readonly views: Readonly<Record<string, unknown>>
   readonly agents: readonly StoredAgent[]
-  readonly secrets: readonly Readonly<Record<string, unknown>>[]
+  readonly secrets: readonly SecretView[]
   readonly capabilities: readonly Readonly<Record<string, unknown>>[]
   readonly secretRequests: Readonly<Record<string, unknown>>
   readonly colors: readonly string[]
