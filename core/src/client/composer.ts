@@ -12,13 +12,24 @@ import { t } from './i18n.js'
 // button stays the submit path; CSS swaps it with the voice button while the draft is
 // empty (the send button is disabled then).
 
-export const speechApi = () => window.SpeechRecognition ?? window.webkitSpeechRecognition
-const keepComposerFocus = event => event.preventDefault()
+export const speechApi = (): SpeechRecognitionCtor | undefined => window.SpeechRecognition ?? window.webkitSpeechRecognition
+const keepComposerFocus = (event: { preventDefault: () => void }): void => event.preventDefault()
 
-export function useDictation(onText) {
+// The roster fields the "+" menu reads: a chat's Bot or group.
+export interface ComposerRoster {
+  byId?: Record<string, { id: string; name: string } | undefined>
+  roomsById?: Record<string, { id: string; name: string } | undefined>
+}
+export interface Dictation {
+  listening: boolean
+  note: string
+  start: (options?: { continuous?: boolean; onEnd?: () => void }) => boolean
+  stop: () => void
+}
+export function useDictation(onText: (text: string, final: boolean) => void): Dictation {
   const [listening, setListening] = useState(false)
   const [note, setNote] = useState('')
-  const recognition = useRef(null)
+  const recognition = useRef<SpeechRecognitionLike | null>(null)
   const latest = useRef(onText)
   latest.current = onText
   useEffect(() => () => recognition.current?.abort(), [])
@@ -27,23 +38,24 @@ export function useDictation(onText) {
     const timer = setTimeout(() => setNote(''), 2600)
     return () => clearTimeout(timer)
   }, [note])
-  const start = ({ continuous = true, onEnd } = {}) => {
+  const start = ({ continuous = true, onEnd }: { continuous?: boolean; onEnd?: () => void } = {}): boolean => {
     const Api = speechApi()
     if (!Api) { setNote(t('Dictation is not available in this browser')); return false }
     const engine = new Api()
     engine.lang = navigator.language || 'zh-CN'
     engine.interimResults = true
     engine.continuous = continuous
-    engine.onresult = (event) => {
+    engine.onresult = (event: SpeechRecognitionEventLike) => {
       let interim = ''
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index]
+        if (result === undefined) continue
         const text = result[0]?.transcript ?? ''
         if (result.isFinal) { if (text.trim()) latest.current(text, true) } else interim += text
       }
       if (interim) latest.current(interim, false)
     }
-    engine.onerror = (event) => {
+    engine.onerror = (event: SpeechRecognitionErrorLike) => {
       if (event.error === 'aborted' || event.error === 'no-speech') return
       setNote(event.error === 'not-allowed' || event.error === 'service-not-allowed' ? t('Microphone access is blocked') : t("Couldn't hear that"))
     }
@@ -55,12 +67,17 @@ export function useDictation(onText) {
   return { listening, note, start, stop }
 }
 
-export function ComposerVoice({ sessionId, inputActions, actions, useUi }) {
+export function ComposerVoice({ sessionId, inputActions, actions, useUi }: {
+  sessionId: string | undefined
+  inputActions: { insertText: (text: string, insertion: unknown) => void; captureInsertion: () => unknown } | undefined
+  actions: { clearQuote: (token: number) => void; speech: () => unknown; openVoice: (id: string) => void }
+  useUi: <T>(select: (state: { quote?: { sessionId: string; text: string; token: number } | null | undefined }) => T) => T
+}) {
   const dictation = useDictation((text, final) => {
     if (final && inputActions) inputActions.insertText(text, inputActions.captureInsertion())
   })
   // Reply from a message's hover toolbar quotes it into this composer.
-  const quote = useUi(state => (state.quote?.sessionId === sessionId ? state.quote : null))
+  const quote = useUi(state => (state.quote?.sessionId === sessionId ? state.quote ?? null : null))
   useEffect(() => {
     if (!quote || !inputActions) return
     actions.clearQuote(quote.token)
@@ -93,9 +110,9 @@ export function ComposerVoice({ sessionId, inputActions, actions, useUi }) {
 
 // Character marks for the "@" menu rows. Each Bot keeps one component, so the menu
 // does not remount its mark on every keystroke.
-export function menuIcons(roster) {
-  const marks = new Map()
-  return (row) => {
+export function menuIcons(roster: { getSnapshot: () => { byId: Record<string, { id: string } | undefined> } }) {
+  const marks = new Map<string, (props: { size?: number }) => ReturnType<typeof h>>()
+  return (row: { bot?: { id: string } }) => {
     if (!row.bot) return PeopleIcon
     const id = row.bot.id
     if (!marks.has(id)) marks.set(id, ({ size = 14 }) => h(BotMark, { bot: roster.getSnapshot().byId[id] ?? row.bot, size }))
@@ -108,27 +125,34 @@ export function menuIcons(roster) {
 // menu, whose plan, permission, model and compact rows reach past what DS Bot keeps
 // for its Bots; "/" still opens that menu. Files go through the shell's own file
 // input beside it.
-export function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
+export function ComposerPlus({ sessionId, inputActions, useRoster, actions }: {
+  sessionId: string | undefined
+  inputActions: { captureInsertion?: () => unknown } | undefined
+  useRoster: <T>(select: (value: ComposerRoster) => T) => T
+  actions: { openSettings: (page: string, id: string) => void; referenceChat: (sessionId: string, insertion: unknown) => void; canReferenceChat: () => boolean }
+}) {
   const roster = useRoster(value => value)
-  const [open, setOpen] = useState(null)
+  const [open, setOpen] = useState<{ left: number; bottom: number; files: boolean } | null>(null)
   const [shown, leaving] = useLinger(open, 120)
-  const button = useRef(null)
-  const menu = useRef(null)
+  const button = useRef<HTMLButtonElement | null>(null)
+  const menu = useRef<HTMLDivElement | null>(null)
   useMenuKeys(menu, Boolean(open))
   useEffect(() => {
     if (!open) return undefined
-    const onDown = (event) => { if (![button.current, menu.current].some(node => node?.contains(event.target))) setOpen(null) }
-    const onKey = (event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(null); button.current?.focus() } }
+    const onDown = (event: MouseEvent) => { const target = event.target as Node | null; if (![button.current, menu.current].some(node => node?.contains(target))) setOpen(null) }
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(null); button.current?.focus() } }
     window.addEventListener('mousedown', onDown, true)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown, true); window.removeEventListener('keydown', onKey, true) }
   }, [open])
-  const target = roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id
+  const target = sessionId === undefined ? undefined : roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id
   if (sessionId === undefined || target === undefined) return null
-  const fileInput = () => button.current?.closest('[data-composer-card]')?.querySelector('input[type=file]')
+  const fileInput = () => button.current?.closest('[data-composer-card]')?.querySelector<HTMLInputElement>('input[type=file]')
   const toggle = () => {
     if (open) { setOpen(null); return }
-    const rect = button.current.getBoundingClientRect()
+    const node = button.current
+    if (node === null) return
+    const rect = node.getBoundingClientRect()
     // Files go through the composer's own file input; a composer without one takes none.
     setOpen({ left: rect.left, bottom: window.innerHeight - rect.top + 8, files: Boolean(fileInput()) })
   }

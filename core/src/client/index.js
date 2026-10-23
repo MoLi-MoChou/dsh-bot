@@ -11,7 +11,7 @@ import { SHELL_CSS, CONVERSATION_CSS, installStyles, installCompiledStyles } fro
 import { lookOf } from './mark.ts'
 import { TeamSidebar, ConnectPlugins, YouAvatar, AccountLauncher, FooterAccount, BrandMark, BrandName, BotReturn, SIDEBAR_CSS, RETURN_CSS, holdShellShortcuts, openHarnessOnboarding, openHarnessSettings } from './sidebar.js'
 import { HeaderPill } from './header.js'
-import { ComposerPlus, ComposerVoice, menuIcons } from './composer.js'
+import { ComposerPlus, ComposerVoice, menuIcons } from './composer.ts'
 import { CHATS_SOURCE, atSources } from './at-menu.ts'
 import { VOICE_BUNDLE } from './speech.ts'
 import { sameVersion } from './dsh-offer.ts'

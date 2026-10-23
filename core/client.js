@@ -12103,7 +12103,7 @@ function NewMessagePills({ sessionId, useSessions, useUi, useTurnClock }) {
   );
 }
 
-// src/client/composer.js
+// src/client/composer.ts
 var import_react17 = require("react");
 var import_react_dom6 = require("react-dom");
 var speechApi = () => window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -12134,6 +12134,7 @@ function useDictation(onText) {
       let interim = "";
       for (let index = event.resultIndex; index < event.results.length; index += 1) {
         const result = event.results[index];
+        if (result === void 0) continue;
         const text = result[0]?.transcript ?? "";
         if (result.isFinal) {
           if (text.trim()) latest.current(text, true);
@@ -12167,7 +12168,7 @@ function ComposerVoice({ sessionId, inputActions, actions, useUi }) {
   const dictation = useDictation((text, final) => {
     if (final && inputActions) inputActions.insertText(text, inputActions.captureInsertion());
   });
-  const quote = useUi((state) => state.quote?.sessionId === sessionId ? state.quote : null);
+  const quote = useUi((state) => state.quote?.sessionId === sessionId ? state.quote ?? null : null);
   (0, import_react17.useEffect)(() => {
     if (!quote || !inputActions) return;
     actions.clearQuote(quote.token);
@@ -12228,7 +12229,8 @@ function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
   (0, import_react17.useEffect)(() => {
     if (!open) return void 0;
     const onDown = (event) => {
-      if (![button.current, menu.current].some((node) => node?.contains(event.target))) setOpen(null);
+      const target2 = event.target;
+      if (![button.current, menu.current].some((node) => node?.contains(target2))) setOpen(null);
     };
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -12245,7 +12247,7 @@ function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
       window.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
-  const target = roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id;
+  const target = sessionId === void 0 ? void 0 : roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id;
   if (sessionId === void 0 || target === void 0) return null;
   const fileInput = () => button.current?.closest("[data-composer-card]")?.querySelector("input[type=file]");
   const toggle = () => {
@@ -12253,7 +12255,9 @@ function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
       setOpen(null);
       return;
     }
-    const rect = button.current.getBoundingClientRect();
+    const node = button.current;
+    if (node === null) return;
+    const rect = node.getBoundingClientRect();
     setOpen({ left: rect.left, bottom: window.innerHeight - rect.top + 8, files: Boolean(fileInput()) });
   };
   const attach = () => {

@@ -1,5 +1,39 @@
 // The Desktop bridge the window may carry; the Web build has no such member.
-interface Window { dshDesktop?: DshDesktopBridge }
+interface Window { dshDesktop?: unknown }
+
+// The Web Speech API, which the composer's dictation uses. TypeScript's DOM lib does
+// not declare it; only the members this client reads are named.
+interface SpeechRecognitionAlternativeLike { readonly transcript: string }
+interface SpeechRecognitionResultLike {
+  readonly isFinal: boolean
+  readonly length: number
+  readonly [index: number]: SpeechRecognitionAlternativeLike
+}
+interface SpeechRecognitionResultsLike {
+  readonly length: number
+  readonly [index: number]: SpeechRecognitionResultLike
+}
+interface SpeechRecognitionEventLike {
+  readonly resultIndex: number
+  readonly results: SpeechRecognitionResultsLike
+}
+interface SpeechRecognitionErrorLike { readonly error: string }
+interface SpeechRecognitionLike {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null
+  onerror: ((event: SpeechRecognitionErrorLike) => void) | null
+  onend: (() => void) | null
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+interface SpeechRecognitionCtor { new (): SpeechRecognitionLike }
+interface Window {
+  SpeechRecognition?: SpeechRecognitionCtor
+  webkitSpeechRecognition?: SpeechRecognitionCtor
+}
 
 // One Bot's browser lease. `partition` keeps its cookies and logins apart from every
 // other Bot; `onOpenRequested` answers a page that asks for a new window with the new
