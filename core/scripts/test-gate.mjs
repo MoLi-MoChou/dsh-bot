@@ -6,12 +6,20 @@
 //
 // Usage: node scripts/test-gate.mjs [--update]   (--update rewrites test/known-red.json)
 import { spawnSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const CORE = join(import.meta.dirname, '..')
 const KNOWN = join(CORE, 'test', 'known-red.json')
 const update = process.argv.includes('--update')
+
+// Without the harness packages the run still starts and reports 403 tests instead of 883, which
+// looks like a flake far away from the cause. Say it before the suite spends two minutes.
+const HARNESS = join(CORE, 'dev', 'harness', 'node_modules', '@deepseek-ai', 'dsh-llm')
+if (!existsSync(HARNESS)) {
+  console.error(`test-gate: harness missing (${HARNESS}) - run npm run harness in core`)
+  process.exit(1)
+}
 
 const run = spawnSync(process.execPath, ['--import', './test/harness-resolve.mjs', '--test', 'test/*.test.js'], {
   cwd: CORE, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
