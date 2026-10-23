@@ -167,7 +167,8 @@ export function AboutPage({ useUpdate, actions, run, Section, Row }) {
     repo ? h('p', { key: 'ask', className: 'bt-about-ask' }, t('If DS Bot helps you, a star on GitHub helps more people find it.')) : null,
     update.source === 'web' ? h(Section, { key: 'updates', title: t('Updates') },
       h(Row, { label: productName(), hint: botHint(update) }),
-      dsh?.current ? h(Row, { label: 'DeepSeek Harness', hint: t('Version {version}', { version: dsh.current }) }) : null)
+      // Runtime build id stays available but is not framed as a second product.
+      dsh?.current ? h(Row, { label: t('Runtime'), hint: t('Version {version}', { version: dsh.current }) }) : null)
     : h(Section, { key: 'updates', title: t('Updates') },
       appBridge() ? h(AppUpdateRow, { Row, run }) : null,
       h(EngineRow, { Row, run }),
