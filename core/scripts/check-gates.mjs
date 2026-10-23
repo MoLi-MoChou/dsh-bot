@@ -71,15 +71,18 @@ const DEFAULT_COMPILER_OPTIONS = {
 
 const argv = process.argv.slice(2)
 let root = resolve(import.meta.dirname, '..')
+let customRoot = false
 for (let index = 0; index < argv.length; index += 1) {
   const arg = argv[index]
   if (arg === '--root') {
     const value = argv[index + 1]
     if (!value) usage('--root needs a directory')
     root = resolve(value)
+    customRoot = true
     index += 1
   } else if (arg.startsWith('--root=')) {
     root = resolve(arg.slice('--root='.length))
+    customRoot = true
   } else {
     usage(`unknown argument: ${arg}`)
   }
@@ -535,6 +538,9 @@ function buildProgram() {
 const NATURE_EXEMPTIONS = new Set(['src/client/brand-art.ts'])
 
 function checkStaleExemptions() {
+  // The fixture trees under test/fixtures/gates are not the real checkout, so an
+  // entry that names a real file simply has no file there.
+  if (customRoot) return
   for (const entry of LINE_EXEMPTIONS) {
     if (entry.includes('*') || NATURE_EXEMPTIONS.has(entry)) continue
     const file = join(root, entry)
