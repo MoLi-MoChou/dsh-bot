@@ -14,7 +14,6 @@ const { outputFiles } = await build({
     contents: `
       export { EmptyState, EMPTY_STATE_CSS } from './src/client/empty-state.js'
       export { ChatWelcome, welcomeCopy } from './src/client/chat-welcome.ts'
-      export { ChatWelcome, welcomeCopy } from './src/client/chat-welcome.js'
       export { CommandPalette } from './src/client/palette.js'
       export { TeamSidebar } from './src/client/sidebar.js'
       export { installFilesPanel } from './src/client/files-panel.js'

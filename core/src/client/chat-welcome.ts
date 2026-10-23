@@ -6,7 +6,7 @@ import { createElement as h } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.js'
 import { isMainOf } from './sources.ts'
 import type { Roster } from './sources.ts'
-import { EmptyState } from './empty-state.js'
+import { EmptyState } from './empty-state.ts'
 import { t } from './i18n.js'
 
 export interface WelcomeCopy {
@@ -60,7 +60,7 @@ export function ChatWelcome({ sessionId, useRoster }: ChatWelcomeProps) {
   const art = bot
     ? h(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), admin: false, badge: false })
     : h(RoomAvatar, { room: roster.roomsById[sessionId], roster, size: 56 })
-  return h('div', { className: 'bt-welcome' }, h(EmptyState, { icon: null, art, title: copy.title, hint: copy.hint, action: null }))
+  return h('div', { className: 'bt-welcome' }, h(EmptyState, { art, title: copy.title, hint: copy.hint }))
 }
 
 export const WELCOME_CSS = `

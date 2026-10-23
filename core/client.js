@@ -20417,7 +20417,7 @@ function ChatWelcome({ sessionId, useRoster }) {
   if (!copy2) return null;
   const bot = roster.byId?.[sessionId];
   const art = bot ? (0, import_react43.createElement)(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), admin: false, badge: false }) : (0, import_react43.createElement)(RoomAvatar, { room: roster.roomsById[sessionId], roster, size: 56 });
-  return (0, import_react43.createElement)("div", { className: "bt-welcome" }, (0, import_react43.createElement)(EmptyState, { icon: null, art, title: copy2.title, hint: copy2.hint, action: null }));
+  return (0, import_react43.createElement)("div", { className: "bt-welcome" }, (0, import_react43.createElement)(EmptyState, { art, title: copy2.title, hint: copy2.hint }));
 }
 var WELCOME_CSS = `
 .bt-welcome{display:none;padding:0 23px 12px}
