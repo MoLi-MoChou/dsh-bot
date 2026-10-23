@@ -6,8 +6,16 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { registerHooks } from 'node:module'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+// The suite must not inherit the DSH home of whoever runs it: a temp folder under that
+// home reads as DSH data, and one folder-guard test after another then fails for the
+// machine rather than for the code. It must not fall back to the real home under ~ either,
+// which holds the user's own DSH data, so it names a home of its own beside the temp
+// folders it makes.
+process.env.DSH_HOME = join(tmpdir(), 'ds-bot-test-dsh-home')
 
 const plugin = resolve(import.meta.dirname, '..')
 const above = (start) => {
