@@ -1,8 +1,8 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
-import { fnv1a, lookOf, shapeId, shapeOf, MASK_ID, nextMarkSerial, characterMarkup } from './characters.js'
+import { fnv1a, lookOf, shapeId, shapeOf, MASK_ID, nextMarkSerial, characterMarkup } from './characters.ts'
 import { t } from './i18n.js'
 
-export { colorOf, lookOf } from './characters.js'
+export { colorOf, lookOf } from './characters.ts'
 
 // -------------------------------------------------------------------------
 // Bot mark: the Bot's character (or its uploaded photo), looked up by lookOf.
@@ -48,6 +48,11 @@ function useGaze(ref, enabled) {
 // fidget and moment); transcript marks stay still so a long chat does not run dozens
 // of animations.
 const FIDGETS = ['hop', 'sway', 'stretch', 'look']
+/**
+ * A Bot's character mark. Only the props a caller varies are typed here; the rest keep
+ * their defaults, so a caller can pass just the Bot and a size.
+ * @param {{ bot?: unknown, look?: unknown, size?: number, state?: string, live?: boolean, gaze?: boolean, pokeable?: boolean, label?: unknown }} props
+ */
 export function BotMark({ bot, look: given, size = 36, state = 'idle', live = false, gaze = false, pokeable = false, label }) {
   const look = given ?? lookOf(bot)
   const ref = useRef(null)
@@ -109,6 +114,10 @@ function useSettled(state) {
   return settled
 }
 
+/**
+ * The avatar a chat or a group row shows: either a Bot's mark or the room's.
+ * @param {{ bot?: unknown, size?: number, state?: string, main?: boolean, admin?: boolean, badge?: boolean, live?: boolean, gaze?: boolean, pokeable?: boolean }} props
+ */
 export function BotAvatar({ bot, size, state = 'idle', main, admin, badge = true, live = true, gaze = false, pokeable = false }) {
   const settled = useSettled(state)
   if (bot === undefined) return h(BotMark, { size })

@@ -1,6 +1,37 @@
 import { INKS, GRADIENTS, isHex, inkFill } from './inks.ts'
 import { SPRITE } from './brand-art.ts'
 
+// [cx, cy, width, height, tilt]: the two capsules cut out of every layer.
+type Eye = readonly [number, number, number, number, number]
+// A decal in a fixed color: path, fill, opacity.
+type Paint = readonly [string, string, number]
+// One character as the table states it: the body path, its layers and its eyes.
+interface CharacterDef {
+  label?: string
+  body: string
+  paints?: readonly Paint[]
+  shade?: string
+  light?: string
+  eyes: readonly Eye[]
+}
+// A shape the renderer can draw: a body path or a markup function, its layers, and the
+// mask it cuts. Plugins register their own through this surface.
+export interface ShapeDef {
+  label: string
+  size: number
+  path?: string
+  layers?: string
+  eyes: readonly Eye[]
+  body?: (paint: string) => string
+  wrap?: string
+}
+// The Bot fields a look is read from; everything else on a Bot is not this module's.
+export interface LookBot {
+  id?: string
+  color?: unknown
+  avatar?: unknown
+}
+
 // -------------------------------------------------------------------------
 // Characters: DS Bot's own avatars, small 3D models seen from a
 // three-quarter view and flattened into layers in a 100-unit box: the body, decals in
@@ -8,7 +39,7 @@ import { SPRITE } from './brand-art.ts'
 // The eyes [cx, cy, width, height, tilt] are cut out of every layer, so they show
 // whatever sits behind the avatar. The first seven are the original mascots made
 // over; the rest are geometric. dev/characters.mjs builds this table.
-export const CHARACTERS = {
+export const CHARACTERS: Record<string, CharacterDef> = {
   whale: {label:'Whale',body:'M65.3 20.9l5.1 .1 4.8 .9 4.8 1.7 4.3 2.3 3.8 3.1 3 3.4 2.3 3.8 1.6 4.3 .9 4.3 0 4.8-.8 4.8-1.4 4.3-2.3 4.3-3.2 4.3-3.4 3.3-4.3 3.1-7.2 3.5-7.6 1.7-7.2 .1-9.6-1.6-3.3-1-2.9-1.7-8.8-8.9-6-4.7-3.3-.5-7.7 1.1-4.8-.1-4.7-1.2-1.9-1.2-1-1-.5-1.5 .4-1.4 1.1-1.3 1.9-1.3 4.7-1.5 7.7-.6 1.1-.5 .7-1 0-1.4-2.8-7.2-1.2-5.3-.1-4.3 .4-1.4 .9-1.2 1.9-.2 2 1 2.2 2.3 2.2 3.4 3.2 7.6 1.9 9.7 .5-.1 1.1-7.2 1.8-4.8 3.2-5.2 3.9-4.3 4.9-3.9 5.6-2.9 5.8-1.9z',paints:[['M93.3 55.8l1-.3 .1 1.2-2.4 5.3-3.4 4.8-3.8 3.8-4.8 3.4-5.7 2.8-4.8 1.5-4.8 .4 20.1-17.4 5.2-3.7z','#fff',1]],shade:'M88.6 29.5l2.4 2.9 1.9 2.8 2.4 6.3 .5 3.3 .1 5.3-1.5 6.6-1.9 4.3-2 3.3-4.8 5.4-5.7 4.3-7.2 3.3-6.2 1.5-6.7 .1-3.3-.2-9.6-1.8-3.3-1.5-2.4-1.9-8.6-8.9-5.3-3.9-3.3-.1-2.9 .2-3.3 .8-5.8 0-4.3-1-2.9-1.9 .6-.6 3.8-1.3 10.5-2.5 4.3 .9 1.4-.1 2.2-1.7 .5-1.4-.3-1.5-1.2-1.4-2.2-1.4-1.2-1.9-.6-12 .4-3.3 .5-.5 2.9 3.8 2.4 4.8 1.9 5.7 .7 5.8 .7 2.8 2.1 2.4 2.7 5.5 3.8 4.3 2.9 2.2 3.3 1 3.4-.4 6.2-3 7.1-4.5 7.3-5.6 6.6-5.9 5.9-6.5 3.7-5.3 1.7-4.2 .1-2.9z',light:'M55.6 22.8l1.9-.3 1.5 .3 .6 1 .1 .9-2 4.3-3.8 5.3-5.8 6.2-5.4 4.4-4.8 2.3-1.4 0-1.2-.5-.8-1.9 .5-3.3 2.5-4.8 3.3-4.3 2.4-2.4 5.3-3.9zM19.3 28.1l-1.4 2 .3-1.1zM21.7 49.1l.6 .5-.3 .5-.8 0zM35.8 52l1.2-.4 .9 .7 .7 1.6-.4 .9-1.2 .1-2.6-.5zM7.2 52.9l-2.9 2.9 1.2-1.6z',eyes:[[72.5,48.4,9.3,23,-15.8],[85.6,43.4,7,22.9,-21.2]]},
   star: {label:'Star',body:'M40.1 4.4l1.5-.4 1.9 .1 5.2 1.1 1.9 .9 13.2 14.9 17.1-.8 5.2 1.1 1.8 .9 1.7 1.6 .7 2.4-.4 1.9-9.7 23.6 5.6 23.7 .1 1.9-.6 1.4-2.1 1.8-2.3 .5-19.9-1.8-16.6 15.5-1.9 1-1.9 .3-7-1.5-2.6-2.1-.9-2.4-2.8-24.1-16-13.6-1.1-1.5-.5-1.9 .4-1.9 1.2-1.5 18.9-13.6 7.1-24.6 1-1.7z',shade:'M52 7.7l14.3 16.1 1 2.9 .3 3.1 19.4-1.3 2-1.4 .7-2.3-.4-1 .5 .5 .5 1.9-.4 1.9-9.8 23.2 5.5 23.1 .1 3.4-2 2.4-2.8 .8-19.4-2.1-1.9 1.4-14.7 14-2.4 1.4-3.3 .1-4.7-1-2-1 .6-.2 3.3 .8 2.8 .1 5.1-2.1 .7-.9 .4-2.4-2.6-22.7-.3-.3-1.4 .2-1.4 .7-5.7 .7-5.6-1.2-16.7-13.8 1-.1 5.2 1 3.8-1.1 1-.7 1.9-.4 .4-.4 1.5 .3 .4-.4 1 .2 18-12.8 6.7-23.5 0-1.8-.4-.5-.3-1.9 .4-2.4z',light:'M40.1 4.4l2-.1 4.7 1 .7 1-.5 1.4-2.8 1.5-6.6 23.1 .7 1.2 .6 .3-18.1 12.5-1.8 2.1-3.4 .7-5.2-1.2-.3-.4 .3-.9 1.4-1.4 18.3-12.9 .9-2.3 6.4-22.7 .8-1.4z',eyes:[[53.9,53.4,7.2,18.8,-10],[65.1,49.2,7.2,18.8,-10]]},
   moon: {label:'Moon',body:'M45.8 4.2l4.7-.2 4.2 .4 10.2 2.4 3.7 1.6 3.6 2.1 3.3 2.5 3 3.1 4.6 6.7 3.4 8.3 1.5 8.8 .1 4.6-.8 7.8-2.6 8.8-3.9 7.7-5.1 6.7-6.1 5.3-4.1 2.6-3.6 1.6-27.2 10.2-2.8 .7-2.6 0-5.7-1.3-2-.8-1.9-1.7-1.1-2.6-6.5-37.7-.2-5.2 .8-7.7 1.3-5.2 3.1-7.8 4.2-6.7 3-3.6 3.9-3.6 6.3-4.2 4.1-1.8z',paints:[['M57.6 9.9l.2-.3 .2 .3 2 4.7 1.9 1.9 2.6 .5 1.5-.7 1.1-1.1 .4 .4-.1 1.6-.7 1.5-2.2 2.5-1.6 .7-2 0-1.6-.8-1.3-1.4-.8-2-.4-2.6 .1-3.1z','#1783FF',1]],shade:'M74.3 13.5l2.1 1.5 .3-.4-.3-.6 2.1 2.1 4.6 6.7 3.1 7.4 1.5 7.6 .1 10.4-.6 4.6-2.5 8.3-4.2 8.2-3.1 4.2-5.7 5.7-6.2 4.2-4.6 2-28 10.3-4.1 0-5.2-1.1-2-.9-.5-.7 .5 .5 1.5 0 3.6 1 2.6-.3 5.7-2.1 2.1-2.1-5.4-31.5-.2-4.1 .4-1.1-.1-2.6 .5-3.6 1.8-7.7 2.8-6.7 1.9-3.1 3.9-5.2 3.2-3.1 2.5-2 5.2-2.9 3.1-1.1 3.1-.8 2.1 0 .5-.4 2.6 .2 1-.3 1.6 .4 1-.5 2.1 .8 1-.8 2.1 1.2z',light:'M38 6.3l1.7-.3 2.5 .2 .6 .4 1.5 0 .5 .5 1.6 .3-3.1 1.3 .4 .7-2.5 1.6-.5 1-2.5 2.1-2.7 2.9-6.2 7.9-1.5 2.7-1 .9-1.2 2.6-1.4 1-1.3 3.7-1.3 .3-6-1.4-1 3.6-.8 0 .9-3.6-.5-1 1.1-3.6 2.7-5.7 4.1-6.2 5.7-5.8 3.1-2.4 3.6-2.2z',eyes:[[51.6,48.5,8.4,22.1,-10],[66.8,42.9,8.4,22.1,-10]]},
@@ -43,32 +74,32 @@ export const MAIN_LOOK = Object.freeze({ shape: 'moonbot', color: 'lilac' })
 // are never defaults; the user must pick them.
 export const CHARACTER_COLORS = ['lilac', 'black', 'brown', 'red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'violet', 'magenta', 'gray', 'aurora']
 export const DEFAULT_COLORS = CHARACTER_COLORS.filter(color => !['black', 'gray', 'brown'].includes(color) && !GRADIENTS[color])
-export const isColor = color => isHex(color) || Object.hasOwn(INKS, color)
+export const isColor = (color: unknown): boolean => isHex(color) || (typeof color === 'string' && Object.hasOwn(INKS, color))
 
 // The default look comes from the Bot id (FNV-1a, then mulberry32 for the
 // color and murmur3's fmix32 for the shape), so it is the same on every device.
-export function fnv1a(text) {
+export function fnv1a(text: string): number {
   let value = 2166136261
   for (let index = 0; index < text.length; index += 1) value = Math.imul(value ^ text.charCodeAt(index), 16777619)
   return value >>> 0
 }
-export function defaultColor(id) {
+export function defaultColor(id: string): string {
   const t = (fnv1a(id) + 1831565813) | 0
   let n = Math.imul(t ^ (t >>> 15), 1 | t)
   n = (n + Math.imul(n ^ (n >>> 7), 61 | n)) ^ n
-  return DEFAULT_COLORS[Math.floor((((n ^ (n >>> 14)) >>> 0) / 4294967296) * DEFAULT_COLORS.length)]
+  return DEFAULT_COLORS[Math.floor((((n ^ (n >>> 14)) >>> 0) / 4294967296) * DEFAULT_COLORS.length)] ?? 'black'
 }
-export function defaultShape(id) {
+export function defaultShape(id: string): string {
   let value = fnv1a(id) | 0
   value = Math.imul(value ^ (value >>> 16), 73244475)
   value = Math.imul(value ^ (value >>> 13), 3266489909)
-  return DEFAULT_SHAPES[((value ^ (value >>> 16)) >>> 0) % DEFAULT_SHAPES.length]
+  return DEFAULT_SHAPES[((value ^ (value >>> 16)) >>> 0) % DEFAULT_SHAPES.length] ?? FALLBACK_SHAPE
 }
 
 // A stored shape or color wins; then the id. With no Bot it is a black gumdrop.
-export const colorOf = bot => (isColor(bot?.color) ? bot.color : bot?.id ? defaultColor(String(bot.id)) : 'black')
-export function lookOf(bot) {
-  const avatar = bot?.avatar ?? {}
+export const colorOf = (bot?: LookBot): string => (isColor(bot?.color) ? String(bot?.color) : bot?.id ? defaultColor(String(bot.id)) : 'black')
+export function lookOf(bot?: LookBot): { shape: string; image: string | undefined; color: string } {
+  const avatar = (bot?.avatar ?? {}) as { shape?: unknown; image?: string }
   return {
     shape: hasShape(avatar.shape) ? avatar.shape : bot?.id ? defaultShape(String(bot.id)) : FALLBACK_SHAPE,
     image: avatar.image,
@@ -78,40 +109,40 @@ export function lookOf(bot) {
 
 // Registered shapes join the characters: `body(paint)` returns SVG markup in a
 // `size` box and `eyes` lists the two capsules.
-export const SHAPES = {}
+export const SHAPES: Record<string, ShapeDef> = {}
 for (const [id, character] of Object.entries(CHARACTERS)) {
   const layers = [
     ...(character.paints ?? []).map(([d, fill, opacity]) => `<path d="${d}" fill="${fill}" fill-opacity="${opacity}"/>`),
     `<path d="${character.shade}" fill="#000" fill-opacity=".14"/>`,
     `<path d="${character.light}" fill="#fff" fill-opacity=".16"/>`,
   ].join('')
-  SHAPES[id] = { label: character.label ?? id[0].toUpperCase() + id.slice(1), size: 100, path: character.body, layers, eyes: character.eyes }
+  SHAPES[id] = { label: character.label ?? id.slice(0, 1).toUpperCase() + id.slice(1), size: 100, path: character.body, layers, eyes: character.eyes }
 }
 // Moon Bot's Main Bot: the lilac moon sprite, a rendered picture (app/assets/art), so
 // it has no eyes to cut and is not offered in the picker.
 SHAPES.moonbot = { label: 'Moon Bot', size: 100, eyes: [], body: () => `<image href="${SPRITE}" x="0" y="0" width="100" height="100"/>` }
-export const hasShape = id => typeof id === 'string' && Object.hasOwn(SHAPES, id)
-export const shapeId = id => (hasShape(id) ? id : FALLBACK_SHAPE)
-export const shapeOf = id => SHAPES[shapeId(id)]
+export const hasShape = (id: unknown): id is string => typeof id === 'string' && Object.hasOwn(SHAPES, id)
+export const shapeId = (id: unknown): string => (hasShape(id) ? id : FALLBACK_SHAPE)
+export const shapeOf = (id: unknown): ShapeDef => SHAPES[shapeId(id)] ?? SHAPES[FALLBACK_SHAPE]!
 // `flat` draws the silhouette alone, for masks and selection rings.
-export function bodyOf(def, paint, flat = false) {
+export function bodyOf(def: ShapeDef, paint: string, flat = false): string {
   if (def.path) return `<g fill-rule="evenodd"><path d="${def.path}" fill="${paint}"/>${flat ? '' : def.layers}</g>`
-  try { return def.body(paint) } catch { return '' }
+  try { return def.body?.(paint) ?? '' } catch { return '' }
 }
-const eyeMarkup = ([cx, cy, w, h, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${w / 2}"/></g>`
+const eyeMarkup = ([cx, cy, w, h, tilt]: Eye): string => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><rect class="bt-eye" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${w / 2}"/></g>`
 // A closed, happy eye (an upturned arc) in the same spot, shown while the mark is petted.
-const happyEyeMarkup = ([cx, cy, w, h, tilt]) => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h * 0.14}Q0 ${-h * 0.42} ${w * 0.62} ${h * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`
+const happyEyeMarkup = ([cx, cy, w, h, tilt]: Eye): string => `<g transform="translate(${cx} ${cy}) rotate(${tilt})"><path class="bt-eye-happy" opacity="0" d="M${-w * 0.62} ${h * 0.14}Q0 ${-h * 0.42} ${w * 0.62} ${h * 0.14}" fill="none" stroke="#000" stroke-width="${w * 0.5}" stroke-linecap="round"/></g>`
 // A mask covering three boxes, so a bob or squash never clips the body at the edge.
-export const maskBox = size => `maskUnits="userSpaceOnUse" x="${-size}" y="${-size}" width="${size * 3}" height="${size * 3}"`
-export const holes = (def, eyes) => `<rect x="${-def.size}" y="${-def.size}" width="${def.size * 3}" height="${def.size * 3}" fill="#fff"/>${eyes}`
+export const maskBox = (size: number): string => `maskUnits="userSpaceOnUse" x="${-size}" y="${-size}" width="${size * 3}" height="${size * 3}"`
+export const holes = (def: ShapeDef, eyes: string): string => `<rect x="${-def.size}" y="${-def.size}" width="${def.size * 3}" height="${def.size * 3}" fill="#fff"/>${eyes}`
 
 // MASK_ID stands for each mark's own mask id: a duplicate id resolves to its first
 // copy, which stops painting once that copy unmounts or sits in a hidden subtree.
 export const MASK_ID = '%MASK%'
 let markSerial = 0
-export const nextMarkSerial = () => (markSerial += 1)
-export const markupCache = new Map()
-export function characterMarkup(shape, color) {
+export const nextMarkSerial = (): number => (markSerial += 1)
+export const markupCache = new Map<string, string>()
+export function characterMarkup(shape: string, color: string): string {
   const key = `${shape}|${color}`
   let markup = markupCache.get(key)
   if (markup === undefined) {
@@ -127,9 +158,9 @@ export function characterMarkup(shape, color) {
   }
   return markup
 }
-const svgUrl = (inner, size) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">${inner}</svg>`)}")`
-export const maskCache = new Map()
-export function maskOf(shape) {
+const svgUrl = (inner: string, size: number): string => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">${inner}</svg>`)}")`
+export const maskCache = new Map<string, string>()
+export function maskOf(shape: string): string {
   let mask = maskCache.get(shape)
   if (mask === undefined) {
     const def = shapeOf(shape)

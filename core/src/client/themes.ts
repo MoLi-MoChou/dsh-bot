@@ -1,5 +1,5 @@
 import { ACCENT_INKS, INKS, isHex, luminance } from './inks.ts'
-import { SHAPES as SHAPE_DEFS, markupCache, maskCache } from './characters.js'
+import { SHAPES as SHAPE_DEFS, markupCache, maskCache } from './characters.ts'
 
 interface ShapeEntry {
   label?: string

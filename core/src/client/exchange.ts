@@ -10,10 +10,30 @@ import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { t } from './i18n.js'
 
-export function ExchangeDialog({ pair, roster, actions }) {
-  const [entries, setEntries] = useState(null)
+// One message the two Bots sent each other; a long one carries its length so the rest
+// can be read on request.
+export interface ExchangeEntry {
+  id: string
+  from: string
+  text: string
+  time: number
+  length?: number
+}
+interface ExchangeBot { id: string; name: string; color?: string }
+export interface ExchangeActions {
+  closeOverlay: () => void
+  exchange: (left: string, right: string) => Promise<ExchangeEntry[] | null | undefined>
+  exchangeText: (id: string) => Promise<string>
+}
+
+export function ExchangeDialog({ pair, roster, actions }: {
+  pair: readonly [string, string]
+  roster: { byId: Record<string, ExchangeBot | undefined> }
+  actions: ExchangeActions
+}) {
+  const [entries, setEntries] = useState<ExchangeEntry[] | null>(null)
   const [leaving, setLeaving] = useState(false)
-  const log = useRef(null)
+  const log = useRef<HTMLDivElement | null>(null)
   const atEnd = useRef(true)
   useLayoutEffect(() => {
     if (entries !== null && atEnd.current && log.current) log.current.scrollTop = log.current.scrollHeight
@@ -27,11 +47,11 @@ export function ExchangeDialog({ pair, roster, actions }) {
   useEscape(close)
   useEffect(() => {
     let stop = false
-    let timer
-    let seen = null
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let seen: string | null = null
     atEnd.current = true
     setEntries(null)
-    const load = async () => {
+    const load = async (): Promise<void> => {
       const result = await actions.exchange(pair[0], pair[1])
       if (stop) return
       const key = JSON.stringify(result ?? [])
@@ -51,14 +71,14 @@ export function ExchangeDialog({ pair, roster, actions }) {
         left ? h(BotMark, { bot: left, size: 22 }) : null, left?.name ?? '?',
         h('span', { className: 'bt-swap' }, '⇄'),
         right ? h(BotMark, { bot: right, size: 22 }) : null, right?.name ?? '?')),
-      h('div', { ref: log, className: 'bt-dialog-log', role: 'log', 'aria-label': t('Bot exchange transcript'), onScroll: (event) => {
+      h('div', { ref: log, className: 'bt-dialog-log', role: 'log', 'aria-label': t('Bot exchange transcript'), onScroll: (event: React.UIEvent<HTMLDivElement>) => {
         const node = event.currentTarget
         atEnd.current = node.scrollHeight - node.scrollTop - node.clientHeight < 2
       } },
         entries === null ? h('div', { className: 'bt-hint' }, t('Loading…'))
           : entries.length === 0 ? h(EmptyState, { icon: h(ChatsIcon), title: t('No messages yet'), hint: t('Messages these Bots send each other show up here.') })
             : entries.map((entry) => {
-              const bot = roster.byId[entry.from] ?? { id: entry.from, name: t('You'), color: 'gray' }
+              const bot: ExchangeBot = roster.byId[entry.from] ?? { id: entry.from, name: String(t('You')), color: 'gray' }
               const showDay = entry.time - lastDay > 30 * 60 * 1000
               lastDay = entry.time
               // A long message comes with its start only; the rest is read on request.

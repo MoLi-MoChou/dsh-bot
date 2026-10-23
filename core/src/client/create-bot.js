@@ -1,7 +1,7 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
 import { BotMark } from './mark.js'
 import { CharacterGrid, avatarImage } from './bot-settings.js'
-import { DEFAULT_SHAPES, DEFAULT_COLORS } from './characters.js'
+import { DEFAULT_SHAPES, DEFAULT_COLORS } from './characters.ts'
 import { ChevronLeftIcon, CloseIcon } from './icons.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { createPayload, freshBotName, startModel } from './bot-draft.ts'

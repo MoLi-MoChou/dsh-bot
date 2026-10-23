@@ -1,5 +1,5 @@
 import { createElement as h, startTransition, useEffect, useMemo, useRef, useState } from 'react'
-import { colorOf, MAIN_LOOK } from './characters.js'
+import { colorOf, MAIN_LOOK } from './characters.ts'
 import { GRADIENTS, paintCss } from './inks.ts'
 import { BotAvatar, BotMark, RoomAvatar } from './mark.js'
 import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.ts'

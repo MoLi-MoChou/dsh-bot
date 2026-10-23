@@ -1,7 +1,7 @@
 import { quietShellOnboarding, noteSignInAsked, relabelShellVersion, relabelTitle, quietShellDeepSeekCtas, quietShellRejectionCopy } from './shell-quiet.ts'
 import { call } from './api.ts'
 import { isHex, inkText, paintCss } from './inks.ts'
-import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.js'
+import { DEFAULT_MASK, SHAPES, markupCache, maskOf } from './characters.ts'
 import { retryNotice, showReconnectNotice, RETRY_AFTER } from './reconnect.ts'
 import { createSource, EMPTY_ROSTER, indexRoster, isAgentSession } from './sources.ts'
 import { teamActions } from './team-actions.js'

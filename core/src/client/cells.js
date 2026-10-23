@@ -28,6 +28,11 @@ const mdLabels = () => ({ code: { copyLabel: t('Copy'), copiedLabel: t('Copied')
 // row, so it lines up with the bubble whether or not reactions hang below it.
 // `fold`: past what a bubble folds (fold.js); `whole`: the last text is only the start
 // of its message (see useFold).
+/**
+ * The message bubbles of one turn. A caller passes only what it has: streaming, session
+ * and fold props stay optional, as their defaults say.
+ * @param {{ texts: readonly string[], roster: unknown, selfId: string, actions: unknown, streaming?: unknown, sessionId?: string, msgKey?: unknown, useUi?: unknown, lead?: unknown, mentions?: unknown, fold?: unknown, whole?: unknown }} props
+ */
 export function Bubbles({ texts, roster, selfId, actions, streaming, sessionId, msgKey, useUi, lead, mentions, fold = FOLD_AT, whole }) {
   const onClick = (event) => {
     const target = mentionTarget(event)

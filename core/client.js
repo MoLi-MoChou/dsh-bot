@@ -1497,7 +1497,7 @@ var paintCss = (color) => {
   return gradient !== void 0 ? `linear-gradient(135deg,${gradient.map(([offset, value]) => `${value} ${offset * 100}%`).join(",")})` : inkFill(color);
 };
 
-// src/client/characters.js
+// src/client/characters.ts
 var CHARACTERS = {
   whale: { label: "Whale", body: "M65.3 20.9l5.1 .1 4.8 .9 4.8 1.7 4.3 2.3 3.8 3.1 3 3.4 2.3 3.8 1.6 4.3 .9 4.3 0 4.8-.8 4.8-1.4 4.3-2.3 4.3-3.2 4.3-3.4 3.3-4.3 3.1-7.2 3.5-7.6 1.7-7.2 .1-9.6-1.6-3.3-1-2.9-1.7-8.8-8.9-6-4.7-3.3-.5-7.7 1.1-4.8-.1-4.7-1.2-1.9-1.2-1-1-.5-1.5 .4-1.4 1.1-1.3 1.9-1.3 4.7-1.5 7.7-.6 1.1-.5 .7-1 0-1.4-2.8-7.2-1.2-5.3-.1-4.3 .4-1.4 .9-1.2 1.9-.2 2 1 2.2 2.3 2.2 3.4 3.2 7.6 1.9 9.7 .5-.1 1.1-7.2 1.8-4.8 3.2-5.2 3.9-4.3 4.9-3.9 5.6-2.9 5.8-1.9z", paints: [["M93.3 55.8l1-.3 .1 1.2-2.4 5.3-3.4 4.8-3.8 3.8-4.8 3.4-5.7 2.8-4.8 1.5-4.8 .4 20.1-17.4 5.2-3.7z", "#fff", 1]], shade: "M88.6 29.5l2.4 2.9 1.9 2.8 2.4 6.3 .5 3.3 .1 5.3-1.5 6.6-1.9 4.3-2 3.3-4.8 5.4-5.7 4.3-7.2 3.3-6.2 1.5-6.7 .1-3.3-.2-9.6-1.8-3.3-1.5-2.4-1.9-8.6-8.9-5.3-3.9-3.3-.1-2.9 .2-3.3 .8-5.8 0-4.3-1-2.9-1.9 .6-.6 3.8-1.3 10.5-2.5 4.3 .9 1.4-.1 2.2-1.7 .5-1.4-.3-1.5-1.2-1.4-2.2-1.4-1.2-1.9-.6-12 .4-3.3 .5-.5 2.9 3.8 2.4 4.8 1.9 5.7 .7 5.8 .7 2.8 2.1 2.4 2.7 5.5 3.8 4.3 2.9 2.2 3.3 1 3.4-.4 6.2-3 7.1-4.5 7.3-5.6 6.6-5.9 5.9-6.5 3.7-5.3 1.7-4.2 .1-2.9z", light: "M55.6 22.8l1.9-.3 1.5 .3 .6 1 .1 .9-2 4.3-3.8 5.3-5.8 6.2-5.4 4.4-4.8 2.3-1.4 0-1.2-.5-.8-1.9 .5-3.3 2.5-4.8 3.3-4.3 2.4-2.4 5.3-3.9zM19.3 28.1l-1.4 2 .3-1.1zM21.7 49.1l.6 .5-.3 .5-.8 0zM35.8 52l1.2-.4 .9 .7 .7 1.6-.4 .9-1.2 .1-2.6-.5zM7.2 52.9l-2.9 2.9 1.2-1.6z", eyes: [[72.5, 48.4, 9.3, 23, -15.8], [85.6, 43.4, 7, 22.9, -21.2]] },
   star: { label: "Star", body: "M40.1 4.4l1.5-.4 1.9 .1 5.2 1.1 1.9 .9 13.2 14.9 17.1-.8 5.2 1.1 1.8 .9 1.7 1.6 .7 2.4-.4 1.9-9.7 23.6 5.6 23.7 .1 1.9-.6 1.4-2.1 1.8-2.3 .5-19.9-1.8-16.6 15.5-1.9 1-1.9 .3-7-1.5-2.6-2.1-.9-2.4-2.8-24.1-16-13.6-1.1-1.5-.5-1.9 .4-1.9 1.2-1.5 18.9-13.6 7.1-24.6 1-1.7z", shade: "M52 7.7l14.3 16.1 1 2.9 .3 3.1 19.4-1.3 2-1.4 .7-2.3-.4-1 .5 .5 .5 1.9-.4 1.9-9.8 23.2 5.5 23.1 .1 3.4-2 2.4-2.8 .8-19.4-2.1-1.9 1.4-14.7 14-2.4 1.4-3.3 .1-4.7-1-2-1 .6-.2 3.3 .8 2.8 .1 5.1-2.1 .7-.9 .4-2.4-2.6-22.7-.3-.3-1.4 .2-1.4 .7-5.7 .7-5.6-1.2-16.7-13.8 1-.1 5.2 1 3.8-1.1 1-.7 1.9-.4 .4-.4 1.5 .3 .4-.4 1 .2 18-12.8 6.7-23.5 0-1.8-.4-.5-.3-1.9 .4-2.4z", light: "M40.1 4.4l2-.1 4.7 1 .7 1-.5 1.4-2.8 1.5-6.6 23.1 .7 1.2 .6 .3-18.1 12.5-1.8 2.1-3.4 .7-5.2-1.2-.3-.4 .3-.9 1.4-1.4 18.3-12.9 .9-2.3 6.4-22.7 .8-1.4z", eyes: [[53.9, 53.4, 7.2, 18.8, -10], [65.1, 49.2, 7.2, 18.8, -10]] },
@@ -1527,7 +1527,7 @@ var FALLBACK_SHAPE = "gumdrop";
 var MAIN_LOOK = Object.freeze({ shape: "moonbot", color: "lilac" });
 var CHARACTER_COLORS = ["lilac", "black", "brown", "red", "orange", "yellow", "green", "cyan", "blue", "violet", "magenta", "gray", "aurora"];
 var DEFAULT_COLORS = CHARACTER_COLORS.filter((color) => !["black", "gray", "brown"].includes(color) && !GRADIENTS[color]);
-var isColor = (color) => isHex(color) || Object.hasOwn(INKS, color);
+var isColor = (color) => isHex(color) || typeof color === "string" && Object.hasOwn(INKS, color);
 function fnv1a(text) {
   let value = 2166136261;
   for (let index = 0; index < text.length; index += 1) value = Math.imul(value ^ text.charCodeAt(index), 16777619);
@@ -1537,15 +1537,15 @@ function defaultColor(id) {
   const t2 = fnv1a(id) + 1831565813 | 0;
   let n = Math.imul(t2 ^ t2 >>> 15, 1 | t2);
   n = n + Math.imul(n ^ n >>> 7, 61 | n) ^ n;
-  return DEFAULT_COLORS[Math.floor(((n ^ n >>> 14) >>> 0) / 4294967296 * DEFAULT_COLORS.length)];
+  return DEFAULT_COLORS[Math.floor(((n ^ n >>> 14) >>> 0) / 4294967296 * DEFAULT_COLORS.length)] ?? "black";
 }
 function defaultShape(id) {
   let value = fnv1a(id) | 0;
   value = Math.imul(value ^ value >>> 16, 73244475);
   value = Math.imul(value ^ value >>> 13, 3266489909);
-  return DEFAULT_SHAPES[((value ^ value >>> 16) >>> 0) % DEFAULT_SHAPES.length];
+  return DEFAULT_SHAPES[((value ^ value >>> 16) >>> 0) % DEFAULT_SHAPES.length] ?? FALLBACK_SHAPE;
 }
-var colorOf = (bot) => isColor(bot?.color) ? bot.color : bot?.id ? defaultColor(String(bot.id)) : "black";
+var colorOf = (bot) => isColor(bot?.color) ? String(bot?.color) : bot?.id ? defaultColor(String(bot.id)) : "black";
 function lookOf(bot) {
   const avatar = bot?.avatar ?? {};
   return {
@@ -1561,16 +1561,16 @@ for (const [id, character] of Object.entries(CHARACTERS)) {
     `<path d="${character.shade}" fill="#000" fill-opacity=".14"/>`,
     `<path d="${character.light}" fill="#fff" fill-opacity=".16"/>`
   ].join("");
-  SHAPES[id] = { label: character.label ?? id[0].toUpperCase() + id.slice(1), size: 100, path: character.body, layers, eyes: character.eyes };
+  SHAPES[id] = { label: character.label ?? id.slice(0, 1).toUpperCase() + id.slice(1), size: 100, path: character.body, layers, eyes: character.eyes };
 }
 SHAPES.moonbot = { label: "Moon Bot", size: 100, eyes: [], body: () => `<image href="${SPRITE}" x="0" y="0" width="100" height="100"/>` };
 var hasShape = (id) => typeof id === "string" && Object.hasOwn(SHAPES, id);
 var shapeId = (id) => hasShape(id) ? id : FALLBACK_SHAPE;
-var shapeOf = (id) => SHAPES[shapeId(id)];
+var shapeOf = (id) => SHAPES[shapeId(id)] ?? SHAPES[FALLBACK_SHAPE];
 function bodyOf(def, paint, flat = false) {
   if (def.path) return `<g fill-rule="evenodd"><path d="${def.path}" fill="${paint}"/>${flat ? "" : def.layers}</g>`;
   try {
-    return def.body(paint);
+    return def.body?.(paint) ?? "";
   } catch {
     return "";
   }
@@ -15109,7 +15109,7 @@ ${listed}`, { axis: "y", ...QUICK_EDGES });
   );
 }
 
-// src/client/exchange.js
+// src/client/exchange.ts
 var import_react27 = require("react");
 function ExchangeDialog({ pair, roster, actions }) {
   const [entries2, setEntries] = (0, import_react27.useState)(null);
@@ -15173,7 +15173,7 @@ function ExchangeDialog({ pair, roster, actions }) {
           atEnd.current = node.scrollHeight - node.scrollTop - node.clientHeight < 2;
         } },
         entries2 === null ? (0, import_react27.createElement)("div", { className: "bt-hint" }, t("Loading…")) : entries2.length === 0 ? (0, import_react27.createElement)(EmptyState, { icon: (0, import_react27.createElement)(ChatsIcon), title: t("No messages yet"), hint: t("Messages these Bots send each other show up here.") }) : entries2.map((entry) => {
-          const bot = roster.byId[entry.from] ?? { id: entry.from, name: t("You"), color: "gray" };
+          const bot = roster.byId[entry.from] ?? { id: entry.from, name: String(t("You")), color: "gray" };
           const showDay = entry.time - lastDay > 30 * 60 * 1e3;
           lastDay = entry.time;
           const whole = entry.length === void 0 ? void 0 : { length: entry.length, load: () => actions.exchangeText(entry.id) };
@@ -16774,7 +16774,7 @@ button.bt-us-row:hover{background:var(--bt-hover)}
 @media (prefers-reduced-motion:reduce){.bt-us *,.bt-us *::before{animation:none!important;transition:none!important}}
 `;
 
-// src/client/connectors.js
+// src/client/connectors.ts
 var import_react32 = require("react");
 var TOKEN_URL = "https://github.com/settings/personal-access-tokens/new";
 var GitHubMark = () => (0, import_react32.createElement)(
