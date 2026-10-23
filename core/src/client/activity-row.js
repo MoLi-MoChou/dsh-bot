@@ -69,17 +69,20 @@ function useRowEntrances(replacing) {
       if (next !== column) {
         observer.disconnect()
         column = next
-        if (column) observer.observe(column, { childList: true, subtree: true })
+        if (column) observer.observe(column, { childList: true })
       }
       if (!column) return
       const items = flowRows(column)
       let last = -1
-      items.forEach((item, index) => { if (seen.has(item)) last = index })
-      const fresh = items.filter(item => !seen.has(item) && item.offsetHeight > 0)
-      for (const item of fresh) seen.add(item)
+      const fresh = []
+      items.forEach((item, index) => {
+        if (seen.has(item)) last = index
+        else if (item.offsetHeight > 0) fresh.push({ item, index })
+      })
+      for (const { item } of fresh) seen.add(item)
       if (last < 0 || Date.now() - started < 800 || fresh.length > 3) return
-      for (const item of fresh) {
-        if (items.indexOf(item) < last) continue
+      for (const { item, index } of fresh) {
+        if (index < last) continue
         const reply = [undefined, 'assistant-step', 'tool-call'].includes(item.dataset.chatFlowKind)
         item.dataset.btEnter = reply && check.current() ? 'after-collapse' : 'new'
         item.addEventListener('animationend', settle)

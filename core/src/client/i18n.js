@@ -177,6 +177,7 @@ const ZH = {
   '{count} new messages': '{count} 条新消息',
   'New messages': '新消息',
   'Dismiss new messages': '关闭新消息提示',
+  'Back to bottom': '回到底部',
   New: '新',
 
   // New chat

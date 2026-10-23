@@ -405,8 +405,7 @@ function EarlierParts({ sessionId, roster, actions }) {
 // A Bot chat's entries as the host lists them (the `earlier` and `chat` endpoints): the
 // Bot's messages in a row are one block, and a thin line marks where a part begins.
 // `clock` adds the time separators: one above the first entry, and one after each pause.
-export function ChatRows({ items, sessionId, roster, actions, useUi, clock = false }) {
-  const selfId = roster.byId[sessionId]?.id
+export function stackChatItems(items) {
   const rows = []
   for (const item of items) {
     const last = rows.at(-1)
@@ -415,6 +414,12 @@ export function ChatRows({ items, sessionId, roster, actions, useUi, clock = fal
       last.end = item.time
     } else rows.push(item.kind === 'bot' ? { kind: 'bot', texts: [item.text], time: item.time, end: item.time } : item)
   }
+  return rows
+}
+
+export function ChatRows({ items, sessionId, roster, actions, useUi, clock = false }) {
+  const selfId = roster.byId[sessionId]?.id
+  const rows = useMemo(() => stackChatItems(items), [items])
   let before
   return rows.flatMap((row, index) => {
     // Pages are prepended, so a row keeps its distance from the end.
