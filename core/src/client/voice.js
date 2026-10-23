@@ -6,7 +6,7 @@ import { speechApi, useDictation } from './composer.js'
 import { Shimmer } from './cells.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.ts'
 import { t } from './i18n.js'
-import { openCapture, speechCatalog, transcribeWave, turnDetector } from './speech.js'
+import { openCapture, speechCatalog, transcribeWave, turnDetector } from './speech.ts'
 
 // Voice chat: listen, send what the user said, read the Bot's answer aloud, listen
 // again. With DSH's Voice Input plugin on, its recognizer hears the user: one

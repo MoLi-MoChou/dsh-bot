@@ -1234,12 +1234,15 @@ var LOGO_DARK = "data:image/webp;base64,UklGRgwHAABXRUJQVlA4WAoAAAAQAAAAXwAAXwAA
 var FAVICON = "data:image/png;base64,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";
 var SPRITE = "data:image/webp;base64,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";
 
-// src/client/shell-quiet.js
+// src/client/shell-quiet.ts
 var userAsked = false;
 var noteSignInAsked = () => {
   userAsked = true;
 };
-var isPreviewNotice = (dialog) => /DeepSeek Harness/.test(dialog.textContent ?? "") && /0\.2/.test(dialog.textContent ?? "");
+var isPreviewNotice = (dialog) => {
+  const text = dialog.textContent ?? "";
+  return /DeepSeek Harness/.test(text) && /0\.2/.test(text);
+};
 var signInRoot = () => document.querySelector('[class*="_76YFJG_"]');
 function quietShellOnboarding({ windowMs = 2e4 } = {}) {
   if (typeof MutationObserver === "undefined") return () => {
@@ -1248,7 +1251,8 @@ function quietShellOnboarding({ windowMs = 2e4 } = {}) {
   const sweep = () => {
     for (const dialog of document.querySelectorAll("[role=dialog]")) {
       if (!isPreviewNotice(dialog)) continue;
-      [...dialog.querySelectorAll("button")].find((node) => /^(继续|Continue)$/u.test(node.textContent.trim()))?.click();
+      const button = Array.from(dialog.querySelectorAll("button")).find((node) => /^(继续|Continue)$/u.test((node.textContent ?? "").trim()));
+      button?.click();
     }
     const signIn = signInRoot();
     if (signIn && !userAsked && Date.now() - started < windowMs) {
@@ -1275,8 +1279,8 @@ function relabelShellVersion(appVersion) {
     if (!document.querySelector("[role=dialog]")) return;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      const match = VERSION_LINE.exec(node.nodeValue.trim());
-      if (match) node.nodeValue = `${match[1]}${productName()} ${appVersion}（DSH ${match[2]}）`;
+      const match = VERSION_LINE.exec((node.nodeValue ?? "").trim());
+      if (match) node.nodeValue = `${match[1] ?? ""}${productName()} ${appVersion}（DSH ${match[2] ?? ""}）`;
     }
   };
   const observer = new MutationObserver(fix);
@@ -1327,13 +1331,13 @@ function quietShellRejectionCopy() {
   const fix = () => {
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      const raw = node.nodeValue?.trim() ?? "";
+      const raw = (node.nodeValue ?? "").trim();
       if (!raw || raw.length > 200) continue;
       let next = null;
       const m = REJECT_LINE.exec(raw);
       if (m) {
-        const preset = m[1].toLowerCase();
-        next = preset === "danger-full-access" ? "你拒绝了完全访问权限，命令没有执行" : preset === "workspace-write" ? "你拒绝了工作区写入权限，命令没有执行" : `你拒绝了权限提升（${m[1]}），命令没有执行`;
+        const preset = (m[1] ?? "").toLowerCase();
+        next = preset === "danger-full-access" ? "你拒绝了完全访问权限，命令没有执行" : preset === "workspace-write" ? "你拒绝了工作区写入权限，命令没有执行" : `你拒绝了权限提升（${m[1] ?? ""}），命令没有执行`;
       } else if (REJECT_PLAIN.test(raw)) next = "你拒绝了这次操作，命令没有执行";
       if (next && node.nodeValue !== next) node.nodeValue = next;
     }
@@ -9423,7 +9427,7 @@ var thinkingLive = (step) => step.status === "running" && texts(step).length ===
 var texts = (step) => (step.blocks ?? []).filter((block) => block.kind === "text" && String(block.text ?? "").trim() !== "");
 var stepReasoning = (step) => (step.blocks ?? []).filter((block) => block.kind === "reasoning").map((block) => String(block.text ?? "")).join("\n").trim();
 
-// src/client/fold.js
+// src/client/fold.ts
 var import_react9 = require("react");
 var FOLD_AT = { chars: 1500, lines: 25 };
 var FOLD_HUGE = { chars: 2e4, lines: Infinity };
@@ -9450,7 +9454,7 @@ function foldPreview(text, limit = FOLD_AT, markdown = true) {
   if (!markdown) return head;
   let open = null;
   for (const line of head.split("\n")) {
-    const marker = FENCE.exec(line)?.[1];
+    const marker = (FENCE.exec(line) ?? [])[1];
     if (marker === void 0) continue;
     if (open === null) open = marker;
     else if (marker[0] === open[0] && marker.length >= open.length) open = null;
@@ -9469,13 +9473,13 @@ function useFold(text, { limit = FOLD_AT, whole, live = false, markdown = true }
   if (!open) {
     const show = async () => {
       setOpen(true);
-      if (!cut || read !== void 0 || whole.load === void 0) return;
+      if (!cut || read !== void 0 || whole?.load === void 0) return;
       setRead("loading");
       setRead(await whole.load() ?? { whole: false });
     };
     return { shown: preview, folded: true, control: (0, import_react9.createElement)("span", { className: "bt-fold" }, (0, import_react9.createElement)("button", { type: "button", className: "bt-more", onClick: show }, t("Show all · {count} characters", { count }))) };
   }
-  const loaded2 = typeof read?.text === "string" ? read : void 0;
+  const loaded2 = read !== void 0 && read !== "loading" && typeof read.text === "string" ? { text: read.text, whole: read.whole } : void 0;
   const note = !cut || read === void 0 || read === "loading" || loaded2?.whole ? null : loaded2 !== void 0 && loaded2.text.length > text.length ? t("Showing the first {count} characters", { count: loaded2.text.length.toLocaleString() }) : t("Only the start of this message is kept here");
   return {
     shown: loaded2?.text ?? text,
@@ -12308,15 +12312,15 @@ function atSources({ roster, sessions, launched, iconFor }) {
   return [bots, chats];
 }
 
-// src/client/speech.js
+// src/client/speech.ts
 var VOICE_BUNDLE = "@deepseek-ai/dsh-experimental-voice-input-bundle";
 var USABLE = /* @__PURE__ */ new Set(["ready", "standby", "waking"]);
 async function speechCatalog(speech) {
   const result = await speech.catalog();
-  if (!result?.ok) throw new Error(result?.error?.message ?? "Speech catalog failed");
+  if (!result.ok) throw new Error(result.error?.message ?? "Speech catalog failed");
   const catalog = result.value;
   const provider = catalog.providers.find((item) => item.id === catalog.selection.providerId);
-  return { catalog, usable: USABLE.has(provider?.preparation?.phase) };
+  return { catalog, usable: USABLE.has(provider?.preparation?.phase ?? "") };
 }
 function waveBytes(samples, rate = 16e3) {
   const bytes = new Uint8Array(44 + samples.length * 2);
@@ -12336,10 +12340,10 @@ function waveBytes(samples, rate = 16e3) {
   view.setUint16(34, 16, true);
   ascii(36, "data");
   view.setUint32(40, samples.length * 2, true);
-  samples.forEach((sample, index) => {
-    const value = Math.max(-1, Math.min(1, sample));
+  for (let index = 0; index < samples.length; index += 1) {
+    const value = Math.max(-1, Math.min(1, samples[index] ?? 0));
     view.setInt16(44 + index * 2, value < 0 ? Math.round(value * 32768) : Math.round(value * 32767), true);
-  });
+  }
   return bytes;
 }
 function base64Of(bytes) {
@@ -12355,7 +12359,7 @@ async function openCapture() {
   try {
     stream = await devices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: false });
   } catch (error) {
-    throw captureError(error?.name === "NotAllowedError" ? "blocked" : "failed", error);
+    throw captureError(error.name === "NotAllowedError" ? "blocked" : "failed", error);
   }
   const audio = new AudioContext();
   const analyser = audio.createAnalyser();
@@ -12393,7 +12397,7 @@ async function openCapture() {
       }
       try {
         await new Promise((resolve) => {
-          recorder.onstop = resolve;
+          recorder.onstop = () => resolve();
           recorder.stop();
         });
         stream.getTracks().forEach((track) => track.stop());
@@ -12416,7 +12420,7 @@ async function openCapture() {
 async function transcribeWave(speech, catalog, wave, signal) {
   if (wave.byteLength > catalog.maxAudioBytes) throw captureError("too-long");
   const result = await speech.transcribe({ audioBase64: base64Of(wave), ...catalog.selection }, signal);
-  if (!result?.ok) throw Object.assign(new Error(result?.error?.message ?? "Transcription failed"), { kind: "service" });
+  if (!result.ok) throw Object.assign(new Error(result.error?.message ?? "Transcription failed"), { kind: "service" });
   return String(result.value?.text ?? "").trim();
 }
 function turnDetector({ loud = 0.12, quiet = 0.06, quietMs = 1200 } = {}) {
@@ -15761,7 +15765,7 @@ var GROUP_SETTINGS_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-gs-pick{animation:none}}
 `;
 
-// src/client/usage-data.js
+// src/client/usage-data.ts
 var HOUR = 0;
 var OWNER = 1;
 var MODEL = 2;
@@ -15783,14 +15787,14 @@ function spanRange(from, to) {
   if (to < from) [from, to] = [to, from];
   const days = Math.round((hourMs(to) - hourMs(from)) / DAY_MS) + 1;
   const unit = days <= 2 ? "hour" : days <= 62 ? "day" : days <= 182 ? "week" : "month";
-  const range = { id: "custom", unit, from, to, days };
+  const range = { id: "custom", unit, from, to, days, count: 0, stride: 1 };
   const count = spanBuckets(range).length;
   const stride = unit === "hour" ? 6 : [1, 2, 3, 5, 7, 10, 14].find((step) => count / step <= 12) ?? Math.ceil(count / 12);
   return { ...range, count, stride };
 }
 function spanBuckets(range) {
-  const first = hourMs(range.from);
-  const end = hourMs(range.to) + DAY_MS;
+  const first = hourMs(range.from ?? "");
+  const end = hourMs(range.to ?? "") + DAY_MS;
   const buckets = [];
   if (range.unit === "hour" || range.unit === "day") {
     const step = range.unit === "hour" ? HOUR_MS : DAY_MS;
@@ -15809,11 +15813,12 @@ function spanBuckets(range) {
   return buckets;
 }
 function spanOf(range, now) {
-  if (range.from) {
-    return { buckets: spanBuckets(range), from: `${range.from} 00`, to: `${range.to} 23`, before: hourKey(hourMs(range.from) - range.days * DAY_MS) };
+  if (range.from !== void 0) {
+    return { buckets: spanBuckets(range), from: `${range.from} 00`, to: `${range.to ?? ""} 23`, before: hourKey(hourMs(range.from) - (range.days ?? 0) * DAY_MS) };
   }
   const buckets = bucketsOf(range, now);
-  return { buckets: buckets.slice(range.count), from: hourKey(buckets[range.count].start), to: now, before: hourKey(buckets[0].start) };
+  const start = buckets[range.count] ?? buckets[buckets.length - 1];
+  return { buckets: buckets.slice(range.count), from: hourKey(start.start), to: now, before: hourKey(buckets[0]?.start ?? start.start) };
 }
 function bucketsOf(range, now) {
   const end = hourMs(now);
@@ -15852,7 +15857,10 @@ function summarize(view, range, keep = () => true, seriesOf = () => "all") {
     if (range.unit === "month") return hour.slice(0, 7);
     const day = hour.slice(0, 10);
     let week = weeks.get(day);
-    if (week === void 0) weeks.set(day, week = dayKey(mondayOf(hourMs(day))));
+    if (week === void 0) {
+      week = dayKey(mondayOf(hourMs(day)));
+      weeks.set(day, week);
+    }
     return week;
   };
   const current = buckets.map((bucket) => ({ ...bucket, sum: blank2(), stacks: /* @__PURE__ */ new Map() }));
@@ -15881,8 +15889,9 @@ function trimmed(value) {
   const text = value >= 100 ? value.toFixed(0) : value >= 10 ? value.toFixed(1) : value.toFixed(2);
   return text.includes(".") ? text.replace(/\.?0+$/, "") : text;
 }
+var UNITS2 = [[1e9, "B"], [1e6, "M"], [1e3, "K"]];
 function compact(count) {
-  for (const [size, unit] of [[1e9, "B"], [1e6, "M"], [1e3, "K"]]) {
+  for (const [size, unit] of UNITS2) {
     if (count >= size * 0.9995) return `${trimmed(count / size)}${unit}`;
   }
   return String(Math.round(count));
@@ -16838,7 +16847,7 @@ function ConnectorsPage({ roster, actions }) {
   );
 }
 
-// src/client/feedback.js
+// src/client/feedback.ts
 var import_react33 = require("react");
 var FeedbackIcon = () => (0, import_react33.createElement)(
   "svg",
@@ -16862,7 +16871,7 @@ function whenText(time) {
   return today ? clock4 : `${date.toLocaleDateString(dateLocale(), { month: "short", day: "numeric" })} ${clock4}`;
 }
 function entrySummary(entry) {
-  if (entry.source === "turn") return failureLabel(entry.code, entry.text);
+  if (entry.source === "turn") return failureLabel(entry.code ?? "", entry.text);
   return entry.text;
 }
 var SOURCES = { turn: "Model call", host: "DS Bot", api: "DS Bot", browser: "This window" };
@@ -16902,7 +16911,7 @@ function FeedbackPage({ actions, run, Section, Row: Row3 }) {
   const [issueLink, setIssueLink] = (0, import_react33.useState)(null);
   const openIssue = () => {
     const target = issueWindow();
-    run(fetchReport().then(async (next) => {
+    return run(fetchReport().then(async (next) => {
       const copied = await copy(next.markdown);
       const { url, inline } = issueUrl(next.issuesUrl, { what, diagnostics: next.markdown });
       if (target.go(url)) {
@@ -16919,9 +16928,11 @@ function FeedbackPage({ actions, run, Section, Row: Row3 }) {
     download("ds-bot-diagnostics.log", text || "No entries.\n");
     setNote(t("Downloaded the log. Keys, tokens, and your home folder are hidden in it."));
   }));
-  const clearLog = () => run(actions.diagnosticsClear().then(clearClientErrors).then(load).then(() => setNote(t("Cleared the error log."))));
+  const clearLog = () => run(actions.diagnosticsClear().then(clearClientErrors).then(load).then(() => {
+    setNote(t("Cleared the error log."));
+  }));
   const browserErrors = report ? clientErrors().map((entry) => ({ ...entry, source: "browser" })) : [];
-  const entries2 = [...report?.entries ?? [], ...browserErrors].sort((a, b) => new Date(b.time) - new Date(a.time));
+  const entries2 = [...report?.entries ?? [], ...browserErrors].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
   const total = (report?.total ?? 0) + browserErrors.length;
   const shown = entries2.slice(0, 8);
   return [
@@ -20367,7 +20378,7 @@ function listedOpener({ list, open, refresh, current }) {
   };
 }
 
-// src/client/chat-welcome.js
+// src/client/chat-welcome.ts
 var import_react43 = require("react");
 function welcomeCopy(roster, sessionId) {
   const bot = roster.byId?.[sessionId];
@@ -20392,8 +20403,8 @@ function ChatWelcome({ sessionId, useRoster }) {
   const copy2 = welcomeCopy(roster, sessionId);
   if (!copy2) return null;
   const bot = roster.byId?.[sessionId];
-  const art = bot ? (0, import_react43.createElement)(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), badge: false }) : (0, import_react43.createElement)(RoomAvatar, { room: roster.roomsById[sessionId], roster, size: 56 });
-  return (0, import_react43.createElement)("div", { className: "bt-welcome" }, (0, import_react43.createElement)(EmptyState, { art, title: copy2.title, hint: copy2.hint }));
+  const art = bot ? (0, import_react43.createElement)(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), admin: false, badge: false }) : (0, import_react43.createElement)(RoomAvatar, { room: roster.roomsById[sessionId], roster, size: 56 });
+  return (0, import_react43.createElement)("div", { className: "bt-welcome" }, (0, import_react43.createElement)(EmptyState, { icon: null, art, title: copy2.title, hint: copy2.hint, action: null }));
 }
 var WELCOME_CSS = `
 .bt-welcome{display:none;padding:0 23px 12px}

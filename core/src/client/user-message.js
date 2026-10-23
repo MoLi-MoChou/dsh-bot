@@ -5,7 +5,7 @@ import { BotMark } from './mark.js'
 import { CheckIcon, CopyIcon } from './icons.js'
 import { dateLocale, t } from './i18n.js'
 import { clockLabel, messageClock } from './text.ts'
-import { useFold } from './fold.js'
+import { useFold } from './fold.ts'
 
 // -------------------------------------------------------------------------
 // The user's own messages. DSH draws every "@word" in them as a file reference, and

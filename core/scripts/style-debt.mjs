@@ -15,7 +15,10 @@ const CLIENT = join(PLUGIN, 'src', 'client')
 export const DEBT = join(PLUGIN, 'test', 'style-debt.json')
 
 // The theme colors, the Bot colors and the generated characters.
-const PALETTES = new Set(['themes.js', 'inks.js', 'characters.js'])
+const PALETTES = new Set(['themes', 'inks', 'characters'])
+// A file's name without its directory or extension: the palettes keep the same stem when
+// they migrate to TypeScript.
+const stemOf = file => (file.split('/').pop() ?? '').replace(/\.(?:js|ts|tsx)$/, '')
 export const RADII = ['0', '4px', '6px', '8px', '10px', '12px', '16px', '18px', '20px', '22px', '999px', '50%', 'inherit']
 
 const COLOR = /#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^)]*\)/gi
@@ -93,7 +96,7 @@ const steps = value => value.replace(/!important/g, '').replace(/\([^)]*\)/g, gr
 
 // Each check takes a file name and its code, and returns the values that skip the shared ones.
 export const checks = {
-  colors: (file, text) => (PALETTES.has(file) ? [] : [...colorLiterals(text)]
+  colors: (file, text) => (PALETTES.has(stemOf(file)) ? [] : [...colorLiterals(text)]
     .filter(({ value, index }) => !exempt(file, value, text, index))
     .map(({ value }) => value)),
   radii: (file, text) => [...text.matchAll(RADIUS)]
@@ -109,7 +112,7 @@ const code = text => text.split(/\r?\n/)
 
 export function findStyles(dir = CLIENT) {
   const found = Object.fromEntries(Object.keys(checks).map(kind => [kind, {}]))
-  for (const file of readdirSync(dir, { recursive: true }).filter(name => name.endsWith('.js') && !name.replaceAll('\\', '/').startsWith('vendor/')).map(name => name.replaceAll('\\', '/'))) {
+  for (const file of readdirSync(dir, { recursive: true }).filter(name => /\.(?:js|ts|tsx)$/.test(name) && !name.replaceAll('\\', '/').startsWith('vendor/')).map(name => name.replaceAll('\\', '/'))) {
     const text = code(readFileSync(join(dir, file), 'utf8'))
     for (const [kind, check] of Object.entries(checks)) {
       for (const value of check(file, text)) {

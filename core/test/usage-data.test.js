@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { RANGES, bucketsOf, compact, percent, spanOf, spanRange, summarize } from '../src/client/usage-data.js'
+import { RANGES, bucketsOf, compact, percent, spanOf, spanRange, summarize } from '../src/client/usage-data.ts'
 
 const range = id => RANGES.find(item => item.id === id)
 // [hour, owner, model, kind, input, cacheRead, cacheWrite, output, calls]

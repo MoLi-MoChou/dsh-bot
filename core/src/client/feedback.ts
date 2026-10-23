@@ -2,6 +2,7 @@
 // in, see the latest errors, and download the log. Also the toast for actions that
 // fail away from any form (menus, the palette).
 import { createElement as h, useEffect, useState } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import { clearClientErrors, clientErrors, clientFacts, failureLabel, issueUrl, WHAT_MAX } from './diagnostics.ts'
 import { dateLocale, t } from './i18n.js'
 import { CloseIcon } from './icons.js'
@@ -10,7 +11,7 @@ import { SPRING_SHAPE } from './motion.js'
 export const FeedbackIcon = () => h('svg', { width: 15, height: 15, viewBox: '0 0 20 20', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': true },
   h('path', { d: 'M4 4.5h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H9l-3.5 3v-3H4a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z' }), h('path', { d: 'M10 7v2.6M10 11.4h.01' }))
 
-function download(name, text) {
+function download(name: string, text: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
   const anchor = document.createElement('a')
   anchor.href = url
@@ -21,35 +22,57 @@ function download(name, text) {
 
 // No clipboard API (an insecure context, a locked-down WebView) is a failure,
 // not a success: the caller then opens the preview to copy by hand.
-const copy = text => (navigator.clipboard === undefined
+const copy = (text: string): Promise<boolean> => (navigator.clipboard === undefined
   ? Promise.resolve(false)
   : navigator.clipboard.writeText(text).then(() => true, () => false))
 
-export function whenText(time) {
+export function whenText(time: number | string): string {
   const date = new Date(time)
   const today = new Date().toDateString() === date.toDateString()
   const clock = date.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
   return today ? clock : `${date.toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric' })} ${clock}`
 }
 
-function entrySummary(entry) {
-  if (entry.source === 'turn') return failureLabel(entry.code, entry.text)
+export interface FeedbackEntry {
+  readonly time: number | string
+  readonly source: string
+  readonly text: string
+  readonly code?: string
+  readonly status?: number | string
+  readonly level?: string
+  readonly bot?: string
+  readonly where?: string
+}
+
+function entrySummary(entry: FeedbackEntry): string {
+  if (entry.source === 'turn') return failureLabel(entry.code ?? '', entry.text)
   return entry.text
 }
 
-const SOURCES = { turn: 'Model call', host: 'DS Bot', api: 'DS Bot', browser: 'This window' }
+const SOURCES: Record<string, string> = { turn: 'Model call', host: 'DS Bot', api: 'DS Bot', browser: 'This window' }
+
+export interface DiagnosticsReport {
+  readonly entries: readonly FeedbackEntry[]
+  readonly total: number
+  readonly markdown: string
+  readonly issuesUrl: string
+}
+
+interface IssueWindow {
+  go(url: string): boolean
+}
 
 // Where the new issue opens; `go(url)` tells whether it did. In a browser the window is
 // reserved inside the click gesture and addressed once the diagnostics are gathered:
 // opening after the awaits would hit the popup blocker. The Desktop makes no window. It
 // hands an http(s) address to the system browser, has no blocker, and returns null even
 // then, so it gets the address itself.
-function issueWindow() {
-  if (window.dshDesktop !== undefined) return { go: (url) => { window.open(url, '_blank'); return true } }
+function issueWindow(): IssueWindow {
+  if (window.dshDesktop !== undefined) return { go: (url: string): boolean => { window.open(url, '_blank'); return true } }
   const reserved = window.open('', '_blank')
   if (reserved !== null) reserved.opener = null
   return {
-    go: (url) => {
+    go: (url: string): boolean => {
       if (reserved === null) return false
       reserved.location.href = url
       return true
@@ -57,9 +80,27 @@ function issueWindow() {
   }
 }
 
-export function FeedbackPage({ actions, run, Section, Row }) {
+interface FeedbackActions {
+  diagnostics(input: { readonly client: Record<string, string>; readonly clientErrors: unknown }): Promise<DiagnosticsReport>
+  diagnosticsLog(): Promise<string>
+  diagnosticsClear(): Promise<unknown>
+  dismissToast(token: string): void
+  openSettings(page: string): void
+}
+
+type SectionComponent = (props: { readonly title?: string; readonly children?: ReactNode }) => ReactNode
+type RowComponent = (props: { readonly label?: string; readonly hint?: string; readonly children?: ReactNode }) => ReactNode
+
+interface FeedbackPageProps {
+  readonly actions: FeedbackActions
+  readonly run: <T>(work: Promise<T>) => Promise<unknown>
+  readonly Section: SectionComponent
+  readonly Row: RowComponent
+}
+
+export function FeedbackPage({ actions, run, Section, Row }: FeedbackPageProps) {
   const [what, setWhat] = useState('')
-  const [report, setReport] = useState(null)
+  const [report, setReport] = useState<DiagnosticsReport | null>(null)
   const [preview, setPreview] = useState(false)
   const [note, setNote] = useState('')
   // Each action reads the report again, so it holds errors from the last few seconds.
@@ -67,15 +108,15 @@ export function FeedbackPage({ actions, run, Section, Row }) {
   const load = () => fetchReport().then(() => undefined)
   useEffect(() => { void run(load()) }, [])
 
-  const copyReport = () => run(fetchReport().then(async (next) => {
+  const copyReport = (): Promise<unknown> => run(fetchReport().then(async (next) => {
     const copied = await copy(next.markdown)
     setNote(copied ? t('Copied the diagnostics.') : t('Could not copy. Select the text below and copy it.'))
     if (!copied) setPreview(true)
   }))
-  const [issueLink, setIssueLink] = useState(null)
-  const openIssue = () => {
+  const [issueLink, setIssueLink] = useState<string | null>(null)
+  const openIssue = (): Promise<unknown> => {
     const target = issueWindow()
-    run(fetchReport().then(async (next) => {
+    return run(fetchReport().then(async (next) => {
       const copied = await copy(next.markdown)
       const { url, inline } = issueUrl(next.issuesUrl, { what, diagnostics: next.markdown })
       if (target.go(url)) {
@@ -92,14 +133,14 @@ export function FeedbackPage({ actions, run, Section, Row }) {
       if (!inline && !copied) setPreview(true)
     }))
   }
-  const downloadLog = () => run(actions.diagnosticsLog().then((text) => {
+  const downloadLog = (): Promise<unknown> => run(actions.diagnosticsLog().then((text) => {
     download('ds-bot-diagnostics.log', text || 'No entries.\n')
     setNote(t('Downloaded the log. Keys, tokens, and your home folder are hidden in it.'))
   }))
-  const clearLog = () => run(actions.diagnosticsClear().then(clearClientErrors).then(load).then(() => setNote(t('Cleared the error log.'))))
+  const clearLog = (): Promise<unknown> => run(actions.diagnosticsClear().then(clearClientErrors).then(load).then(() => { setNote(t('Cleared the error log.')) }))
 
-  const browserErrors = report ? clientErrors().map(entry => ({ ...entry, source: 'browser' })) : []
-  const entries = [...(report?.entries ?? []), ...browserErrors].sort((a, b) => new Date(b.time) - new Date(a.time))
+  const browserErrors: FeedbackEntry[] = report ? clientErrors().map(entry => ({ ...entry, source: 'browser' })) : []
+  const entries = [...(report?.entries ?? []), ...browserErrors].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
   const total = (report?.total ?? 0) + browserErrors.length
   const shown = entries.slice(0, 8)
   return [
@@ -108,7 +149,7 @@ export function FeedbackPage({ actions, run, Section, Row }) {
         h('label', { className: 'bt-set-copy', htmlFor: 'bt-fb-what' },
           h('span', null, t('What happened?')),
           h('span', { className: 'bt-set-hint' }, t('What you did, what you expected, and what happened instead. It goes into the issue.'))),
-        h('textarea', { id: 'bt-fb-what', className: 'bt-input bt-input-area', value: what, maxLength: WHAT_MAX, placeholder: t('For example: I asked Writer in the group chat and it showed an error.'), onChange: event => setWhat(event.target.value) })),
+        h('textarea', { id: 'bt-fb-what', className: 'bt-input bt-input-area', value: what, maxLength: WHAT_MAX, placeholder: t('For example: I asked Writer in the group chat and it showed an error.'), onChange: (event: ChangeEvent<HTMLTextAreaElement>) => setWhat(event.target.value) })),
       h(Row, { label: t('Diagnostics'), hint: t('Versions, system, models, and the latest errors. Saved keys, tokens, and your home folder are hidden.') },
         h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: () => setPreview(!preview), 'aria-expanded': preview }, preview ? t('Hide') : t('Show')),
         h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: copyReport }, t('Copy'))),
@@ -135,8 +176,27 @@ export function FeedbackPage({ actions, run, Section, Row }) {
 
 const TOAST_MS = 6000
 
+interface ToastSource {
+  readonly token: string
+  readonly text: string
+}
+
+interface ToastActions {
+  dismissToast(token: string): void
+  openSettings(page: string): void
+}
+
+interface UiState {
+  readonly toast?: ToastSource | null
+}
+
+interface ErrorToastProps {
+  readonly useUi: <T>(select: (state: UiState) => T) => T
+  readonly actions: ToastActions
+}
+
 // One failure at a time, bottom center; a newer one replaces it.
-export function ErrorToast({ useUi, actions }) {
+export function ErrorToast({ useUi, actions }: ErrorToastProps) {
   const toast = useUi(state => state.toast)
   const [leaving, setLeaving] = useState(false)
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { STORAGE } from './storage.ts'
 import { framerMotion } from './vendor/framer-motion.js'
-import { noteSignInAsked } from './shell-quiet.js'
+import { noteSignInAsked } from './shell-quiet.ts'
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { LEAN } from './lean.ts'
 import { createPortal } from 'react-dom'

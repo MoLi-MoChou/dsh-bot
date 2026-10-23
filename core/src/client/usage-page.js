@@ -6,7 +6,7 @@ import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './ic
 import { reducedMotion, useGlide } from './motion.js'
 import { EmptyState } from './empty-state.js'
 import { dateLocale, t } from './i18n.js'
-import { DAY_MS, HOUR, HOUR_MS, MODEL, OWNER, RANGES, compact, dayKey, hourMs, mondayOf, percent, spanRange, summarize, tokensOf } from './usage-data.js'
+import { DAY_MS, HOUR, HOUR_MS, MODEL, OWNER, RANGES, compact, dayKey, hourMs, mondayOf, percent, spanRange, summarize, tokensOf } from './usage-data.ts'
 
 // Usage page: the host's ledger as hourly rows, summed here by hour, day, week, or
 // month, over a preset range or days picked on a calendar. The overview stacks the

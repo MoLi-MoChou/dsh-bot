@@ -5,11 +5,31 @@
 import { createElement as h } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.js'
 import { isMainOf } from './sources.ts'
+import type { Roster } from './sources.ts'
 import { EmptyState } from './empty-state.js'
 import { t } from './i18n.js'
 
-export function welcomeCopy(roster, sessionId) {
-  const bot = roster.byId?.[sessionId]
+export interface WelcomeCopy {
+  readonly title: string
+  readonly hint: string
+}
+
+// The roster holds the Bot/Room records as plain objects (team state comes from the host).
+interface WelcomeBot {
+  readonly id: string
+  readonly name: string
+  readonly role?: string
+  readonly parts?: readonly string[]
+}
+
+interface WelcomeRoom {
+  readonly id: string
+  readonly name: string
+  readonly parts?: readonly string[]
+}
+
+export function welcomeCopy(roster: Roster, sessionId: string): WelcomeCopy | null {
+  const bot = roster.byId?.[sessionId] as WelcomeBot | undefined
   if (bot) {
     if ((bot.parts ?? []).length > 0) return null
     if (isMainOf(roster, bot.id)) {
@@ -20,22 +40,27 @@ export function welcomeCopy(roster, sessionId) {
       hint: bot.role ? t('{role}. Tell {name} what you need; the work stays in this chat.', { role: bot.role, name: bot.name }) : t('Tell {name} what you need; the work stays in this chat.', { name: bot.name }),
     }
   }
-  const room = roster.roomsById?.[sessionId]
+  const room = roster.roomsById?.[sessionId] as WelcomeRoom | undefined
   if (room && (room.parts ?? []).length === 0) {
     return { title: t('Welcome to {name}', { name: room.name }), hint: t('Write to everyone here, or call one member with @Name.') }
   }
   return null
 }
 
-export function ChatWelcome({ sessionId, useRoster }) {
+interface ChatWelcomeProps {
+  readonly sessionId: string
+  readonly useRoster: <T>(select: (roster: Roster) => T) => T
+}
+
+export function ChatWelcome({ sessionId, useRoster }: ChatWelcomeProps) {
   const roster = useRoster(value => value)
   const copy = welcomeCopy(roster, sessionId)
   if (!copy) return null
-  const bot = roster.byId?.[sessionId]
+  const bot = roster.byId?.[sessionId] as WelcomeBot | undefined
   const art = bot
-    ? h(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), badge: false })
+    ? h(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), admin: false, badge: false })
     : h(RoomAvatar, { room: roster.roomsById[sessionId], roster, size: 56 })
-  return h('div', { className: 'bt-welcome' }, h(EmptyState, { art, title: copy.title, hint: copy.hint }))
+  return h('div', { className: 'bt-welcome' }, h(EmptyState, { icon: null, art, title: copy.title, hint: copy.hint, action: null }))
 }
 
 export const WELCOME_CSS = `

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { base64Of, speechCatalog, transcribeWave, turnDetector, waveBytes } from '../src/client/speech.js'
+import { base64Of, speechCatalog, transcribeWave, turnDetector, waveBytes } from '../src/client/speech.ts'
 
 const catalog = (phase, extra = {}) => ({
   providers: [{ id: 'sensevoice', preparation: { phase } }],

@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 import { RADII, checks, findStyles, lowered, readDebt } from '../scripts/style-debt.mjs'
 
@@ -54,6 +57,19 @@ test('the checks catch what they look for and pass what they allow', () => {
   assert.deepEqual(checks.radii('x.js', '.a{border-radius:var(--r, 3px) 50%}'), [])
   assert.deepEqual(checks.springs('x.js', 'const GLIDE = springEasing(\n  1000,\n  63,\n)'), ['springEasing(1000,63,)'])
   assert.deepEqual(checks.springs('motion.js', 'export const SPRING = springEasing(400, 31.2)'), [])
+})
+
+test('the scan reaches TypeScript files and still exempts the palettes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'moon-bot-debt-'))
+  try {
+    writeFileSync(join(dir, 'sample.ts'), '.a{color:#12AB56}')
+    writeFileSync(join(dir, 'themes.ts'), 'export const ink = "#123456"')
+    const found = findStyles(dir)
+    assert.deepEqual(found.colors['sample.ts'], { '#12ab56': 1 })
+    assert.equal(found.colors['themes.ts'], undefined)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
 
 test('--write only lowers the list', () => {
