@@ -1,7 +1,7 @@
 import { createElement as h, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { inkText } from './inks.ts'
 import { dayLabel } from './text.ts'
-import { colorOf, BotMark } from './mark.js'
+import { colorOf, BotMark } from './mark.ts'
 import { Bubbles } from './cells.js'
 import { stripLongNote } from './fold.ts'
 import { ChatsIcon } from './icons.ts'

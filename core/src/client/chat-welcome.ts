@@ -3,7 +3,7 @@
 // there (see the CSS), so it leaves as soon as the first message is in. A chat that
 // carries on from earlier parts is not new, and gets no welcome.
 import { createElement as h } from 'react'
-import { BotAvatar, RoomAvatar } from './mark.js'
+import { BotAvatar, RoomAvatar } from './mark.ts'
 import { isMainOf } from './sources.ts'
 import type { Roster } from './sources.ts'
 import { EmptyState } from './empty-state.ts'
@@ -59,7 +59,7 @@ export function ChatWelcome({ sessionId, useRoster }: ChatWelcomeProps) {
   const bot = roster.byId?.[sessionId] as WelcomeBot | undefined
   const art = bot
     ? h(BotAvatar, { bot, size: 56, main: isMainOf(roster, bot.id), admin: false, badge: false })
-    : h(RoomAvatar, { room: roster.roomsById[sessionId], roster, size: 56 })
+    : h(RoomAvatar, { room: roster.roomsById[sessionId] as unknown as { members: readonly string[] }, roster, size: 56 })
   return h('div', { className: 'bt-welcome' }, h(EmptyState, { art, title: copy.title, hint: copy.hint }))
 }
 

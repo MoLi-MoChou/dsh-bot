@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useEffect, useRef, useState, useSyncExter
 import { createPortal } from 'react-dom'
 import { currentPart, formatTokens } from './text.ts'
 import { CheckIcon, SlidersIcon } from './icons.ts'
-import { BotMark } from './mark.js'
+import { BotMark } from './mark.ts'
 import { KeyIcon, MaskedInput } from './secret-card.js'
 import { MENU_EXIT_MS, SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.js'
 import { useEscape, useMenuKeys } from './overlay-hooks.ts'

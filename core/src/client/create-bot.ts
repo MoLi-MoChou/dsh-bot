@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
-import { BotMark } from './mark.js'
+import { BotMark } from './mark.ts'
 import { CharacterGrid, avatarImage } from './bot-settings.js'
 import { DEFAULT_SHAPES, DEFAULT_COLORS } from './characters.ts'
 import { ChevronLeftIcon, CloseIcon } from './icons.ts'

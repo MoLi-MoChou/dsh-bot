@@ -1,7 +1,7 @@
 import { createElement as h, Fragment, useState } from 'react'
 import * as ui from '@deepseek-ai/dsh-client-ui-primitives'
 import { mentionSpans } from '../shared/mentions.ts'
-import { BotMark } from './mark.js'
+import { BotMark } from './mark.ts'
 import { CheckIcon, CopyIcon } from './icons.ts'
 import { dateLocale, t } from './i18n.js'
 import { clockLabel, messageClock } from './text.ts'

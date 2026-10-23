@@ -1,7 +1,7 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
 import { stripHeader } from './text.ts'
 import { MicIcon, CloseIcon } from './icons.ts'
-import { BotMark, RoomAvatar } from './mark.js'
+import { BotMark, RoomAvatar } from './mark.ts'
 import { speechApi, useDictation } from './composer.js'
 import { Shimmer } from './cells.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.ts'

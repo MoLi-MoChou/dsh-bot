@@ -5,7 +5,7 @@
 // and reports the rectangle the shown webview covers.
 import { createElement as h, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { BotMark } from './mark.js'
+import { BotMark } from './mark.ts'
 import { STORAGE } from './storage.ts'
 import { installStyles } from './design/index.ts'
 import { EASE_OUT, PANEL_LINGER_MS, PANEL_TAB_EDGES, reducedMotion, SPRING_SHAPE } from './motion.js'

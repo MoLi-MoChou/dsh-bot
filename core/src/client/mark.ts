@@ -1,6 +1,37 @@
 import { createElement as h, useEffect, useRef, useState } from 'react'
 import { fnv1a, lookOf, shapeId, shapeOf, MASK_ID, nextMarkSerial, characterMarkup } from './characters.ts'
+import type { LookBot } from './characters.ts'
 import { t } from './i18n.js'
+
+// The look a mark draws: a character shape, an optional photo, and a colour.
+export type Look = { shape: string; image?: string | undefined; color: string }
+export interface MarkBot extends LookBot { id?: string }
+export interface BotMarkProps {
+  bot?: MarkBot | undefined
+  look?: Look | undefined
+  size?: number | undefined
+  state?: string | undefined
+  live?: boolean | undefined
+  gaze?: boolean | undefined
+  pokeable?: boolean | undefined
+  label?: string | undefined
+}
+export interface BotAvatarProps {
+  bot?: MarkBot | undefined
+  size?: number | undefined
+  state?: string | undefined
+  main?: boolean | undefined
+  admin?: boolean | undefined
+  badge?: boolean | undefined
+  live?: boolean | undefined
+  gaze?: boolean | undefined
+  pokeable?: boolean | undefined
+}
+export interface RoomAvatarProps {
+  room: { members: readonly string[] }
+  roster: { byId: Record<string, MarkBot | undefined> }
+  size?: number
+}
 
 export { colorOf, lookOf } from './characters.ts'
 
@@ -11,27 +42,27 @@ export { colorOf, lookOf } from './characters.ts'
 // motion. Uploaded images only bob or hop, since they have no parts to move. `waiting`:
 // no turn runs, but work it handed on has not come back yet.
 const STATES = ['idle', 'thinking', 'searching', 'working', 'sending', 'orbit', 'waiting', 'alert', 'done']
-export const botState = (running, activity, alert) => (running ? (STATES.includes(activity) && activity !== 'waiting' ? activity : 'working')
+export const botState = (running: boolean, activity: string | undefined, alert: boolean): string => (running ? (typeof activity === 'string' && STATES.includes(activity) && activity !== 'waiting' ? activity : 'working')
   : alert ? 'alert' : activity === 'waiting' ? 'waiting' : 'idle')
-export const toolState = name => (/^(message_bot|stop_bot|create_bot|update_bot|create_group|update_group|delete_group|post_to_group)$/.test(name) ? 'sending'
+export const toolState = (name: string): string => (/^(message_bot|stop_bot|create_bot|update_bot|create_group|update_group|delete_group|post_to_group)$/.test(name) ? 'sending'
   : /search|fetch|browse|read|grep|glob|list|recall/i.test(name) ? 'searching' : 'working')
 
 // Eyes follow the pointer on large marks.
-function useGaze(ref, enabled) {
+function useGaze(ref: React.RefObject<HTMLSpanElement | null>, enabled: boolean): void {
   useEffect(() => {
     if (!enabled) return undefined
     let frame = 0
-    let point = null
+    let point: { x: number; y: number } | null = null
     const place = () => {
       frame = 0
       const node = ref.current
       if (!node || !point) return
       const box = node.getBoundingClientRect()
-      const clamp = value => Math.max(-1, Math.min(1, value))
+      const clamp = (value: number) => Math.max(-1, Math.min(1, value))
       node.style.setProperty('--bt-gx', clamp((point.x - box.left - box.width / 2) / 160).toFixed(2))
       node.style.setProperty('--bt-gy', clamp((point.y - box.top - box.height / 2) / 160).toFixed(2))
     }
-    const onMove = (event) => { point = { x: event.clientX, y: event.clientY }; if (!frame) frame = requestAnimationFrame(place) }
+    const onMove = (event: PointerEvent) => { point = { x: event.clientX, y: event.clientY }; if (!frame) frame = requestAnimationFrame(place) }
     const onLeave = () => { point = null; ref.current?.style.setProperty('--bt-gx', '0'); ref.current?.style.setProperty('--bt-gy', '0') }
     window.addEventListener('pointermove', onMove, { passive: true })
     document.documentElement.addEventListener('pointerleave', onLeave)
@@ -48,14 +79,9 @@ function useGaze(ref, enabled) {
 // fidget and moment); transcript marks stay still so a long chat does not run dozens
 // of animations.
 const FIDGETS = ['hop', 'sway', 'stretch', 'look']
-/**
- * A Bot's character mark. Only the props a caller varies are typed here; the rest keep
- * their defaults, so a caller can pass just the Bot and a size.
- * @param {{ bot?: unknown, look?: unknown, size?: number, state?: string, live?: boolean, gaze?: boolean, pokeable?: boolean, label?: unknown }} props
- */
-export function BotMark({ bot, look: given, size = 36, state = 'idle', live = false, gaze = false, pokeable = false, label }) {
-  const look = given ?? lookOf(bot)
-  const ref = useRef(null)
+export function BotMark({ bot, look: given, size = 36, state = 'idle', live = false, gaze = false, pokeable = false, label }: BotMarkProps) {
+  const look: Look = given ?? lookOf(bot)
+  const ref = useRef<HTMLSpanElement | null>(null)
   const maskId = useRef('')
   if (maskId.current === '') maskId.current = `bt-mark-${nextMarkSerial()}`
   const [poked, setPoked] = useState(false)
@@ -63,7 +89,7 @@ export function BotMark({ bot, look: given, size = 36, state = 'idle', live = fa
   const [broken, setBroken] = useState('')
   const image = look.image && look.image !== broken ? look.image : undefined
   useGaze(ref, gaze)
-  const common = {
+  const common: Record<string, unknown> = {
     ref,
     className: poked ? 'bt-mark bt-mark-poke' : 'bt-mark',
     'data-shape': image ? 'image' : shapeId(look.shape),
@@ -77,14 +103,15 @@ export function BotMark({ bot, look: given, size = 36, state = 'idle', live = fa
     'aria-label': label,
     'aria-hidden': label ? undefined : true,
     onClick: pokeable ? () => setPoked(true) : undefined,
-    onAnimationEnd: poked ? (event) => { if (/^bt-poke/.test(event.animationName)) setPoked(false) } : undefined,
+    onAnimationEnd: poked ? (event: React.AnimationEvent<HTMLSpanElement>) => { if (/^bt-poke/.test(event.animationName)) setPoked(false) } : undefined,
   }
-  if (image) return h('span', common, h('img', { className: 'bt-mark-img', src: image, alt: '', draggable: false, onError: () => setBroken(image) }))
+  const props = common as React.HTMLAttributes<HTMLSpanElement>
+  if (image) return h('span', props, h('img', { className: 'bt-mark-img', src: image, alt: '', draggable: false, onError: () => setBroken(image) }))
   const box = shapeOf(look.shape).size
-  return h('span', common, h('svg', { viewBox: `0 0 ${box} ${box}`, dangerouslySetInnerHTML: { __html: characterMarkup(look.shape, look.color).replaceAll(MASK_ID, maskId.current) } }))
+  return h('span', props, h('svg', { viewBox: `0 0 ${box} ${box}`, dangerouslySetInnerHTML: { __html: characterMarkup(look.shape, look.color).replaceAll(MASK_ID, maskId.current) } }))
 }
 
-function StarIcon({ size = 8 }) {
+function StarIcon({ size = 8 }: { size?: number | undefined }) {
   return h('svg', { width: size, height: size, viewBox: '0 0 10 10', 'aria-hidden': true },
     h('path', { d: 'M5 .6l1.3 2.8 3 .3-2.3 2 .7 3L5 7.2 2.3 8.7l.7-3L.7 3.7l3-.3z', fill: '#fff' }))
 }
@@ -99,7 +126,7 @@ function MainStar() {
 }
 
 // Marks settle with a short squash when a run finishes.
-function useSettled(state) {
+function useSettled(state: string): boolean {
   const prev = useRef(state)
   const [settled, setSettled] = useState(false)
   useEffect(() => {
@@ -114,11 +141,7 @@ function useSettled(state) {
   return settled
 }
 
-/**
- * The avatar a chat or a group row shows: either a Bot's mark or the room's.
- * @param {{ bot?: unknown, size?: number, state?: string, main?: boolean, admin?: boolean, badge?: boolean, live?: boolean, gaze?: boolean, pokeable?: boolean }} props
- */
-export function BotAvatar({ bot, size, state = 'idle', main, admin, badge = true, live = true, gaze = false, pokeable = false }) {
+export function BotAvatar({ bot, size, state = 'idle', main, admin, badge = true, live = true, gaze = false, pokeable = false }: BotAvatarProps) {
   const settled = useSettled(state)
   if (bot === undefined) return h(BotMark, { size })
   const badgeKind = !badge ? null : state === 'alert' ? 'alert' : state !== 'idle' && state !== 'waiting' ? 'working' : admin ? 'admin' : main ? 'main' : null
@@ -132,7 +155,7 @@ export function BotAvatar({ bot, size, state = 'idle', main, admin, badge = true
 
 // A group avatar seats its members' characters in the frame: two on a
 // diagonal, three in a triangle, four in a grid, and past four three plus a "+N" seat.
-function clusterSeats(count, frame) {
+function clusterSeats(count: number, frame: number): [number, number, number][] {
   if (count === 1) return [[0, 0, frame]]
   if (count === 2) return [[0, 0, frame * 2 / 3], [frame / 3, frame / 3, frame * 2 / 3]]
   if (count === 3) {
@@ -144,11 +167,11 @@ function clusterSeats(count, frame) {
   return [[0, 0, half], [half, 0, half], [0, half, half], [half, half, half]]
 }
 
-export function RoomAvatar({ room, roster, size = 36 }) {
-  const members = room.members.map(id => roster.byId[id]).filter(Boolean)
+export function RoomAvatar({ room, roster, size = 36 }: RoomAvatarProps) {
+  const members = room.members.map(id => roster.byId[id]).filter((bot): bot is MarkBot => bot !== undefined)
   // A group with one Bot left shows the user beside it.
-  const people = members.length === 1 ? [members[0], null] : members
-  const seat = (bot, seatSize, key) => (bot
+  const people: (MarkBot | null)[] = members.length === 1 ? [members[0] ?? null, null] : members
+  const seat = (bot: MarkBot | null | undefined, seatSize: number, key?: string) => (bot
     ? h(BotMark, { key, bot, size: seatSize })
     : h('span', { key, className: 'bt-cluster-you', style: { width: seatSize * 0.92, height: seatSize * 0.92, margin: seatSize * 0.04 } }))
   if (people.length === 0) return h(BotMark, { size })
@@ -168,7 +191,7 @@ export function RoomAvatar({ room, roster, size = 36 }) {
       const holes = rings.slice(index + 1)
         .filter(ring => Math.hypot(ring.cx - x - s / 2, ring.cy - y - s / 2) < ring.r + s * 0.46)
         .map(ring => `radial-gradient(circle at ${ring.cx - x}px ${ring.cy - y}px,transparent ${ring.r}px,#000 ${ring.r + 0.5}px)`)
-      const style = { left: x, top: y, width: s, height: s }
+      const style: React.CSSProperties = { left: x, top: y, width: s, height: s }
       if (holes.length > 0) Object.assign(style, { WebkitMaskImage: holes.join(','), maskImage: holes.join(','), WebkitMaskComposite: 'source-in', maskComposite: 'intersect' })
       if (overflow > 0 && index === 3) {
         return h('span', { key: 'more', className: 'bt-cluster-more', style: { ...style, width: s * 0.92, height: s * 0.92, margin: s * 0.04, fontSize: Math.max(8, Math.round(s * 0.36)) } }, `+${overflow}`)

@@ -2,7 +2,7 @@
 // line in its details panel. DSH runs the tasks (see src/host/schedules.js); a task
 // sends its prompt to the Bot's chat when it is due.
 import { createElement as h, Fragment, useEffect, useState } from 'react'
-import { BotAvatar, RoomAvatar } from './mark.js'
+import { BotAvatar, RoomAvatar } from './mark.ts'
 import { ClockIcon, PlusIcon, TrashIcon } from './icons.ts'
 import { Segmented } from './motion.js'
 import { EmptyState } from './empty-state.ts'

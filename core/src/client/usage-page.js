@@ -1,7 +1,7 @@
 import { createElement as h, startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { colorOf, MAIN_LOOK } from './characters.ts'
 import { GRADIENTS, paintCss } from './inks.ts'
-import { BotAvatar, BotMark, RoomAvatar } from './mark.js'
+import { BotAvatar, BotMark, RoomAvatar } from './mark.ts'
 import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.ts'
 import { reducedMotion, useGlide } from './motion.js'
 import { EmptyState } from './empty-state.ts'

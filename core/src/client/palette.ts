@@ -3,20 +3,67 @@ import { FishLogo } from './dsh-primitives.ts'
 import { isMainOf } from './sources.ts'
 import { currentPart, stripHeader } from './text.ts'
 import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.ts'
-import { BotAvatar, RoomAvatar } from './mark.js'
+import { BotAvatar, RoomAvatar } from './mark.ts'
 import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
 import { DIALOG_EXIT_MS, QUICK_EDGES, reducedMotion, useFlip, useGlide } from './motion.js'
+import type { ReactNode } from 'react'
 import { t } from './i18n.js'
+
+// The roster fields the palette reads to build its rows.
+interface PaletteBot { id: string; name: string; role?: string; hidden?: boolean; sessionId?: string }
+interface PaletteRoom { id: string; name: string; hidden?: boolean; members: readonly string[] }
+interface PaletteAgent { id: string }
+export interface PaletteRoster {
+  bots: PaletteBot[]
+  rooms: PaletteRoom[]
+  agents?: PaletteAgent[]
+  byId: Record<string, PaletteBot | undefined>
+  roomsById: Record<string, PaletteRoom | undefined>
+  exchangeTurns: Record<string, number[] | undefined>
+  mainBotIds?: readonly string[]
+}
+// A turn outline entry as the session projections carry it.
+interface OutlineEntry { turn: number; response?: string; prompt?: string }
+interface SessionList {
+  byId: Record<string, { projectionValues?: { turnOutline?: unknown } } | undefined>
+  projectionsBySession?: Record<string, { values?: { turnOutline?: unknown } } | undefined>
+}
+type SessionsHook = <T>(select: (list: SessionList) => T) => T
+interface PaletteRow {
+  key: string
+  avatar?: ReactNode
+  icon?: ReactNode
+  title: string
+  subtitle?: string | undefined
+  badge?: string | undefined
+  run: () => unknown
+}
+export interface PaletteActions {
+  closePalette: (token: string) => void
+  setFlags: (id: string, flags: { hidden?: boolean }) => Promise<unknown>
+  openSession: (id: string) => void
+  openAgent: (id: string) => void
+  openNewChat: (mode: string) => void
+  openSettings: (page: string) => void
+  reportError: (error: unknown, where: string) => void
+}
+export interface CommandPaletteProps {
+  start?: string | undefined
+  token: string
+  roster: PaletteRoster
+  actions: PaletteActions
+  useSessions: SessionsHook
+}
 
 // Search is a command palette: a 560px dialog, a search header, and 49px
 // rows (24px avatar, title, subtitle). Bots and groups match on name and role; past
 // messages match on their text.
-export function CommandPalette({ start, token, roster, actions, useSessions }) {
+export function CommandPalette({ start, token, roster, actions, useSessions }: CommandPaletteProps) {
   const [query, setQuery] = useState(start ?? '')
   const [cursor, setCursor] = useState(0)
   const [leaving, setLeaving] = useState(false)
-  const input = useRef(null)
+  const input = useRef<HTMLInputElement | null>(null)
   const wanted = query.trim().toLowerCase()
   const close = () => {
     if (leaving) return
@@ -27,9 +74,9 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
   const ids = [...roster.bots.map(currentPart), ...roster.rooms.map(item => item.id)]
   const found = useSessions((list) => {
     if (wanted.length < 2) return '[]'
-    const hits = []
+    const hits: [string, number, string][] = []
     for (const id of ids) {
-      const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline
+      const outline = list.projectionsBySession?.[id]?.values?.turnOutline ?? list.byId[id]?.projectionValues?.turnOutline as OutlineEntry[] | undefined
       if (!Array.isArray(outline)) continue
       const hidden = roster.exchangeTurns[id] ?? []
       for (let index = outline.length - 1; index >= 0 && hits.length < 30; index -= 1) {
@@ -46,39 +93,39 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
       }
     }
     return JSON.stringify(hits)
-  })
-  const matchesName = (...fields) => wanted === '' || fields.some(field => (field ?? '').toLowerCase().includes(wanted))
-  const sections = []
-  const people = [
+  }) as string
+  const matchesName = (...fields: (string | undefined)[]) => wanted === '' || fields.some(field => (field ?? '').toLowerCase().includes(wanted))
+  const sections: [string, PaletteRow[]][] = []
+  const people: PaletteRow[] = [
     ...roster.bots.filter(bot => matchesName(bot.name, bot.role)).map(bot => ({
       key: bot.id, avatar: h(BotAvatar, { bot, size: 24, badge: false, live: false }), title: bot.name,
       subtitle: [bot.role, isMainOf(roster, bot.id) ? t('Main Bot') : ''].filter(Boolean).join(' · '), badge: bot.hidden ? t('Hidden') : undefined,
       run: async () => { if (bot.hidden) await actions.setFlags(bot.id, { hidden: false }); actions.openSession(bot.id) },
     })),
     ...roster.rooms.filter(room => matchesName(room.name)).map(room => ({
-      key: room.id, avatar: h(RoomAvatar, { room, roster, size: 24 }), title: room.name, subtitle: t('{count} members', { count: room.members.length }),
+      key: room.id, avatar: h(RoomAvatar, { room: room as unknown as { members: readonly string[] }, roster, size: 24 }), title: room.name, subtitle: t('{count} members', { count: room.members.length }),
       badge: room.hidden ? t('Hidden') : undefined,
       run: async () => { if (room.hidden) await actions.setFlags(room.id, { hidden: false }); actions.openSession(room.id) },
     })),
   ]
   if (people.length) sections.push([t('Bots'), people])
-  const agents = (roster.agents ?? []).filter(() => matchesName('DSH Agent')).map(agent => ({
+  const agents: PaletteRow[] = (roster.agents ?? []).filter(() => matchesName('DSH Agent')).map(agent => ({
     key: agent.id, avatar: h('span', { className: 'bt-palette-agent' }, h(FishLogo, { size: 18 })), title: 'DSH Agent',
     subtitle: t('Plain dsh session'),
     run: () => actions.openAgent(agent.id),
   }))
   if (agents.length) sections.push(['DSH Agent', agents])
-  const messages = JSON.parse(found).map(([id, turn, snippet]) => {
+  const messages: PaletteRow[] = (JSON.parse(found) as [string, number, string][]).map(([id, turn, snippet]) => {
     const bot = roster.byId[id]
     const room = roster.roomsById[id]
     return {
       key: `${id}:${turn}`, title: bot?.name ?? room?.name ?? t('Bot'), subtitle: snippet,
-      avatar: bot ? h(BotAvatar, { bot, size: 24, badge: false, live: false }) : h(RoomAvatar, { room, roster, size: 24 }),
+      avatar: bot ? h(BotAvatar, { bot, size: 24, badge: false, live: false }) : h(RoomAvatar, { room: room as unknown as { members: readonly string[] }, roster, size: 24 }),
       run: () => actions.openSession(id),
     }
   })
   if (messages.length) sections.push([t('Messages'), messages])
-  const commands = [
+  const commands: PaletteRow[] = [
     { key: 'cmd:new', icon: h(PlusIcon), title: t('New chat'), run: () => actions.openNewChat('new') },
     { key: 'cmd:bot', icon: h(PlusIcon), title: t('Create Bot'), run: () => actions.openNewChat('create') },
     { key: 'cmd:group', icon: h(PeopleIcon), title: t('Create group chat'), run: () => actions.openNewChat('group') },
@@ -94,7 +141,7 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
   useEffect(() => {
     listRef.current?.querySelector('[aria-selected=true]')?.scrollIntoView({ block: 'nearest' })
   }, [active, query])
-  const choose = (row) => {
+  const choose = (row: PaletteRow | undefined) => {
     if (!row || leaving) return
     void Promise.resolve(row.run()).catch(error => actions.reportError(error, 'menu'))
     close()
@@ -108,8 +155,8 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
         h('input', {
           ref: input, autoFocus: true, value: query, placeholder: t('Search Bots, chats and messages'), 'aria-label': t('Search'),
           role: 'combobox', 'aria-expanded': true, 'aria-controls': 'bt-palette-list',
-          onChange: (event) => { setQuery(event.target.value); setCursor(0) },
-          onKeyDown: (event) => {
+          onChange: (event: React.ChangeEvent<HTMLInputElement>) => { setQuery(event.target.value); setCursor(0) },
+          onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
             if (event.nativeEvent.isComposing) return
             if (event.key === 'ArrowDown') { event.preventDefault(); setCursor(Math.min(active + 1, rows.length - 1)) }
             else if (event.key === 'ArrowUp') { event.preventDefault(); setCursor(Math.max(active - 1, 0)) }

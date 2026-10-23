@@ -55,9 +55,6 @@
       "#e3a008": 1,
       "#fff": 2
     },
-    "mark.js": {
-      "#fff": 1
-    },
     "member-status.js": {
       "#b7791f": 2,
       "#e3a008": 1,
@@ -81,6 +78,9 @@
     },
     "usage-page.js": {
       "#fff": 2
+    },
+    "mark.ts": {
+      "#fff": 1
     }
   },
   "radii": {

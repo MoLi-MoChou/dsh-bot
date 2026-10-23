@@ -2,7 +2,7 @@ import { createElement as h, Fragment, useEffect, useRef, useState } from 'react
 import { isMainOf } from './sources.ts'
 import { HEADER, currentPart, runStatsOf, stripHeader, usageOf } from './text.ts'
 import { PlusIcon, ShareIcon, CloseIcon, ChevronLeftIcon, GearIcon } from './icons.ts'
-import { botState, BotMark, BotAvatar } from './mark.js'
+import { botState, BotMark, BotAvatar } from './mark.ts'
 import { GlobeIcon, Favicon } from './browser-pane.js'
 import { useEscape } from './overlay-hooks.ts'
 import { EmptyState } from './empty-state.ts'
