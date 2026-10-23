@@ -13,7 +13,7 @@ import { GroupSettingsForm, ROOM_MODES, roomSubtitle, shownMode } from './group-
 import { ModelMenu, modelOf } from './model-menu.ts'
 import { FolderMenu } from './folder-menu.ts'
 import { MemoryRow } from './memory-panel.ts'
-import { ScheduleSummary } from './schedules.js'
+import { ScheduleSummary } from './schedules.ts'
 import { LEAN } from './lean.ts'
 import { useGlide, useMorph } from './motion.ts'
 import { MemberApprovals, MemberState, StopMemberWork, useMemberWork, workState } from './member-status.ts'

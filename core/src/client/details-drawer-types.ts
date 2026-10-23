@@ -52,6 +52,9 @@ export interface DetailsDrawerActions extends PanelActions, FolderMenuActions, M
   stopMemberWork: (roomId: string, botId: string) => Promise<unknown>
   answerApproval: (id: string, choice: string) => Promise<unknown>
   reportError: (error: unknown, where?: string) => void
+  openSettings: (page: string, id?: string | null) => void
+  scheduleCreate: (input: { target: string; title: string; prompt: string; when: Record<string, unknown> }) => Promise<unknown>
+  scheduleDelete: (sessionId: string, id: string) => Promise<unknown>
   updateBot: (id: string, patch: Record<string, unknown>) => Promise<unknown>
   updateRoom: (id: string, patch: Record<string, unknown>) => Promise<unknown>
   openSession: (id: string) => void

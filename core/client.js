@@ -13453,8 +13453,9 @@ var FOLDER_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-folder-view{animation:none}}
 `;
 
-// src/client/schedules.js
+// src/client/schedules.ts
 var import_react22 = require("react");
+var inputValue = (event) => event.target.value;
 var POLL_MS = 3e4;
 var shared = null;
 var listeners2 = /* @__PURE__ */ new Set();
@@ -13468,12 +13469,14 @@ function useSchedules(actions) {
     listeners2.add(setView);
     let stopped = false;
     let timer;
-    const load = () => actions.schedules?.().then((next) => {
-      if (!stopped) publish(next);
-    }).catch(() => {
-    }).finally(() => {
-      if (!stopped) timer = setTimeout(load, POLL_MS);
-    });
+    const load = () => {
+      void (actions.schedules?.() ?? Promise.resolve(null)).then((next) => {
+        if (!stopped && next !== null) publish(next);
+      }).catch(() => {
+      }).finally(() => {
+        if (!stopped) timer = setTimeout(load, POLL_MS);
+      });
+    };
     load();
     return () => {
       stopped = true;
@@ -13535,13 +13538,13 @@ function TaskRow({ task, actions, onView, showBot, roster }) {
       return;
     }
     setBusy(true);
-    void actions.scheduleDelete(task.sessionId, task.id).then(onView, () => setBusy(false));
+    void actions.scheduleDelete(task.sessionId, task.id).then((next) => onView(next), () => setBusy(false));
   };
-  const room2 = task.roomId ? roster.roomsById[task.roomId] : void 0;
+  const room2 = task.roomId === void 0 ? void 0 : roster.roomsById[task.roomId];
   return (0, import_react22.createElement)(
     "div",
     { className: "bt-set-row bt-task", "data-done": task.status === "active" ? void 0 : "", "data-busy": busy || void 0 },
-    showBot ? (0, import_react22.createElement)(BotAvatar, { bot: roster.byId[task.botId], size: 28, badge: false, live: false }) : null,
+    showBot ? (0, import_react22.createElement)(BotAvatar, { bot: task.botId === void 0 ? void 0 : roster.byId[task.botId], size: 28, badge: false, live: false }) : null,
     (0, import_react22.createElement)(
       "span",
       { className: "bt-set-copy" },
@@ -13583,7 +13586,7 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
   const [error, setError] = (0, import_react22.useState)("");
   const timing = () => {
     if (kind === "at") return { kind, at: new Date(at).toISOString() };
-    if (kind === "every") return { kind, minutes: Math.round(Number(count) * UNITS.find(([id]) => id === unit)[1]) };
+    if (kind === "every") return { kind, minutes: Math.round(Number(count) * (UNITS.find(([id]) => id === unit)?.[1] ?? 1)) };
     return { kind, time, timeZone: localZone(), ...kind === "weekly" ? { weekdays } : {} };
   };
   const submit = (event) => {
@@ -13599,7 +13602,7 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
       setBusy(false);
       return;
     }
-    void actions.scheduleCreate({ target, title, prompt, when: when3 }).then(onDone, (failure) => {
+    void actions.scheduleCreate({ target, title, prompt, when: when3 }).then((next) => onDone(next), (failure) => {
       setError(hostText(failure?.message ?? String(failure)));
       setBusy(false);
     });
@@ -13614,7 +13617,7 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
       (0, import_react22.createElement)("span", { className: "bt-set-copy" }, (0, import_react22.createElement)("span", { className: "bt-bs-label" }, t("Send to"))),
       (0, import_react22.createElement)(
         "select",
-        { className: "bt-select bt-task-bot", value: target, onChange: (event) => setTarget(event.target.value) },
+        { className: "bt-select bt-task-bot", value: target, onChange: (event) => setTarget(inputValue(event)) },
         (0, import_react22.createElement)("optgroup", { label: t("Bots") }, roster.bots.map((bot) => (0, import_react22.createElement)("option", { key: bot.id, value: bot.id }, bot.name))),
         roster.rooms.length > 0 ? (0, import_react22.createElement)("optgroup", { label: t("Group chats") }, roster.rooms.map((room2) => (0, import_react22.createElement)("option", { key: room2.id, value: room2.id }, room2.name))) : null
       )
@@ -13623,13 +13626,13 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
       "label",
       { className: "bt-set-row bt-bs-row" },
       (0, import_react22.createElement)("span", { className: "bt-set-copy" }, (0, import_react22.createElement)("span", { className: "bt-bs-label" }, t("Name"))),
-      (0, import_react22.createElement)("input", { className: "bt-bs-input", value: title, maxLength: 120, placeholder: t("Morning briefing"), autoFocus: true, onChange: (event) => setTitle(event.target.value) })
+      (0, import_react22.createElement)("input", { className: "bt-bs-input", value: title, maxLength: 120, placeholder: t("Morning briefing"), autoFocus: true, onChange: (event) => setTitle(inputValue(event)) })
     ),
     (0, import_react22.createElement)(
       "label",
       { className: "bt-set-row bt-bs-row bt-bs-stack" },
       (0, import_react22.createElement)("span", { className: "bt-set-copy" }, (0, import_react22.createElement)("span", { className: "bt-bs-label" }, t("What to do"))),
-      (0, import_react22.createElement)("textarea", { className: "bt-bs-input bt-bs-area", value: prompt, rows: 3, placeholder: t("Sum up what changed since yesterday and what needs me today."), onChange: (event) => setPrompt(event.target.value) })
+      (0, import_react22.createElement)("textarea", { className: "bt-bs-input bt-bs-area", value: prompt, rows: 3, placeholder: t("Sum up what changed since yesterday and what needs me today."), onChange: (event) => setPrompt(inputValue(event)) })
     ),
     (0, import_react22.createElement)(
       "div",
@@ -13639,7 +13642,7 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
       (0, import_react22.createElement)(
         "div",
         { key: kind, className: "bt-task-when bt-veil" },
-        kind === "at" ? (0, import_react22.createElement)("input", { className: "bt-input", type: "datetime-local", value: at, "aria-label": t("Date and time"), onChange: (event) => setAt(event.target.value) }) : null,
+        kind === "at" ? (0, import_react22.createElement)("input", { className: "bt-input", type: "datetime-local", value: at, "aria-label": t("Date and time"), onChange: (event) => setAt(inputValue(event)) }) : null,
         kind === "weekly" ? (0, import_react22.createElement)("div", { className: "bt-task-days", role: "group", "aria-label": t("Days") }, [1, 2, 3, 4, 5, 6, 7].map((day) => (0, import_react22.createElement)("button", {
           key: day,
           type: "button",
@@ -13647,15 +13650,15 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
           "aria-pressed": weekdays.includes(day),
           onClick: () => toggleDay(day)
         }, when2(Date.UTC(2024, 0, day), { weekday: "narrow", timeZone: "UTC" })))) : null,
-        kind === "daily" || kind === "weekly" ? (0, import_react22.createElement)("input", { className: "bt-input bt-task-time", type: "time", value: time, "aria-label": t("Time"), onChange: (event) => setTime(event.target.value) }) : null,
+        kind === "daily" || kind === "weekly" ? (0, import_react22.createElement)("input", { className: "bt-input bt-task-time", type: "time", value: time, "aria-label": t("Time"), onChange: (event) => setTime(inputValue(event)) }) : null,
         kind === "every" ? (0, import_react22.createElement)(
           import_react22.Fragment,
           null,
           (0, import_react22.createElement)("span", { className: "bt-task-every" }, t("Every")),
-          (0, import_react22.createElement)("input", { className: "bt-input bt-task-count", type: "number", min: 1, value: count, "aria-label": t("How many"), onChange: (event) => setCount(event.target.value) }),
+          (0, import_react22.createElement)("input", { className: "bt-input bt-task-count", type: "number", min: 1, value: count, "aria-label": t("How many"), onChange: (event) => setCount(inputValue(event)) }),
           (0, import_react22.createElement)(
             "select",
-            { className: "bt-select bt-task-unit", value: unit, "aria-label": t("Unit"), onChange: (event) => setUnit(event.target.value) },
+            { className: "bt-select bt-task-unit", value: unit, "aria-label": t("Unit"), onChange: (event) => setUnit(inputValue(event)) },
             UNITS.map(([id, , label]) => (0, import_react22.createElement)("option", { key: id, value: id }, t(label)))
           )
         ) : null
@@ -13678,7 +13681,7 @@ function AutomationOff({ actions }) {
       icon: (0, import_react22.createElement)(ClockIcon),
       title: t("Turn on Automation tasks in DSH"),
       hint: t("Switch on Automation tasks on the Plugins page in Harness settings."),
-      action: actions.openHarnessSettings ? { label: t("Open Harness settings"), onClick: actions.openHarnessSettings } : void 0
+      ...actions.openHarnessSettings ? { action: { label: t("Open Harness settings"), onClick: actions.openHarnessSettings } } : {}
     })
   );
 }
@@ -13694,7 +13697,7 @@ function SchedulesPage({ roster, actions, start }) {
   const byChat = [
     ...roster.bots.map((bot) => [bot.id, (0, import_react22.createElement)(BotAvatar, { bot, size: 18, badge: false, live: false }), bot.name, view.tasks.filter((task) => task.botId === bot.id)]),
     ...roster.rooms.map((room2) => [room2.id, (0, import_react22.createElement)(RoomAvatar, { room: room2, roster, size: 18 }), room2.name, view.tasks.filter((task) => task.botId === void 0 && task.roomId === room2.id)])
-  ].filter(([, , , tasks]) => tasks.length > 0);
+  ].filter((entry) => entry[3].length > 0);
   return [
     adding ? (0, import_react22.createElement)(TaskForm, { key: "form", roster, actions, start, onDone: shown, onCancel: () => setAdding(false) }) : (0, import_react22.createElement)("div", { key: "add", className: "bt-actions" }, (0, import_react22.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm bt-with-icon", onClick: () => setAdding(true) }, (0, import_react22.createElement)(PlusIcon), t("New task"))),
     byChat.length === 0 && !adding ? (0, import_react22.createElement)("div", { key: "none", className: "bt-set-card" }, (0, import_react22.createElement)(EmptyState, {

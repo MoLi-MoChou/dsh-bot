@@ -95,6 +95,9 @@ export interface SettingsActions extends FolderMenuActions, SecretActions, Conne
   installDshUpdate: () => Promise<unknown>
   openAppUpdates: (version?: string) => void
   repoStars: () => Promise<number>
+  // The schedule service: a task added from the Bot settings form, and one deleted.
+  scheduleCreate: (input: { target: string; title: string; prompt: string; when: Record<string, unknown> }) => Promise<unknown>
+  scheduleDelete: (sessionId: string, id: string) => Promise<unknown>
 }
 export type RunWork = (work: Promise<unknown>) => Promise<boolean>
 

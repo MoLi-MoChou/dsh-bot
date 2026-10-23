@@ -1,5 +1,5 @@
 // Scheduled tasks: Settings → Scheduled tasks, a Bot's card in its settings, and the
-// line in its details panel. DSH runs the tasks (see src/host/schedules.js); a task
+// line in its details panel. DSH runs the tasks (see src/host/schedules.ts); a task
 // sends its prompt to the Bot's chat when it is due.
 import { createElement as h, Fragment, useEffect, useState } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.ts'
@@ -7,26 +7,74 @@ import { ClockIcon, PlusIcon, TrashIcon } from './icons.ts'
 import { Segmented } from './motion.ts'
 import { EmptyState } from './empty-state.ts'
 import { dateLocale, hostText, t } from './i18n.ts'
+import type { FormEvent, ReactNode } from 'react'
+import type { MarkBot } from './mark.ts'
+
+/** One scheduled task, as the host reports it. */
+interface Task {
+  readonly id: string
+  readonly sessionId: string
+  readonly botId?: string | undefined
+  readonly roomId?: string | undefined
+  readonly title: string
+  readonly prompt?: string | undefined
+  readonly kind?: string | undefined
+  readonly status?: string | undefined
+  readonly scheduledAt?: string | undefined
+  readonly time?: string | undefined
+  readonly everySeconds?: number | undefined
+  readonly weekdays?: readonly number[] | undefined
+  readonly expression?: string | undefined
+  readonly timeZone?: string | undefined
+}
+
+/** What the tasks view says: whether DSH runs them at all, and the tasks themselves. */
+interface ScheduleView {
+  readonly available: boolean
+  readonly tasks: readonly Task[]
+}
+
+interface ScheduleRoom { readonly id: string; readonly name: string; readonly members: readonly string[] }
+
+interface ScheduleRoster {
+  readonly bots: readonly { readonly id: string; readonly name: string }[]
+  readonly rooms: readonly ScheduleRoom[]
+  readonly byId: Record<string, MarkBot | undefined>
+  readonly roomsById: Record<string, ScheduleRoom | undefined>
+}
+
+interface ScheduleActions {
+  schedules?: (() => Promise<ScheduleView>) | undefined
+  scheduleDelete: (sessionId: string, id: string) => Promise<unknown>
+  scheduleCreate: (input: { target: string; title: string; prompt: string; when: Record<string, unknown> }) => Promise<unknown>
+  openHarnessSettings?: (() => void) | undefined
+  openSettings: (page: string, id?: string | null) => void
+}
+
+type ScheduleListener = (view: ScheduleView) => void
+const inputValue = (event: { readonly target: EventTarget }): string => (event.target as HTMLInputElement).value
 
 const POLL_MS = 30_000
 
 // One view for every surface that shows tasks; each asks again when it mounts.
-let shared = null
-const listeners = new Set()
-function publish(view) {
+let shared: ScheduleView | null = null
+const listeners = new Set<ScheduleListener>()
+function publish(view: ScheduleView): void {
   shared = view
   for (const listener of listeners) listener(view)
 }
-export function useSchedules(actions) {
-  const [view, setView] = useState(shared)
+export function useSchedules(actions: ScheduleActions): ScheduleView | null {
+  const [view, setView] = useState<ScheduleView | null>(shared)
   useEffect(() => {
     listeners.add(setView)
     let stopped = false
-    let timer
-    const load = () => actions.schedules?.()
-      .then((next) => { if (!stopped) publish(next) })
-      .catch(() => {})
-      .finally(() => { if (!stopped) timer = setTimeout(load, POLL_MS) })
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const load = (): void => {
+      void (actions.schedules?.() ?? Promise.resolve(null))
+        .then((next) => { if (!stopped && next !== null) publish(next) })
+        .catch(() => {})
+        .finally(() => { if (!stopped) timer = setTimeout(load, POLL_MS) })
+    }
     load()
     return () => { stopped = true; clearTimeout(timer); listeners.delete(setView) }
   }, [])
@@ -34,29 +82,29 @@ export function useSchedules(actions) {
 }
 
 const localZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
-const clock = time => String(time ?? '').slice(0, 5)
-const when = (ms, options) => new Intl.DateTimeFormat(dateLocale(), options).format(ms)
-function dayAndTime(ms) {
+const clock = (time: unknown): string => String(time ?? '').slice(0, 5)
+const when = (ms: number, options: Intl.DateTimeFormatOptions): string => new Intl.DateTimeFormat(dateLocale(), options).format(ms)
+function dayAndTime(ms: number): string {
   const sameYear = new Date(ms).getFullYear() === new Date().getFullYear()
   return when(ms, { ...(sameYear ? {} : { year: 'numeric' }), month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
-function weekdayNames(days) {
+function weekdayNames(days: readonly number[]): string {
   const names = days.map(day => when(Date.UTC(2024, 0, day), { weekday: 'short', timeZone: 'UTC' }))
   return names.join(dateLocale().startsWith('zh') ? '、' : ', ')
 }
-function everyText(seconds) {
+function everyText(seconds: number): string {
   if (seconds % 86400 === 0) return seconds === 86400 ? t('Every day') : t('Every {count} days', { count: seconds / 86400 })
   if (seconds % 3600 === 0) return seconds === 3600 ? t('Every hour') : t('Every {count} hours', { count: seconds / 3600 })
   return t('Every {count} minutes', { count: Math.round(seconds / 60) })
 }
 
 // How often a task runs, in the user's words.
-export function timingText(task) {
+export function timingText(task: Task): string {
   const zone = task.timeZone && task.timeZone !== localZone() ? ` (${task.timeZone})` : ''
   switch (task.kind) {
     case 'after':
-    case 'at': return t('Once, {time}', { time: dayAndTime(Date.parse(task.scheduledAt)) })
-    case 'every': return everyText(task.everySeconds)
+    case 'at': return t('Once, {time}', { time: dayAndTime(Date.parse(task.scheduledAt as string)) })
+    case 'every': return everyText(task.everySeconds as number)
     case 'daily': return `${t('Every day at {time}', { time: clock(task.time) })}${zone}`
     case 'weekly': {
       const days = (task.weekdays ?? []).join()
@@ -66,13 +114,19 @@ export function timingText(task) {
             : t('Every {days} at {time}', { days: weekdayNames(task.weekdays ?? []), time: clock(task.time) })
       return `${text}${zone}`
     }
-    case 'cron': return `${t('On the schedule {expression}', { expression: task.expression })}${zone}`
+    case 'cron': return `${t('On the schedule {expression}', { expression: task.expression as string })}${zone}`
     default: return ''
   }
 }
-const nextText = task => (task.status === 'active' ? t('Next: {time}', { time: dayAndTime(Date.parse(task.scheduledAt)) }) : t('Finished'))
+const nextText = (task: Task): string => (task.status === 'active' ? t('Next: {time}', { time: dayAndTime(Date.parse(task.scheduledAt as string)) }) : t('Finished'))
 
-function TaskRow({ task, actions, onView, showBot, roster }) {
+function TaskRow({ task, actions, onView, showBot, roster }: {
+  task: Task
+  actions: ScheduleActions
+  onView: ScheduleListener
+  showBot?: boolean | undefined
+  roster: ScheduleRoster
+}) {
   const [confirming, setConfirming] = useState(false)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
@@ -80,14 +134,14 @@ function TaskRow({ task, actions, onView, showBot, roster }) {
     const timer = setTimeout(() => setConfirming(false), 3000)
     return () => clearTimeout(timer)
   }, [confirming])
-  const remove = () => {
+  const remove = (): void => {
     if (!confirming) { setConfirming(true); return }
     setBusy(true)
-    void actions.scheduleDelete(task.sessionId, task.id).then(onView, () => setBusy(false))
+    void actions.scheduleDelete(task.sessionId, task.id).then((next) => onView(next as ScheduleView), () => setBusy(false))
   }
-  const room = task.roomId ? roster.roomsById[task.roomId] : undefined
+  const room = task.roomId === undefined ? undefined : roster.roomsById[task.roomId]
   return h('div', { className: 'bt-set-row bt-task', 'data-done': task.status === 'active' ? undefined : '', 'data-busy': busy || undefined },
-    showBot ? h(BotAvatar, { bot: roster.byId[task.botId], size: 28, badge: false, live: false }) : null,
+    showBot ? h(BotAvatar, { bot: task.botId === undefined ? undefined : roster.byId[task.botId], size: 28, badge: false, live: false }) : null,
     h('span', { className: 'bt-set-copy' },
       h('span', { className: 'bt-task-title' }, task.title),
       h('span', { className: 'bt-set-hint' }, [timingText(task), room ? t('in {name}', { name: room.name }) : ''].filter(Boolean).join(' · ')),
@@ -99,16 +153,22 @@ function TaskRow({ task, actions, onView, showBot, roster }) {
     }, confirming ? t('Delete') : h(TrashIcon)))
 }
 
-const pad = number => String(number).padStart(2, '0')
-function inAnHour() {
+const pad = (number: number): string => String(number).padStart(2, '0')
+function inAnHour(): string {
   const date = new Date(Date.now() + 3600_000)
   date.setMinutes(0, 0, 0)
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:00`
 }
-const KINDS = [['at', 'Once'], ['daily', 'Every day'], ['weekly', 'Every week'], ['every', 'Repeat']]
-const UNITS = [['minutes', 1, 'minutes'], ['hours', 60, 'hours'], ['days', 1440, 'days']]
+const KINDS: readonly (readonly [string, string])[] = [['at', 'Once'], ['daily', 'Every day'], ['weekly', 'Every week'], ['every', 'Repeat']]
+const UNITS: readonly (readonly [string, number, string])[] = [['minutes', 1, 'minutes'], ['hours', 60, 'hours'], ['days', 1440, 'days']]
 
-function TaskForm({ roster, actions, start, onDone, onCancel }) {
+function TaskForm({ roster, actions, start, onDone, onCancel }: {
+  roster: ScheduleRoster
+  actions: ScheduleActions
+  start: string | undefined
+  onDone: ScheduleListener
+  onCancel: () => void
+}) {
   // A task goes to a Bot's chat or to a group chat, where it reads as your message.
   const [target, setTarget] = useState(start ?? roster.bots[0]?.id ?? '')
   const [title, setTitle] = useState('')
@@ -116,52 +176,52 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
   const [kind, setKind] = useState('daily')
   const [at, setAt] = useState(inAnHour)
   const [time, setTime] = useState('09:00')
-  const [weekdays, setWeekdays] = useState([1, 2, 3, 4, 5])
-  const [count, setCount] = useState(1)
+  const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5])
+  const [count, setCount] = useState<string | number>(1)
   const [unit, setUnit] = useState('hours')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const timing = () => {
     if (kind === 'at') return { kind, at: new Date(at).toISOString() }
-    if (kind === 'every') return { kind, minutes: Math.round(Number(count) * UNITS.find(([id]) => id === unit)[1]) }
+    if (kind === 'every') return { kind, minutes: Math.round(Number(count) * (UNITS.find(([id]) => id === unit)?.[1] ?? 1)) }
     return { kind, time, timeZone: localZone(), ...(kind === 'weekly' ? { weekdays } : {}) }
   }
-  const submit = (event) => {
+  const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
     if (busy) return
     setBusy(true)
     setError('')
-    let when
+    let when: Record<string, unknown>
     try { when = timing() } catch { setError(t('Pick a date and time')); setBusy(false); return }
     void actions.scheduleCreate({ target, title, prompt, when })
-      .then(onDone, (failure) => { setError(hostText(failure?.message ?? String(failure))); setBusy(false) })
+      .then((next) => onDone(next as ScheduleView), (failure: { readonly message?: string } | null | undefined) => { setError(hostText(failure?.message ?? String(failure))); setBusy(false) })
   }
-  const toggleDay = day => setWeekdays(days => (days.includes(day) ? days.filter(item => item !== day) : [...days, day].sort()))
+  const toggleDay = (day: number): void => setWeekdays(days => (days.includes(day) ? days.filter(item => item !== day) : [...days, day].sort()))
   return h('form', { className: 'bt-set-card bt-task-form', onSubmit: submit },
     h('label', { className: 'bt-set-row bt-bs-row' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Send to'))),
-      h('select', { className: 'bt-select bt-task-bot', value: target, onChange: event => setTarget(event.target.value) },
+      h('select', { className: 'bt-select bt-task-bot', value: target, onChange: event => setTarget(inputValue(event)) },
         h('optgroup', { label: t('Bots') }, roster.bots.map(bot => h('option', { key: bot.id, value: bot.id }, bot.name))),
         roster.rooms.length > 0 ? h('optgroup', { label: t('Group chats') }, roster.rooms.map(room => h('option', { key: room.id, value: room.id }, room.name))) : null)),
     h('label', { className: 'bt-set-row bt-bs-row' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('Name'))),
-      h('input', { className: 'bt-bs-input', value: title, maxLength: 120, placeholder: t('Morning briefing'), autoFocus: true, onChange: event => setTitle(event.target.value) })),
+      h('input', { className: 'bt-bs-input', value: title, maxLength: 120, placeholder: t('Morning briefing'), autoFocus: true, onChange: event => setTitle(inputValue(event)) })),
     h('label', { className: 'bt-set-row bt-bs-row bt-bs-stack' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('What to do'))),
-      h('textarea', { className: 'bt-bs-input bt-bs-area', value: prompt, rows: 3, placeholder: t('Sum up what changed since yesterday and what needs me today.'), onChange: event => setPrompt(event.target.value) })),
+      h('textarea', { className: 'bt-bs-input bt-bs-area', value: prompt, rows: 3, placeholder: t('Sum up what changed since yesterday and what needs me today.'), onChange: event => setPrompt(inputValue(event)) })),
     h('div', { className: 'bt-set-row bt-bs-row bt-bs-stack' },
       h('span', { className: 'bt-set-copy' }, h('span', { className: 'bt-bs-label' }, t('When'))),
       h(Segmented, { label: t('When'), value: kind }, KINDS.map(([id, label]) => h('button', { key: id, type: 'button', 'aria-pressed': kind === id, onClick: () => setKind(id) }, t(label)))),
       h('div', { key: kind, className: 'bt-task-when bt-veil' },
-        kind === 'at' ? h('input', { className: 'bt-input', type: 'datetime-local', value: at, 'aria-label': t('Date and time'), onChange: event => setAt(event.target.value) }) : null,
+        kind === 'at' ? h('input', { className: 'bt-input', type: 'datetime-local', value: at, 'aria-label': t('Date and time'), onChange: event => setAt(inputValue(event)) }) : null,
         kind === 'weekly' ? h('div', { className: 'bt-task-days', role: 'group', 'aria-label': t('Days') }, [1, 2, 3, 4, 5, 6, 7].map(day => h('button', {
           key: day, type: 'button', className: 'bt-task-day', 'aria-pressed': weekdays.includes(day), onClick: () => toggleDay(day),
         }, when(Date.UTC(2024, 0, day), { weekday: 'narrow', timeZone: 'UTC' })))) : null,
-        kind === 'daily' || kind === 'weekly' ? h('input', { className: 'bt-input bt-task-time', type: 'time', value: time, 'aria-label': t('Time'), onChange: event => setTime(event.target.value) }) : null,
+        kind === 'daily' || kind === 'weekly' ? h('input', { className: 'bt-input bt-task-time', type: 'time', value: time, 'aria-label': t('Time'), onChange: event => setTime(inputValue(event)) }) : null,
         kind === 'every' ? h(Fragment, null,
           h('span', { className: 'bt-task-every' }, t('Every')),
-          h('input', { className: 'bt-input bt-task-count', type: 'number', min: 1, value: count, 'aria-label': t('How many'), onChange: event => setCount(event.target.value) }),
-          h('select', { className: 'bt-select bt-task-unit', value: unit, 'aria-label': t('Unit'), onChange: event => setUnit(event.target.value) },
+          h('input', { className: 'bt-input bt-task-count', type: 'number', min: 1, value: count, 'aria-label': t('How many'), onChange: event => setCount(inputValue(event)) }),
+          h('select', { className: 'bt-select bt-task-unit', value: unit, 'aria-label': t('Unit'), onChange: event => setUnit(inputValue(event)) },
             UNITS.map(([id, , label]) => h('option', { key: id, value: id }, t(label))))) : null)),
     error ? h('div', { className: 'bt-set-row' }, h('span', { className: 'bt-danger bt-set-hint' }, error)) : null,
     h('div', { className: 'bt-set-row bt-task-foot' },
@@ -170,26 +230,26 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
 }
 
 // Settings has no schedule service to show: Automation tasks are off in DSH.
-function AutomationOff({ actions }) {
+function AutomationOff({ actions }: { actions: ScheduleActions }) {
   return h('div', { className: 'bt-set-card bt-task-off' },
     h(EmptyState, {
       icon: h(ClockIcon),
       title: t('Turn on Automation tasks in DSH'),
       hint: t('Switch on Automation tasks on the Plugins page in Harness settings.'),
-      action: actions.openHarnessSettings ? { label: t('Open Harness settings'), onClick: actions.openHarnessSettings } : undefined,
+      ...(actions.openHarnessSettings ? { action: { label: t('Open Harness settings'), onClick: actions.openHarnessSettings } } : {}),
     }))
 }
 
-export function SchedulesPage({ roster, actions, start }) {
+export function SchedulesPage({ roster, actions, start }: { roster: ScheduleRoster; actions: ScheduleActions; start?: string | undefined }) {
   const view = useSchedules(actions)
   const [adding, setAdding] = useState(Boolean(start))
   if (view === null) return h('div', { className: 'bt-set-hint' }, t('Loading…'))
   if (!view.available) return h(AutomationOff, { actions })
-  const shown = next => { publish(next); setAdding(false) }
-  const byChat = [
-    ...roster.bots.map(bot => [bot.id, h(BotAvatar, { bot, size: 18, badge: false, live: false }), bot.name, view.tasks.filter(task => task.botId === bot.id)]),
-    ...roster.rooms.map(room => [room.id, h(RoomAvatar, { room, roster, size: 18 }), room.name, view.tasks.filter(task => task.botId === undefined && task.roomId === room.id)]),
-  ].filter(([, , , tasks]) => tasks.length > 0)
+  const shown: ScheduleListener = (next) => { publish(next); setAdding(false) }
+  const byChat: [string, ReactNode, string, readonly Task[]][] = [
+    ...roster.bots.map((bot): [string, ReactNode, string, readonly Task[]] => [bot.id, h(BotAvatar, { bot, size: 18, badge: false, live: false }), bot.name, view.tasks.filter(task => task.botId === bot.id)]),
+    ...roster.rooms.map((room): [string, ReactNode, string, readonly Task[]] => [room.id, h(RoomAvatar, { room, roster, size: 18 }), room.name, view.tasks.filter(task => task.botId === undefined && task.roomId === room.id)]),
+  ].filter(entry => entry[3].length > 0)
   return [
     adding
       ? h(TaskForm, { key: 'form', roster, actions, start, onDone: shown, onCancel: () => setAdding(false) })
@@ -206,7 +266,7 @@ export function SchedulesPage({ roster, actions, start }) {
 }
 
 // A Bot's tasks in its settings form, with the way to add one.
-export function BotSchedules({ bot, roster, actions }) {
+export function BotSchedules({ bot, roster, actions }: { bot: { readonly id: string; readonly name: string }; roster: ScheduleRoster; actions: ScheduleActions }) {
   const view = useSchedules(actions)
   if (view === null) return null
   const tasks = view.available ? view.tasks.filter(task => task.botId === bot.id) : []
@@ -224,7 +284,7 @@ export function BotSchedules({ bot, roster, actions }) {
 }
 
 // The details panel's line: the Bot's next tasks, or how to add one.
-export function ScheduleSummary({ bot, actions }) {
+export function ScheduleSummary({ bot, actions }: { bot: { readonly id: string; readonly name: string }; actions: ScheduleActions }) {
   const view = useSchedules(actions)
   const tasks = view?.available ? view.tasks.filter(task => task.botId === bot.id && task.status === 'active') : []
   return h('div', null,
