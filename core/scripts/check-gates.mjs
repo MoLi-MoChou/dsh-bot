@@ -63,7 +63,6 @@ const LINE_EXEMPTIONS = [
   'src/host/secrets.js',
   'src/host/capabilities.js',
   'src/host/channel.js',
-  'src/host/store.js',
 ]
 
 const DEFAULT_COMPILER_OPTIONS = {

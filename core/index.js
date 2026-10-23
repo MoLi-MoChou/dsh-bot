@@ -3,7 +3,7 @@
 // in one JSON file under DSH_HOME so they survive restarts without new Session event types.
 import { join } from 'node:path'
 import * as diagnostics from './src/host/diagnostics.ts'
-import * as store from './src/host/store.js'
+import * as store from './src/host/store.ts'
 import * as models from './src/host/models.ts'
 import * as providers from './src/host/providers.ts'
 import * as permissions from './src/host/permissions.ts'

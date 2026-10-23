@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { encodeUrlComponent } from './secrets.js'
-import { own } from './store.js'
+import { own } from './store.ts'
 
 const MCP_CLIENT = '@deepseek-ai/dsh-mcp-client'
 const NAME = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/

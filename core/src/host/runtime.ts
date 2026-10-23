@@ -42,6 +42,11 @@ export interface StoredBot {
   appliedEffort?: string
   segments?: readonly { readonly sessionId: string }[]
   workDir?: string
+  capabilities?: string[]
+  color?: string | undefined
+  createdAt?: number
+  lab?: string
+  avatar?: { shape?: string; image?: string }
   readonly [key: string]: unknown
 }
 
@@ -49,9 +54,14 @@ export interface StoredBot {
 export interface StoredRoom {
   readonly id: string
   name: string
-  admin?: string
+  admin?: string | null | undefined
   permission?: string | null
   members?: readonly string[]
+  mode?: string
+  notice?: string
+  named?: boolean
+  log?: readonly ({ readonly text: string; readonly seq: number; readonly [key: string]: unknown } | Record<string, unknown>)[]
+  botRounds?: number
   sessions?: Record<string, string>
   segments?: Record<string, readonly { readonly sessionId: string }[]>
   workDir?: string
@@ -63,10 +73,10 @@ export interface ExchangeEntry {
   readonly id: string
   readonly from: string | undefined
   readonly to: string
-  readonly text: string
+  text: string
   readonly role?: string
   readonly time?: number
-  readonly length?: number
+  length?: number
   readonly sessionId?: string
   readonly files?: readonly AttachmentRef[]
   readonly replyTo?: string
@@ -174,13 +184,20 @@ export interface DeliveryInput {
 
 
 export interface StoredState {
+  readonly version: number
   revision: number
+  capabilities: { items: Record<string, unknown> }
+  prefs: Record<string, unknown>
+  switching: Record<string, unknown>
+  whaleStored?: boolean
+  moonLook?: boolean
+  mainBotId?: string
   bots: Record<string, StoredBot>
   agents: Record<string, StoredAgent>
   rooms: Record<string, StoredRoom>
   exchangeTurns: Record<string, readonly number[]>
   workspaceId?: string
-  mainBotIds: readonly string[]
+  mainBotIds: string[]
   exchanges: ExchangeEntry[]
   connectors?: Record<string, { readonly login?: string | null; readonly connectedAt?: number }>
   works?: Record<string, StoredWork>
@@ -262,6 +279,11 @@ export interface HostRuntime {
   catalog(options?: { readonly fresh?: boolean }): Promise<readonly ModelEntry[]>
   missingKeys?(providers: readonly string[]): Promise<ReadonlySet<string>> | ReadonlySet<string>
   dropCatalog(): void
+  keepGroupLine?(roomId: string, line: { readonly text: string; readonly seq: number }, text: string): unknown
+  autoRoomName?(members: readonly string[]): string
+  retitleRoom?(room: StoredRoom): Promise<unknown>
+  capabilitiesStateSaved?(): void
+  cancelApprovals?(sessionId: string): void
   ownRequest(options: { readonly sessionId?: string }): boolean
   partsOf(botId: string): readonly { readonly sessionId: string; readonly number: number; readonly startedAt: number; readonly endedAt?: number | undefined }[]
   historyEntry(event: SessionEvent, forDisplay: boolean): { readonly text: string; readonly who?: string; readonly answer?: boolean; readonly keepAnswers?: boolean } | undefined
