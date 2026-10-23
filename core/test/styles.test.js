@@ -17,7 +17,7 @@ const { JSDOM } = requireHarness('jsdom')
 // motion.js; they run in each test's jsdom document through the vm context.
 const { outputFiles } = await build({
   stdin: {
-    contents: "export { installStyles, installCompiledStyles } from './src/client/styles.js'",
+    contents: "export { installStyles, installCompiledStyles } from './src/client/design/index.ts'",
     resolveDir: PLUGIN,
   },
   bundle: true, format: 'cjs', platform: 'browser', write: false, logLevel: 'silent',

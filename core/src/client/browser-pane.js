@@ -7,7 +7,7 @@ import { createElement as h, useEffect, useLayoutEffect, useRef, useState } from
 import { createPortal } from 'react-dom'
 import { BotMark } from './mark.js'
 import { STORAGE } from './storage.ts'
-import { installStyles } from './styles.js'
+import { installStyles } from './design/index.ts'
 import { EASE_OUT, PANEL_LINGER_MS, PANEL_TAB_EDGES, reducedMotion, SPRING_SHAPE } from './motion.js'
 import { DetailsDrawer } from './details-drawer.js'
 import { EmptyState } from './empty-state.ts'

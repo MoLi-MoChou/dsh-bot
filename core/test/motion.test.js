@@ -79,7 +79,7 @@ test('reducedMotion and useLinger respect prefers-reduced-motion', () => {
 })
 
 test('client stylesheets guard sidebar, overlays, panels, and message entry with prefers-reduced-motion', () => {
-  for (const file of ['styles.js', 'sidebar.js', 'browser-pane.js', 'work-process.js']) {
+  for (const file of ['design/marks.ts', 'design/overlays.ts', 'design/panels.ts', 'design/conversation.ts', 'design/composer.ts', 'sidebar.js', 'browser-pane.js', 'work-process.js']) {
     const text = readFileSync(new URL(`../src/client/${file}`, import.meta.url), 'utf8')
     assert.ok(text.includes('@media (prefers-reduced-motion:reduce)'), `${file} should include prefers-reduced-motion guard`)
   }

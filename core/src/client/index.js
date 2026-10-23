@@ -7,7 +7,7 @@ import { createSource, EMPTY_ROSTER, indexRoster, isAgentSession } from './sourc
 import { teamActions } from './team-actions.js'
 import { themeCss, shellTokens, registry, registerShape, registerTheme, allThemes, resolveThemeId } from './themes.ts'
 import { MENTION_ORIGIN, currentPart } from './text.ts'
-import { SHELL_CSS, CONVERSATION_CSS, installStyles, installCompiledStyles } from './styles.js'
+import { SHELL_CSS, CONVERSATION_CSS, installStyles, installCompiledStyles } from './design/index.ts'
 import { lookOf } from './mark.js'
 import { TeamSidebar, ConnectPlugins, YouAvatar, AccountLauncher, FooterAccount, BrandMark, BrandName, BotReturn, SIDEBAR_CSS, RETURN_CSS, holdShellShortcuts, openHarnessOnboarding, openHarnessSettings } from './sidebar.js'
 import { HeaderPill } from './header.js'

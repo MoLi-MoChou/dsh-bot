@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
@@ -145,7 +145,11 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
   })
 
   it('defines visible :focus-visible rings across primary controls, menus, cards, and file preview', () => {
-    const stylesSrc = readFileSync(join(ROOT, 'src/client/styles.js'), 'utf8')
+    const designDir = join(ROOT, 'src/client/design')
+    const stylesSrc = readdirSync(designDir)
+      .filter(name => name.endsWith('.ts'))
+      .map(name => readFileSync(join(designDir, name), 'utf8'))
+      .join('\n')
     for (const cls of [
       '.bt-round',
       '.bt-icon-btn',
@@ -161,7 +165,7 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
       '.bt-seg button',
       '.bt-input',
     ]) {
-      assert.ok(stylesSrc.includes(cls), `expected styles.js to style ${cls}`)
+      assert.ok(stylesSrc.includes(cls), `expected the design sheets to style ${cls}`)
     }
     assert.match(stylesSrc, /:focus-visible\{outline:2px solid var\(--bt-accent\)/)
     assert.match(FILES_PANEL_CSS, /\.bt-fcard-download.*:focus-visible/)

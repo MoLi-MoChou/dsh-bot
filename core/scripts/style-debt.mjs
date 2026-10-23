@@ -75,6 +75,10 @@ function definesToken(before) {
   return /^body(?:\[[\w-]+\])?$/.test(selector)
 }
 
+// The base sheet defines the --bt-* defaults. It lives in design/tokens.ts now; keep the
+// legacy name so the same token rule still reads the old single-file sources.
+const isTokenSheet = file => file === 'styles.js' || stemOf(file) === 'tokens'
+
 // A literal color that is not a hard-coded one: a theme variable's default value, or
 // black used for its alpha (shadows, scrims, and masks, whose ramps run to transparent).
 function exempt(file, value, text, index) {
@@ -82,7 +86,7 @@ function exempt(file, value, text, index) {
   const end = text.indexOf('\n', index)
   const line = text.slice(start, end < 0 ? undefined : end)
   const before = line.slice(0, index - start)
-  if ((file === 'styles.js' && definesToken(before)) || value.startsWith('rgba(0,0,0,')) return true
+  if ((isTokenSheet(file) && definesToken(before)) || value.startsWith('rgba(0,0,0,')) return true
   if (!/^#000(?:000)?$/.test(value)) return false
   return /<mask\b(?!.*<\/mask>)/.test(before) || gradientAround(line, index - start).includes('transparent')
 }

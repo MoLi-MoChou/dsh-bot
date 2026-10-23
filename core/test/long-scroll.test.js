@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
@@ -99,8 +99,12 @@ test('stackChatItems handles 500+ messages smoothly and merges consecutive bot r
   assert.equal(rows[1].texts.length, 2)
 })
 
-test('styles.js defines offscreen content-visibility virtualization and back-to-bottom button styles', () => {
-  const styles = readFileSync(new URL('../src/client/styles.js', import.meta.url), 'utf8')
+test('the design sheets define offscreen content-visibility virtualization and back-to-bottom button styles', () => {
+  const dir = new URL('../src/client/design/', import.meta.url)
+  const styles = readdirSync(dir)
+    .filter(name => name.endsWith('.ts'))
+    .map(name => readFileSync(new URL(name, dir), 'utf8'))
+    .join('\n')
   assert.ok(styles.includes('.bt-to-bottom{'))
   assert.ok(styles.includes('.bt-to-bottom-btn{'))
   assert.ok(styles.includes('content-visibility:auto;contain-intrinsic-size:auto 64px'))

@@ -42,7 +42,6 @@ const LINE_EXEMPTIONS = [
   'src/client/i18n.js', // i18n dictionary table
   // TODO(phase2 split): existing client JS still over 350 lines; Phase 2 moves it to TS
   // and splits these modules. They are pending, not accepted new debt.
-  'src/client/styles.js',
   'src/client/cells.js',
   'src/client/index.js',
   'src/client/usage-page.js',
