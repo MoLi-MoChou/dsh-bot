@@ -6,7 +6,7 @@ import type { AttachmentRef } from '../dsh-types.js'
 import type { FailureText, GroupRoom, GroupSlot, RoomLine, RoomReference } from './types.ts'
 import { escapeRegExp } from '../text.ts'
 import { mentionSpans, speakerOf } from '../../shared/mentions.ts'
-import { failureLine as failureLineImpl, failureSay as failureSayImpl } from '../turns.js'
+import { failureLine as failureLineImpl, failureSay as failureSayImpl } from '../turns/failure.ts'
 
 export const ROOM_REPLY = 'Reply with your message for the group, no name prefix: in a discussion, one or two short messages. When you are asked to do something, do it now with your tools. The group does not wait for you and sees what you write while you work: say what you will do, write again only when something matters, and end with the result, never a promise to do it later. Reply [PASS] to stay silent when you have nothing new to add or the message is for someone else.'
 export const ROOM_CALLS = 'Writing "@Name" calls that member next, to answer or to do what you ask; when it finishes work you gave it, you answer its result. To only mention a member, write its name without "@".'
@@ -97,7 +97,6 @@ export const lostSession = (error: unknown): boolean => {
 }
 export const fileLine = (file: AttachmentRef): string => `[File "${file.name}" (${file.bytes} bytes) attached]`
 
-// `turns.ts` is still JS, so its inferred parameters are untyped; the group host calls
-// these with the shape `FailureText` describes.
+// The failure module types its parameters; the group host reads them as `FailureText`.
 export const failureLine: (failure: FailureText) => string = failureLineImpl
 export const failureSay: (failure: FailureText, zh?: boolean) => string = failureSayImpl

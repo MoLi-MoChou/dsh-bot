@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
 import { fakeContext } from './fake-ctx.js'
-import { stripWrittenCalls, writesToolCall } from '../src/host/turns.js'
+import { stripWrittenCalls, writesToolCall } from '../src/host/turns.ts'
 
 // Chief in its own chat 'a'; Writer, the admin of group 'r1', speaks there from 'gb'.
 const seed = () => ({

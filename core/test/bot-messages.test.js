@@ -6,7 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { test } from 'node:test'
 import { apply } from '../index.js'
 import { fakeAttachments, fakeContext } from './fake-ctx.js'
-import { install as installTurns } from '../src/host/turns.js'
+import { install as installTurns } from '../src/host/turns.ts'
 import { install as installParts } from '../src/host/parts.js'
 import { SOURCE_KIND } from '../src/host/constants.ts'
 

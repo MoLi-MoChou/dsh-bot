@@ -55,7 +55,6 @@ const LINE_EXEMPTIONS = [
   // and splits these modules. They are pending, not accepted new debt.
   'src/host/memory.js',
   'src/host/parts.js',
-  'src/host/turns.js',
 ]
 
 const DEFAULT_COMPILER_OPTIONS = {
