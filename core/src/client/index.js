@@ -43,6 +43,8 @@ import { addAlwaysAllow } from './approval-always.js'
 import { installImeGuard } from './ime-guard.js'
 import { listedOpener } from './open-listed.js'
 
+import { EMPTY_STATE_CSS } from './empty-state.js'
+import { ChatWelcome, WELCOME_CSS } from './chat-welcome.js'
 import { PROCESS_CSS } from './work-process.js'
 import { installFilesPanel, FILES_PANEL_CSS } from './files-panel.js'
 import { RetryCell, RETRY_CSS } from './retry-cell.js'
@@ -53,7 +55,7 @@ export function apply(ctx) {
   quietShellOnboarding()
   installImeGuard()
   relabelTitle()
-  ctx.effect(() => installFilesPanel({ call }), 'moon-bot: workspace file downloads')
+  ctx.effect(() => installFilesPanel({ call, onPickFolder: () => { const id = mainView(); if (id) actions.showDetails(id) } }), 'moon-bot: workspace file downloads')
   relabelShellVersion(typeof __MOON_BOT_VERSION__ === 'string' ? __MOON_BOT_VERSION__ : '')
   quietShellDeepSeekCtas()
   quietShellRejectionCopy()
@@ -698,7 +700,7 @@ export function apply(ctx) {
     () => installCompiledStyles(MEMBER_CSS, 'members'),
     () => installCompiledStyles(USER_MESSAGE_CSS, 'user-messages'),
     () => installCompiledStyles(WIDGET_CSS, 'widgets'),
-    () => installCompiledStyles(PROCESS_CSS + RETRY_CSS + STARTERS_CSS + FILES_PANEL_CSS, 'work-process'),
+    () => installCompiledStyles(EMPTY_STATE_CSS + WELCOME_CSS + PROCESS_CSS + RETRY_CSS + STARTERS_CSS + FILES_PANEL_CSS, 'work-process'),
     browsers ? () => installCompiledStyles(BROWSER_CSS, 'browser') : null,
     () => installTheme(),
     () => shadow('sidebar.workspaces', { priority: BOT_PRIORITY, inject: face }, TeamSidebar),
@@ -750,6 +752,7 @@ export function apply(ctx) {
     () => shadow('conversation.input.dock', { id: 'bot-question', order: -100, inject: face }, QuestionDock),
     () => shadow('conversation.input.dock', { id: 'bot-view', order: -95, inject: face }, WidgetDock),
     () => shadow('conversation.input.dock', { id: 'bot-secret', order: -90, inject: face }, SecretDock),
+    () => shadow('conversation.input.dock', { id: 'bot-welcome', order: -85, inject: face }, ChatWelcome),
     () => shadow('conversation.input.dock', { id: 'bot-starters', order: -80, inject: face }, StarterChips),
   ]
   // The return button belongs to neither group: it renders only in Agent mode.

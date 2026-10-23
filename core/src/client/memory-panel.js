@@ -4,6 +4,7 @@
 // Modeled on ChatGPT's memory summary.
 import { createElement as h, Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useEscape } from './overlay-hooks.js'
+import { EmptyState } from './empty-state.js'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.js'
 import { dateLocale, hostText, t } from './i18n.js'
 import { summaryBlocks } from './text.js'
@@ -67,12 +68,13 @@ function Skeleton({ label }) {
 
 function Summary({ owner, view, regenerate }) {
   if (view.entries.length === 0) {
-    return h('div', { className: 'bt-mem-empty' },
-      h('div', { className: 'bt-mem-empty-mark' }, h(MemoryIcon)),
-      h('div', { className: 'bt-mem-empty-title' }, owner.group ? t('Nothing is saved for this group yet') : t('{name} has not saved anything yet', { name: owner.name })),
-      h('div', { className: 'bt-mem-empty-text' }, owner.group
+    return h(EmptyState, {
+      icon: h(MemoryIcon),
+      title: owner.group ? t('Nothing is saved for this group yet') : t('{name} has not saved anything yet', { name: owner.name }),
+      hint: owner.group
         ? t('A group keeps the decisions, rules, and facts its work needs, for its members to read here. Tell it below, or in the group.')
-        : t('Bots keep lasting preferences, decisions, and what you ask them to remember. Tell {name} below, or in its chat.', { name: owner.name })))
+        : t('Bots keep lasting preferences, decisions, and what you ask them to remember. Tell {name} below, or in its chat.', { name: owner.name }),
+    })
   }
   const failed = view.error && !view.summarizing
     ? h('div', { className: 'bt-mem-failed', role: 'alert' },

@@ -9,6 +9,32 @@
 // Bytes come over the api/bot channel, so it works in the web build behind its password.
 import { t } from './i18n.js'
 
+// The shared empty-state DOM (.bt-es), built without React so this file stays importable
+// in Node tests that check its pure helpers.
+function emptyStateNode({ icon: glyph, title, hint, action, compact = false }) {
+  const root = document.createElement('div')
+  root.className = 'bt-es'
+  root.setAttribute('role', 'status')
+  if (compact) root.dataset.compact = ''
+  const part = (tag, className, child) => {
+    const node = document.createElement(tag)
+    node.className = className
+    if (typeof child === 'string') node.textContent = child
+    else if (child) node.append(child)
+    root.append(node)
+    return node
+  }
+  if (glyph) part('span', 'bt-es-mark', glyph).setAttribute('aria-hidden', 'true')
+  if (title) part('span', 'bt-es-title', title)
+  if (hint) part('span', 'bt-es-hint', hint)
+  if (action) {
+    const button = part('button', 'bt-es-action', action.label)
+    button.type = 'button'
+    button.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); action.onClick() })
+  }
+  return root
+}
+
 export const PREVIEW_KINDS = [
   ['Images', 'png, jpg, gif, webp, svg, bmp'],
   ['PDF', 'pdf'],
@@ -51,6 +77,7 @@ function icon(paths, size = 14) {
   return svg
 }
 const DOWNLOAD = ['M10 3.5v9', 'M6.5 9.5L10 13l3.5-3.5', 'M4 16h12']
+const FOLDER = ['M3 6a1.5 1.5 0 0 1 1.5-1.5h3.6l1.7 1.8h5.7A1.5 1.5 0 0 1 17 7.8v6.7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z']
 const FILE = ['M5.5 2.5h6l4 4v10a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-13a1 1 0 0 1 1-1z', 'M11.5 2.5v4h4']
 const ARCHIVE = [...FILE, 'M9 5.5h1M9 8h1M9 10.5h1', 'M8.5 12.5h2v2h-2z']
 
@@ -67,7 +94,7 @@ export function saveBlob(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
-export function installFilesPanel({ call, notify = message => console.warn(message) }) {
+export function installFilesPanel({ call, notify = message => console.warn(message), onPickFolder }) {
   if (typeof MutationObserver === 'undefined') return () => {}
   const download = async (path, button) => {
     if (button?.dataset.busy) return
@@ -158,6 +185,25 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
         void fillCard(card, path)
       }
     }
+    for (const row of document.querySelectorAll('[data-files-body] > ul > li[data-files-row="empty"]')) {
+      if (row.querySelector(':scope > .bt-es')) continue
+      const reload = row.closest('[data-files-state]')?.querySelector('[data-files-reload]')
+      row.append(emptyStateNode({
+        compact: true, icon: icon(FOLDER, 18),
+        title: t('No files in this folder yet'),
+        hint: t('Files this Bot creates or edits in its working folder show up here.'),
+        action: reload ? { label: t('Reload'), onClick: () => reload.click() } : undefined,
+      }))
+    }
+    for (const box of document.querySelectorAll('[data-files-state="no-workspace"]')) {
+      if (box.querySelector(':scope > .bt-es')) continue
+      box.append(emptyStateNode({
+        compact: true, icon: icon(FOLDER, 18),
+        title: t('No working folder is set'),
+        hint: t('Pick a working folder so this chat can browse and save files.'),
+        action: onPickFolder ? { label: t('Open details'), onClick: onPickFolder } : undefined,
+      }))
+    }
   }
   let frame = 0
   const observer = new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; sweep() }) })
@@ -167,6 +213,8 @@ export function installFilesPanel({ call, notify = message => console.warn(messa
 }
 
 export const FILES_PANEL_CSS = `
+[data-files-body]>ul>li[data-files-row="empty"]:has(>.bt-es),[data-files-state="no-workspace"]:has(>.bt-es){font-size:0;padding:12px 0;list-style:none}
+[data-files-state="no-workspace"]:has(>.bt-es)>:not(.bt-es){display:none!important}
 li[data-files-entry]{position:relative}
 .bt-frow-dl{position:absolute;right:6px;top:50%;translate:0 -50%;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border:0;border-radius:6px;background:var(--bt-card);color:var(--bt-ink-2);cursor:pointer;opacity:0;transition:opacity .12s ease,background-color .12s ease;box-shadow:0 0 0 1px var(--bt-line)}
 li[data-files-entry]:hover>.bt-frow-dl,.bt-frow-dl:focus-visible,.bt-frow-dl[data-busy]{opacity:1}

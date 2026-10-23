@@ -3,7 +3,9 @@ import { LEAN } from './lean.js'
 import { FishLogo } from './dsh-primitives.js'
 import { PlusIcon, PeopleIcon, ArrowUpIcon } from './icons.js'
 import { AdminStar, BotMark } from './mark.js'
+import { SearchIcon } from './icons.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.js'
+import { EmptyState } from './empty-state.js'
 import { CreateBot } from './create-bot.js'
 import { QUICK_EDGES, useFlip, useGlide, useMorph } from './motion.js'
 import { t } from './i18n.js'
@@ -157,7 +159,12 @@ export function NewChat({ mode, roster, actions }) {
         h('button', { type: 'button', className: 'bt-x', 'aria-label': t('Close new chat'), onClick: close }, '×')),
       h('div', { ref: drop, className: 'bt-drop' }, h('div', { ref: glide.box, role: 'listbox', 'aria-label': t('Recipients'), className: 'bt-drop-list' },
         h('span', { ref: glide.thumb, className: 'bt-thumb', 'aria-hidden': true }),
-        options.length === 0 ? h('div', { className: 'bt-hint' }, mode === 'search' ? t('No Bots match') : t('Type a name to create a Bot'))
+        options.length === 0 ? h(EmptyState, {
+            compact: true, icon: h(mode === 'search' ? SearchIcon : PlusIcon),
+            title: mode === 'search' ? t('No Bots match') : t('Type a name to create a Bot'),
+            hint: mode === 'search' && wanted ? t('Try another name, or clear the search.') : undefined,
+            action: mode === 'search' && query ? { label: t('Clear search'), onClick: () => { setQuery(''); setCursor(0); inputRef.current?.focus() } } : undefined,
+          })
           : options.map((option, index) => h('button', {
               key: option.key, type: 'button', role: 'option', className: 'bt-option', 'aria-selected': index === active, 'data-flip': option.key,
               onMouseEnter: () => setCursor(index), onClick: option.run,

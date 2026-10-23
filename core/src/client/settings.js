@@ -3,7 +3,8 @@ import { LEAN } from './lean.js'
 import { ACCENT_INKS, INKS } from './inks.js'
 import { isMainOf } from './sources.js'
 import { allThemes, resolveThemeId } from './themes.js'
-import { CloseIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, ConnectorIcon, InfoIcon, PlugIcon, PlusIcon, SlidersIcon, SETTINGS_ICONS } from './icons.js'
+import { CloseIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, ConnectorIcon, InfoIcon, PeopleIcon, PlugIcon, PlusIcon, SlidersIcon, SETTINGS_ICONS } from './icons.js'
+import { EmptyState } from './empty-state.js'
 import { AdminStar, BotAvatar, RoomAvatar } from './mark.js'
 import { useEscape } from './overlay-hooks.js'
 import { BotSettingsForm } from './bot-settings.js'
@@ -187,7 +188,10 @@ function GroupsPage({ roster, actions, run }) {
           h('button', { type: 'button', className: 'bt-soft bt-soft-sm bt-with-icon', disabled: roster.bots.length < 2, title: roster.bots.length < 2 ? t('A group chat needs at least two Bots') : undefined, onClick: () => setCreating(true) }, h(PlusIcon), t('Create group chat'))),
     h(SetSection, { key: 'groups', title: t('Group chats · {count}', { count: roster.rooms.length }) },
       roster.rooms.length === 0
-        ? h(SetRow, { label: t('No group chats yet.'), hint: t('A group chat lets several Bots work on one thing with you.') })
+        ? h(EmptyState, {
+            icon: h(PeopleIcon), title: t('No group chats yet.'), hint: t('A group chat lets several Bots work on one thing with you.'),
+            action: roster.bots.length >= 2 ? { icon: h(PlusIcon), label: t('Create group chat'), onClick: () => setCreating(true) } : { icon: h(PlusIcon), label: t('Create Bot'), onClick: () => actions.openSettings('bots') },
+          })
         : roster.rooms.map((room) => {
             const admin = roster.byId[room.admin]
             return h('button', { key: room.id, type: 'button', className: 'bt-set-row', onClick: () => actions.openSettings('groups', room.id) },

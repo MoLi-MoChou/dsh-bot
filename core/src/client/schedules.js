@@ -5,6 +5,7 @@ import { createElement as h, Fragment, useEffect, useState } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.js'
 import { ClockIcon, PlusIcon, TrashIcon } from './icons.js'
 import { Segmented } from './motion.js'
+import { EmptyState } from './empty-state.js'
 import { dateLocale, hostText, t } from './i18n.js'
 
 const POLL_MS = 30_000
@@ -171,10 +172,12 @@ function TaskForm({ roster, actions, start, onDone, onCancel }) {
 // Settings has no schedule service to show: Automation tasks are off in DSH.
 function AutomationOff({ actions }) {
   return h('div', { className: 'bt-set-card bt-task-off' },
-    h('span', { className: 'bt-task-off-mark' }, h(ClockIcon)),
-    h('span', { className: 'bt-task-off-title' }, t('Turn on Automation tasks in DSH')),
-    h('span', { className: 'bt-set-hint' }, t('Switch on Automation tasks on the Plugins page in Harness settings.')),
-    actions.openHarnessSettings ? h('button', { type: 'button', className: 'bt-soft bt-soft-sm', onClick: actions.openHarnessSettings }, t('Open Harness settings')) : null)
+    h(EmptyState, {
+      icon: h(ClockIcon),
+      title: t('Turn on Automation tasks in DSH'),
+      hint: t('Switch on Automation tasks on the Plugins page in Harness settings.'),
+      action: actions.openHarnessSettings ? { label: t('Open Harness settings'), onClick: actions.openHarnessSettings } : undefined,
+    }))
 }
 
 export function SchedulesPage({ roster, actions, start }) {
@@ -192,7 +195,10 @@ export function SchedulesPage({ roster, actions, start }) {
       ? h(TaskForm, { key: 'form', roster, actions, start, onDone: shown, onCancel: () => setAdding(false) })
       : h('div', { key: 'add', className: 'bt-actions' }, h('button', { type: 'button', className: 'bt-soft bt-soft-sm bt-with-icon', onClick: () => setAdding(true) }, h(PlusIcon), t('New task'))),
     byChat.length === 0 && !adding
-      ? h('div', { key: 'none', className: 'bt-set-card' }, h('div', { className: 'bt-set-row' }, h('span', { className: 'bt-set-hint' }, t('No scheduled tasks yet.'))))
+      ? h('div', { key: 'none', className: 'bt-set-card' }, h(EmptyState, {
+          icon: h(ClockIcon), title: t('No scheduled tasks yet.'), hint: t('A scheduled task sends a prompt to a Bot or group on its own.'),
+          action: { icon: h(PlusIcon), label: t('New task'), onClick: () => setAdding(true) },
+        }))
       : byChat.map(([id, avatar, name, tasks]) => h('section', { key: id, className: 'bt-set-section' },
           h('h3', { className: 'bt-task-head' }, avatar, name),
           h('div', { className: 'bt-set-card' }, tasks.map(task => h(TaskRow, { key: task.id, task, actions, roster, onView: publish }))))),

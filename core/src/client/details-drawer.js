@@ -5,6 +5,7 @@ import { PlusIcon, ShareIcon, CloseIcon, ChevronLeftIcon, GearIcon } from './ico
 import { botState, BotMark, BotAvatar } from './mark.js'
 import { GlobeIcon, Favicon } from './browser-pane.js'
 import { useEscape } from './overlay-hooks.js'
+import { EmptyState } from './empty-state.js'
 import { BotSettingsForm } from './bot-settings.js'
 import { GroupSettingsForm, ROOM_MODES, roomSubtitle, shownMode } from './group-settings.js'
 import { ModelMenu, modelOf } from './model-menu.js'
@@ -77,11 +78,12 @@ function BrowserCards({ bot, sessionId, roster, actions, useBrowserTabs, useBrow
     return h('div', { className: 'bt-muted' }, t('The browser is in the DSH Desktop app.'))
   }
   if (state.ids.length === 0) {
-    return h('div', { className: 'bt-browser-empty-mark' },
-      h(BotMark, { bot, size: 40, state: 'idle', live: true }),
-      h('div', { className: 'bt-browser-empty-title' }, t("{name}'s browser", { name: bot.name })),
-      h('div', { className: 'bt-muted' }, t('Open a page here and {name} can read it with you. Logins and cookies stay with {name}; other Bots never see them.', { name: bot.name })),
-      h('button', { type: 'button', className: 'bt-browser-retry', onClick: () => actions.openBrowser(sessionId) }, t('Open browser')))
+    return h(EmptyState, {
+      art: h(BotMark, { bot, size: 44, state: 'idle', live: true }),
+      title: t("{name}'s browser", { name: bot.name }),
+      hint: t('Open a page here and {name} can read it with you. Logins and cookies stay with {name}; other Bots never see them.', { name: bot.name }),
+      action: { label: t('Open browser'), onClick: () => actions.openBrowser(sessionId) },
+    })
   }
   return h('div', { className: 'bt-bcards' },
     state.ids.map((tabId, index) => {

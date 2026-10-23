@@ -11,6 +11,8 @@ import { PlusIcon, SearchIcon, SidebarIcon, GaugeIcon, PlugIcon, ClockIcon, Gear
 import { botState, BotAvatar, RoomAvatar } from './mark.js'
 import { reducedMotion } from './activity-row.js'
 import { Shimmer, workPhrase } from './cells.js'
+import { PeopleIcon } from './icons.js'
+import { EmptyState } from './empty-state.js'
 import { springEasing, SPRING_SHAPE } from './motion.js'
 import { hostText, t, productName } from './i18n.js'
 import { showsDshRow } from './dsh-offer.js'
@@ -337,7 +339,13 @@ export function TeamSidebar(props) {
           ? h(BotRow, { ...rowProps, bot: entry.item, marked: markedUnread[entry.item.id] === true })
           : entry.kind === 'room'
             ? h(RoomRow, { ...rowProps, room: entry.item, marked: markedUnread[entry.item.id] === true })
-            : h(AgentRow, { ...rowProps, agent: entry.item, marked: markedUnread[entry.item.id] === true }) })))
+            : h(AgentRow, { ...rowProps, agent: entry.item, marked: markedUnread[entry.item.id] === true }) }),
+      wide && roster.ready && shown.length === 0 ? h('div', { className: 'bt-side-empty' }, h(EmptyState, {
+        compact: true, icon: h(PeopleIcon),
+        title: t('Build your Bot team'),
+        hint: t('Each Bot has its own chat, instructions and memory. Create one, or ask your Main Bot to set one up.'),
+        action: { icon: h(PlusIcon), label: t('Create Bot'), onClick: () => actions.openNewChat('create') },
+      })) : null))
 }
 function ReorderList({ shown, wide, reorder, dropped, dragging, render }) {
   const Reorder = framerMotion()?.Reorder
@@ -665,6 +673,7 @@ export const SIDEBAR_CSS = `
 .bt-rail .bt-row{position:relative}
 .bt-rail .bt-pin{position:absolute;top:3px;left:calc(50% + 12px)}
 .bt-side .bt-read-only{margin:4px 8px 6px;padding:8px 10px;border-radius:10px;background:var(--bt-hover);font-size:12px;line-height:1.45;text-align:left}
+.bt-side-empty{margin:8px 4px;border-radius:12px;border:1px dashed var(--bt-line-2)}
 [class*="_footArea"]:has(.bt-foot-account){grid-template-columns:auto minmax(0,1fr) auto;column-gap:6px}
 [class*="_footArea"]>[class*="_footerActions"]>div>.bt-foot-account{grid-column:1;order:1;display:inline-flex}
 [class*="_footArea"]:has(.bt-foot-account)>[class*="_footerActions"]>div>.bt-connect-wrap{grid-column:2}
