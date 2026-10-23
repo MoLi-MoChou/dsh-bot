@@ -1,22 +1,62 @@
-import { ACCENT_INKS, INKS, isHex, luminance } from './inks.js'
-import { SHAPES, markupCache, maskCache } from './characters.js'
+import { ACCENT_INKS, INKS, isHex, luminance } from './inks.ts'
+import { SHAPES as SHAPE_DEFS, markupCache, maskCache } from './characters.js'
+
+interface ShapeEntry {
+  label?: string
+  size?: number
+  body?: (paint: string) => string
+  eyes?: readonly unknown[]
+  wrap?: string
+}
+const SHAPES = SHAPE_DEFS as unknown as Record<string, ShapeEntry>
 import { createSource } from './sources.js'
+
+export interface ThemeMode {
+  bg: string
+  sidebar: string
+  bubble: string
+  card: string
+  text: string
+  user: string
+  userText: string
+  accent: string
+}
+export interface ThemeTokens { readonly [name: string]: { readonly light: string; readonly dark: string } }
+export interface ThemeDefinition {
+  readonly label?: string
+  readonly light: ThemeMode
+  readonly dark: ThemeMode
+  readonly tokens?: ThemeTokens
+  readonly css?: string
+}
+export interface CustomShape {
+  readonly label?: string
+  readonly size?: number
+  readonly body: (paint: string) => string
+  readonly wrap?: string
+  readonly eyes?: {
+    readonly at: readonly (readonly [number, number])[]
+    readonly w?: number
+    readonly h?: number
+    readonly tilt?: number
+  }
+}
 
 // -------------------------------------------------------------------------
 // Themes. A theme names eight colors per mode; every `--bt-*` variable and the shell
 // tokens derive from them, so a registered theme recolors the whole team UI.
 
-const THEME_KEYS = ['bg', 'sidebar', 'bubble', 'card', 'text', 'user', 'userText', 'accent']
+const THEME_KEYS = ['bg', 'sidebar', 'bubble', 'card', 'text', 'user', 'userText', 'accent'] as const
 // Moon Bot: four themes, each light and dark (Moon is the default). Each also sets the DeepSeek Harness
 // tokens (`tokens`, light/dark pairs) and extra CSS (`css`) for corner radii, type and
 // borders, so DSH's settings, OpenUI cards and dialogs follow the theme too.
 const SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif'
-const both = value => ({ light: value, dark: value })
+const both = <T>(value: T): { light: T; dark: T } => ({ light: value, dark: value })
 const SANS_GROK = '"Inter","SF Pro Text",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif'
 // Each theme differs at a glance, not only in its accent: surface ladder, how replies
 // sit (glossy bubble, flat bubble, plain serif prose, plain text), the user's bubble,
 // corner radii, type and the composer.
-const THEMES = {
+const THEMES: Record<string, ThemeDefinition> = {
   // Moon Bot's own theme, from the Main Bot's lilac moon sprite: a luminous lilac wash,
   // a clearly lilac sidebar, white glossy reply bubbles, a lilac-gradient user bubble
   // with white text, round corners and a soft glow. Deep violet night by dark. The default.
@@ -118,14 +158,17 @@ body[data-bt-theme=grok] :is(.bt-sidebar,[class*="_sidebar"]){box-shadow:inset -
   },
 }
 // Ids earlier versions saved, and what they became.
-export const THEME_ALIASES = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
-export const resolveThemeId = (themes, id) => (themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : 'moon')
+export const THEME_ALIASES: Record<string, string> = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
+export const resolveThemeId = (themes: Record<string, ThemeDefinition>, id: string): string => {
+  const alias = THEME_ALIASES[id]
+  return themes[id] !== undefined ? id : alias !== undefined && themes[alias] !== undefined ? alias : 'moon'
+}
 // Text on the accent: near-black or white, whichever has the higher WCAG contrast.
 // (L + .05)² > 1.05 × (L(#141414) + .05) is "dark ink reads better".
 const DARK_INK = '#141414'
-const accentInk = accent => ((luminance(accent) + 0.05) ** 2 > 1.05 * (luminance(DARK_INK) + 0.05) ? DARK_INK : '#ffffff')
-const rgba = (hex, alpha) => `rgba(${[1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)).join(',')},${alpha})`
-function themeVars(mode, dark, accent = mode.accent) {
+const accentInk = (accent: string): string => ((luminance(accent) + 0.05) ** 2 > 1.05 * (luminance(DARK_INK) + 0.05) ? DARK_INK : '#ffffff')
+const rgba = (hex: string, alpha: number): string => `rgba(${[1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)).join(',')},${alpha})`
+function themeVars(mode: ThemeMode, dark: boolean, accent: string = mode.accent): Record<string, string> {
   return {
     '--bt-ink': mode.text, '--bt-ink-2': rgba(mode.text, dark ? 0.74 : 0.72), '--bt-ink-3': rgba(mode.text, dark ? 0.64 : 0.64),
     '--bt-bubble': mode.bubble, '--bt-sidebar': mode.sidebar, '--bt-main': mode.bg, '--bt-card': mode.card,
@@ -137,19 +180,20 @@ function themeVars(mode, dark, accent = mode.accent) {
     '--bt-tag-bg': rgba(mode.text, dark ? 0.09 : 0.06), '--bt-tag-ink': rgba(mode.text, dark ? 0.72 : 0.68),
   }
 }
-const declarations = vars => Object.entries(vars).map(([name, value]) => `${name}:${value}`).join(';')
+const declarations = (vars: Record<string, string>): string => Object.entries(vars).map(([name, value]) => `${name}:${value}`).join(';')
 // A preset accent is saved as its light value; in dark mode it takes the preset's dark
 // value, as Bot names do, so Charcoal does not vanish on a dark background. A custom
 // accent is the same in both modes. A preset is matched the way Settings marks it.
-const darkAccent = (accent) => {
-  const ink = ACCENT_INKS.find(id => INKS[id][0] === accent)
-  return ink === undefined ? accent : INKS[ink][1]
+const darkAccent = (accent: string | undefined): string | undefined => {
+  if (accent === undefined) return undefined
+  const ink = ACCENT_INKS.find(id => INKS[id]?.[0] === accent)
+  return ink === undefined ? accent : INKS[ink]?.[1] ?? accent
 }
 // `html body` outranks the base sheet's `body` rules without !important.
-export const themeCss = (theme, accent) => `html body{${declarations(themeVars(theme.light, false, accent ?? theme.light.accent))}}
+export const themeCss = (theme: ThemeDefinition, accent?: string): string => `html body{${declarations(themeVars(theme.light, false, accent ?? theme.light.accent))}}
 html body[data-ds-dark-theme]{${declarations(themeVars(theme.dark, true, darkAccent(accent) ?? theme.dark.accent))}}
 ${theme.css ?? ''}`
-export const shellTokens = ({ light, dark, tokens }) => ({
+export const shellTokens = ({ light, dark, tokens }: { light: ThemeMode; dark: ThemeMode; tokens?: ThemeTokens }): Record<string, { light: string; dark: string }> => ({
   '--dsw-alias-bg-base': { light: light.bg, dark: dark.bg },
   '--dsw-alias-bg-layer-1': { light: light.card, dark: dark.card },
   '--dsw-alias-bg-layer-2': { light: light.bubble, dark: dark.bubble },
@@ -175,16 +219,20 @@ export const shellTokens = ({ light, dark, tokens }) => ({
 // Other plugins add character shapes and themes through `window.dshBot`, or queue
 // calls on `window.dshBotQueue` before this plugin loads. A shape draws only its
 // body; the eyes are cut out where `eyes.at` says, so it gets every state motion free.
-const customThemes = {}
+const customThemes: Record<string, ThemeDefinition> = {}
 export const registry = createSource(0)
-const isPoint = point => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite)
-export function registerShape(id, shape) {
+const isPoint = (point: unknown): point is readonly [number, number] => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite)
+export function registerShape(id: string, shape: CustomShape): () => void {
   if (typeof id !== 'string' || !/^[a-z][\w-]{0,31}$/.test(id)) throw new Error('Shape ids are lowercase words')
   if (typeof shape?.body !== 'function' || typeof shape.body('#000') !== 'string') throw new Error('A shape needs body(paint) returning SVG markup')
   const at = shape.eyes?.at
   if (!Array.isArray(at) || at.length !== 2 || !at.every(isPoint)) throw new Error('A shape needs eyes.at: two [x, y] points')
-  const size = Number.isFinite(shape.size) && shape.size > 0 ? shape.size : 100
-  const pick = (key, fallback) => (Number.isFinite(shape.eyes[key]) ? shape.eyes[key] : fallback)
+  const size = shape.size !== undefined && Number.isFinite(shape.size) && shape.size > 0 ? shape.size : 100
+  const eyeNumbers = shape.eyes
+  const pick = (key: 'w' | 'h' | 'tilt', fallback: number): number => {
+    const value = eyeNumbers?.[key]
+    return value !== undefined && Number.isFinite(value) ? value : fallback
+  }
   const eyes = at.map(([x, y]) => [x, y, pick('w', size * 0.1), pick('h', size * 0.23), pick('tilt', -27)])
   const previous = SHAPES[id]
   SHAPES[id] = {
@@ -194,10 +242,10 @@ export function registerShape(id, shape) {
     eyes,
     ...(typeof shape.wrap === 'string' ? { wrap: shape.wrap } : {}),
   }
-  const refresh = () => {
+  const refresh = (): void => {
     markupCache.clear()
     maskCache.delete(id)
-    registry.set(value => value + 1)
+    registry.set((value: number) => value + 1)
   }
   refresh()
   return () => {
@@ -206,18 +254,18 @@ export function registerShape(id, shape) {
     refresh()
   }
 }
-export function registerTheme(id, theme) {
+export function registerTheme(id: string, theme: ThemeDefinition): () => void {
   if (typeof id !== 'string' || !/^[a-z][\w-]{0,31}$/.test(id)) throw new Error('Theme ids are lowercase words')
-  for (const mode of ['light', 'dark']) {
-    for (const key of THEME_KEYS) if (!isHex(theme?.[mode]?.[key])) throw new Error(`Theme ${mode}.${key} must be a #rrggbb color`)
+  for (const mode of ['light', 'dark'] as const) {
+    for (const key of THEME_KEYS) if (!isHex(theme[mode][key])) throw new Error(`Theme ${mode}.${key} must be a #rrggbb color`)
   }
   const previous = customThemes[id]
   customThemes[id] = { label: String(theme.label ?? id), light: theme.light, dark: theme.dark, css: typeof theme.css === 'string' ? theme.css : '' }
-  registry.set(value => value + 1)
+  registry.set((value: number) => value + 1)
   return () => {
     if (previous) customThemes[id] = previous
     else delete customThemes[id]
-    registry.set(value => value + 1)
+    registry.set((value: number) => value + 1)
   }
 }
-export const allThemes = () => ({ ...THEMES, ...customThemes })
+export const allThemes = (): Record<string, ThemeDefinition> => ({ ...THEMES, ...customThemes })

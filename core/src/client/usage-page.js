@@ -1,6 +1,6 @@
 import { createElement as h, startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import { colorOf, MAIN_LOOK } from './characters.js'
-import { GRADIENTS, paintCss } from './inks.js'
+import { GRADIENTS, paintCss } from './inks.ts'
 import { BotAvatar, BotMark, RoomAvatar } from './mark.js'
 import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.js'
 import { reducedMotion, useGlide } from './motion.js'

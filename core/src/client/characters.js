@@ -1,4 +1,4 @@
-import { INKS, GRADIENTS, isHex, inkFill } from './inks.js'
+import { INKS, GRADIENTS, isHex, inkFill } from './inks.ts'
 import { SPRITE } from './brand-art.js'
 
 // -------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { INKS } from './inks.js'
+import { INKS } from './inks.ts'
 import { LOGO_LIGHT, LOGO_DARK } from './brand-art.js'
 import { DEFAULT_MASK } from './characters.js'
 import { MENTION_ORIGIN } from './text.js'

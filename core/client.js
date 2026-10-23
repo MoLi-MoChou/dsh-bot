@@ -1453,7 +1453,7 @@ var call = async (endpoint, payload, signal) => {
   return result.value;
 };
 
-// src/client/inks.js
+// src/client/inks.ts
 var INKS = {
   lilac: ["#8A6BD1", "#B9A3F5"],
   deepseek: ["#4D6BFE", "#6A84FF"],
@@ -1481,10 +1481,13 @@ var ACCENT_INKS = ["deepseek", "charcoal", "graphite", "rose", "sky", "tangerine
 var LEGACY_INKS = { kimi: "charcoal", zai: "graphite", minimax: "rose", stepfun: "sky", mimo: "tangerine", qwen: "cobalt" };
 var isHex = (color) => typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color);
 var luminance = (hex) => [1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16) / 255).map((channel) => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4).reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
-var inkName = (color) => INKS[color] ? color : INKS[LEGACY_INKS[color]] ? LEGACY_INKS[color] : "gray";
+var inkName = (color) => INKS[color] !== void 0 ? color : LEGACY_INKS[color] !== void 0 && INKS[LEGACY_INKS[color]] !== void 0 ? LEGACY_INKS[color] : "gray";
 var inkFill = (color) => isHex(color) ? color : `var(--bt-ink-${inkName(color)})`;
 var inkText = (color) => color === "black" ? "var(--bt-ink-gray)" : inkFill(color);
-var paintCss = (color) => GRADIENTS[color] ? `linear-gradient(135deg,${GRADIENTS[color].map(([offset, value]) => `${value} ${offset * 100}%`).join(",")})` : inkFill(color);
+var paintCss = (color) => {
+  const gradient = GRADIENTS[color];
+  return gradient !== void 0 ? `linear-gradient(135deg,${gradient.map(([offset, value]) => `${value} ${offset * 100}%`).join(",")})` : inkFill(color);
+};
 
 // src/client/characters.js
 var CHARACTERS = {
@@ -1867,7 +1870,8 @@ function teamActions({ call: call2, after, partFor, roster, ui: ui2, live, cards
   };
 }
 
-// src/client/themes.js
+// src/client/themes.ts
+var SHAPES2 = SHAPES;
 var THEME_KEYS = ["bg", "sidebar", "bubble", "card", "text", "user", "userText", "accent"];
 var SERIF = 'ui-serif,Georgia,Cambria,"Times New Roman","Songti SC","Noto Serif CJK SC",serif';
 var both = (value) => ({ light: value, dark: value });
@@ -1986,7 +1990,10 @@ body[data-bt-theme=grok] :is(.bt-sidebar,[class*="_sidebar"]){box-shadow:inset -
   }
 };
 var THEME_ALIASES = { mono: "grok", paper: "claude", moonlight: "deepseek" };
-var resolveThemeId = (themes, id) => themes[id] ? id : themes[THEME_ALIASES[id]] ? THEME_ALIASES[id] : "moon";
+var resolveThemeId = (themes, id) => {
+  const alias = THEME_ALIASES[id];
+  return themes[id] !== void 0 ? id : alias !== void 0 && themes[alias] !== void 0 ? alias : "moon";
+};
 var DARK_INK = "#141414";
 var accentInk = (accent) => (luminance(accent) + 0.05) ** 2 > 1.05 * (luminance(DARK_INK) + 0.05) ? DARK_INK : "#ffffff";
 var rgba = (hex, alpha) => `rgba(${[1, 3, 5].map((index) => parseInt(hex.slice(index, index + 2), 16)).join(",")},${alpha})`;
@@ -2013,8 +2020,9 @@ function themeVars(mode, dark, accent = mode.accent) {
 }
 var declarations = (vars) => Object.entries(vars).map(([name, value]) => `${name}:${value}`).join(";");
 var darkAccent = (accent) => {
-  const ink = ACCENT_INKS.find((id) => INKS[id][0] === accent);
-  return ink === void 0 ? accent : INKS[ink][1];
+  if (accent === void 0) return void 0;
+  const ink = ACCENT_INKS.find((id) => INKS[id]?.[0] === accent);
+  return ink === void 0 ? accent : INKS[ink]?.[1] ?? accent;
 };
 var themeCss = (theme, accent) => `html body{${declarations(themeVars(theme.light, false, accent ?? theme.light.accent))}}
 html body[data-ds-dark-theme]{${declarations(themeVars(theme.dark, true, darkAccent(accent) ?? theme.dark.accent))}}
@@ -2049,11 +2057,15 @@ function registerShape(id, shape) {
   if (typeof shape?.body !== "function" || typeof shape.body("#000") !== "string") throw new Error("A shape needs body(paint) returning SVG markup");
   const at = shape.eyes?.at;
   if (!Array.isArray(at) || at.length !== 2 || !at.every(isPoint)) throw new Error("A shape needs eyes.at: two [x, y] points");
-  const size = Number.isFinite(shape.size) && shape.size > 0 ? shape.size : 100;
-  const pick2 = (key, fallback) => Number.isFinite(shape.eyes[key]) ? shape.eyes[key] : fallback;
+  const size = shape.size !== void 0 && Number.isFinite(shape.size) && shape.size > 0 ? shape.size : 100;
+  const eyeNumbers = shape.eyes;
+  const pick2 = (key, fallback) => {
+    const value = eyeNumbers?.[key];
+    return value !== void 0 && Number.isFinite(value) ? value : fallback;
+  };
   const eyes = at.map(([x, y]) => [x, y, pick2("w", size * 0.1), pick2("h", size * 0.23), pick2("tilt", -27)]);
-  const previous = SHAPES[id];
-  SHAPES[id] = {
+  const previous = SHAPES2[id];
+  SHAPES2[id] = {
     label: String(shape.label ?? id),
     size,
     body: shape.body,
@@ -2067,15 +2079,15 @@ function registerShape(id, shape) {
   };
   refresh();
   return () => {
-    if (previous) SHAPES[id] = previous;
-    else delete SHAPES[id];
+    if (previous) SHAPES2[id] = previous;
+    else delete SHAPES2[id];
     refresh();
   };
 }
 function registerTheme(id, theme) {
   if (typeof id !== "string" || !/^[a-z][\w-]{0,31}$/.test(id)) throw new Error("Theme ids are lowercase words");
   for (const mode of ["light", "dark"]) {
-    for (const key of THEME_KEYS) if (!isHex(theme?.[mode]?.[key])) throw new Error(`Theme ${mode}.${key} must be a #rrggbb color`);
+    for (const key of THEME_KEYS) if (!isHex(theme[mode][key])) throw new Error(`Theme ${mode}.${key} must be a #rrggbb color`);
   }
   const previous = customThemes[id];
   customThemes[id] = { label: String(theme.label ?? id), light: theme.light, dark: theme.dark, css: typeof theme.css === "string" ? theme.css : "" };

@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { ACCENT_INKS, INKS, luminance } from '../src/client/inks.js'
-import { allThemes, shellTokens, themeCss } from '../src/client/themes.js'
+import { ACCENT_INKS, INKS, luminance } from '../src/client/inks.ts'
+import { allThemes, shellTokens, themeCss } from '../src/client/themes.ts'
 
 // The browser bundle holds every style sheet ds-bot installs; the bundle test
 // keeps it in step with src/client.

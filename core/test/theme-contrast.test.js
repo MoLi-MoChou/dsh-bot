@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { luminance } from '../src/client/inks.js'
-import { allThemes, shellTokens, themeCss } from '../src/client/themes.js'
+import { luminance } from '../src/client/inks.ts'
+import { allThemes, shellTokens, themeCss } from '../src/client/themes.ts'
 
 const parse = (color) => {
   const c = color.trim()

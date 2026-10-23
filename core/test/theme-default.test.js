@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { resolveThemeId } from '../src/client/themes.js'
+import { resolveThemeId } from '../src/client/themes.ts'
 
 test('Moon is the default theme; a saved or legacy theme still wins', () => {
   const themes = { moon: {}, deepseek: {}, claude: {}, grok: {} }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { inkFill } from '../src/client/inks.js'
+import { inkFill } from '../src/client/inks.ts'
 
 test('a reply that still carries a legacy color id paints in the renamed ink', () => {
   assert.equal(inkFill('kimi'), 'var(--bt-ink-charcoal)')
