@@ -15,7 +15,7 @@ import { pathToFileURL } from 'node:url'
 // machine rather than for the code. It must not fall back to the real home under ~ either,
 // which holds the user's own DSH data, so it names a home of its own beside the temp
 // folders it makes.
-process.env.DSH_HOME = join(tmpdir(), 'ds-bot-test-dsh-home')
+process.env.DSH_HOME = join(tmpdir(), `ds-bot-test-dsh-home-${process.pid}`)
 
 const plugin = resolve(import.meta.dirname, '..')
 const above = (start) => {
