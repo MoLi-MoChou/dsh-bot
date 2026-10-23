@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, WaveIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { useLinger } from './motion.js'
+import { useMenuKeys } from './overlay-hooks.js'
 import { t } from './i18n.js'
 
 // -------------------------------------------------------------------------
@@ -113,10 +114,11 @@ export function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
   const [shown, leaving] = useLinger(open, 120)
   const button = useRef(null)
   const menu = useRef(null)
+  useMenuKeys(menu, Boolean(open))
   useEffect(() => {
     if (!open) return undefined
     const onDown = (event) => { if (![button.current, menu.current].some(node => node?.contains(event.target))) setOpen(null) }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); setOpen(null) } }
+    const onKey = (event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(null); button.current?.focus() } }
     window.addEventListener('mousedown', onDown, true)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown, true); window.removeEventListener('keydown', onKey, true) }

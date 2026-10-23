@@ -849,6 +849,9 @@ body[data-ds-dark-theme] .bt-theme-chip i{background:var(--da)}
 :is(.bt-soft,.bt-send,.bt-icon-btn,.bt-settings-close,.bt-mini,.bt-tab,.bt-nc-send,.bt-avedit-tab,.bt-shape,.bt-pick,.bt-swatch,.bt-palette-clear){transition:background-color .12s ease,color .12s ease,border-color .12s ease,opacity .12s ease,${spring(SPRING_TAP, 'scale')}}
 :is(.bt-icon-btn,.bt-settings-close,.bt-nc-send,.bt-shape,.bt-swatch,.bt-color,.bt-x,.bt-q-x,.bt-palette-clear):active:not(:disabled){scale:.9}
 :is(.bt-soft,.bt-send,.bt-mini,.bt-tab,.bt-avedit-tab,.bt-pick,.bt-q-submit,.bt-q-btn):active:not(:disabled){scale:.96}
+:is(.bt-round,.bt-icon-btn,.bt-soft,.bt-send,.bt-nc-send,.bt-pill,.bt-head-side,.bt-connect,.bt-account,.bt-tile,.bt-tab,.bt-avedit-tab,.bt-settings-close,.bt-mem-row,.bt-mem-send,.bt-drawer-name,.bt-more,.bt-mini,.bt-q-submit,.bt-q-btn,.bt-palette-clear,.bt-pick,.bt-shape,.bt-color,.bt-swatch,.bt-state,.bt-avatar-trigger,.bt-react,.bt-react-strip button,.bt-voice-btn,.bt-voice-setup,.bt-x,.bt-secret-bot):focus-visible,.bt-swatch-custom:has(>input:focus-visible){outline:2px solid var(--bt-accent);outline-offset:2px}
+:is(.bt-menu button,.bt-row,.bt-agent-sub-row,.bt-settings-item,button.bt-set-row,.bt-option,.bt-palette-row,.bt-seg button):focus-visible{outline:2px solid var(--bt-accent);outline-offset:-2px}
+:is(.bt-input,.bt-select,.bt-textarea,.bt-drawer-name-input):focus-visible{border-color:var(--bt-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--bt-accent) 25%,transparent);outline:none}
 @media (prefers-reduced-motion:reduce){.bt-thumb{transition:none}.bt-panel-view>[data-move],.bt-drawer-name-input,.bt-veil,.bt-pop-in,.bt-token,.bt-drop,.bt-newchat,.bt-option-hint,.bt-connector-form,.bt-settings-head>*{animation:none}}
 /* The connection notice: a lost poll leaves the page stale, and the window says so at the
    top until a poll succeeds again. */
@@ -871,6 +874,7 @@ export const CONVERSATION_CSS = `
 .bt-event button{border:0;background:none;color:inherit;font:inherit;display:inline-flex;align-items:center;gap:4px;cursor:pointer;height:24px;padding:4px 6px 4px 4px;border-radius:999px;box-sizing:border-box;transition:background-color .12s ease}
 .bt-event button:hover{background:var(--bt-hover)}
 .bt-event button:active{background:var(--bt-active)}
+:is(.bt-event button,button.bt-lead,.bt-think summary):focus-visible{outline:2px solid var(--bt-accent);outline-offset:2px}
 .bt-event button.bt-event-whole{min-width:0;max-width:100%;padding:4px 6px 4px 8px}
 .bt-event-whole>*{flex:none}
 .bt-event-whole>span:first-child{margin-right:2px}

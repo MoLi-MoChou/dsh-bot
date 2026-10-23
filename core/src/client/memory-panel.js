@@ -3,7 +3,7 @@
 // and "Ask or update", one model call that answers from the entries or changes them.
 // Modeled on ChatGPT's memory summary.
 import { createElement as h, Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { useEscape } from './overlay-hooks.js'
+import { useEscape, useMenuKeys } from './overlay-hooks.js'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.js'
 import { dateLocale, hostText, t } from './i18n.js'
 import { summaryBlocks } from './text.js'
@@ -219,6 +219,8 @@ export function MemoryDialog({ owner, actions, leaving = false }) {
   const now = useNow(30_000)
   const close = useCallback(() => actions.closeMemory(), [])
   useEscape(close)
+  useEscape(() => { setPage('summary'); void load({ summarize: true }) }, page === 'entries')
+  useMenuKeys(menuRef, menu)
   useEffect(() => {
     if (!menu) return undefined
     const onDown = (event) => {

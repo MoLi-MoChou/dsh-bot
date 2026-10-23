@@ -14,6 +14,7 @@ import { Shimmer, workPhrase } from './cells.js'
 import { springEasing, SPRING_SHAPE } from './motion.js'
 import { hostText, t, productName } from './i18n.js'
 import { showsDshRow } from './dsh-offer.js'
+import { useMenuKeys } from './overlay-hooks.js'
 
 // -------------------------------------------------------------------------
 // Sidebar
@@ -538,6 +539,8 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
   }, [seat])
   const [box, setBox] = useState(null)
   const button = useRef(null)
+  const menu = useRef(null)
+  useMenuKeys(menu, open)
   useEffect(() => { if (settingsOpen) setOpen(false) }, [settingsOpen])
   // The settings dialog links back to the shell's own settings (models, providers).
   useEffect(() => {
@@ -580,7 +583,7 @@ export function AccountLauncher({ seat = true, settingsOpen, openSettings, openO
   return h(Fragment, null,
     h('button', { ref: button, type: 'button', className: 'bt-account', 'aria-label': t('Account'), 'aria-haspopup': 'menu', 'aria-expanded': open, onClick: toggle },
       h('span', { className: 'bt-you', 'aria-hidden': true }, h(MoonBotMark, { size: 24 }))),
-    open && box ? createPortal(h('div', { className: 'bt-menu bt-menu-up bt-account-menu', role: 'menu', 'aria-label': t('Account'), style: box },
+    open && box ? createPortal(h('div', { ref: menu, className: 'bt-menu bt-menu-up bt-account-menu', role: 'menu', 'aria-label': t('Account'), style: box },
       groups.map((group, index) => h(Fragment, { key: index },
         index > 0 ? h('div', { className: 'bt-menu-sep', role: 'separator' }) : null,
         group.map(([label, Icon, run, hint]) => h('button', {

@@ -136,7 +136,16 @@ function ApprovalCard({ approval, bot, actions }) {
       .catch(error => actions.reportError(error, 'approval'))
       .finally(() => setBusy(false))
   }
-  return h('div', { className: 'bt-mw-card', role: 'group', 'aria-label': t('{name} is waiting for your approval', { name: bot.name }) },
+  return h('div', {
+    className: 'bt-mw-card', role: 'group', 'aria-label': t('{name} is waiting for your approval', { name: bot.name }),
+    onKeyDown: (event) => {
+      if (event.key === 'Escape' && approval.answerable && !busy) {
+        event.preventDefault()
+        event.stopPropagation()
+        answer('reject')
+      }
+    },
+  },
     h('div', { className: 'bt-mw-tool' }, approval.tool),
     approval.detail?.text ? h('div', { className: 'bt-mw-text' }, approval.detail.text) : null,
     approval.reason ? h('div', { className: 'bt-mw-reason' }, approval.reason) : null,
@@ -232,5 +241,6 @@ body[data-ds-dark-theme] .bt-member-state.bt-mw-ask{color:#f0b84a}
 .bt-mw-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
 .bt-mw-actions>button{height:28px;padding:0 12px;font-size:12px}
 .bt-mw-actions>button:disabled{opacity:.5;cursor:default}
+:is(.bt-mw-pill,.bt-member-open,.bt-member-stop):focus-visible{outline:2px solid var(--bt-accent);outline-offset:2px}
 @media (prefers-reduced-motion:reduce){.bt-mw-pill,.bt-mw-face,.bt-mw-label,.bt-member,.bt-mw-card{animation:none}.bt-mw-pill{transition:background-color .12s ease}}
 `

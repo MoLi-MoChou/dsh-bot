@@ -180,6 +180,7 @@ function BotsPage({ roster, actions, run }) {
 
 function GroupsPage({ roster, actions, run }) {
   const [creating, setCreating] = useState(false)
+  useEscape(() => setCreating(false), creating)
   return [
     creating
       ? h(NewGroupForm, { key: 'create', roster, actions, run, onCancel: () => setCreating(false), onCreated: room => actions.openSettings('groups', room.id) })
@@ -218,6 +219,7 @@ export function SettingsDialog({ page, id, roster, actions, useUpdate, leaving =
   const usageFocus = shown === 'usage' && id ? id : null
   const label = t(pages.find(([key]) => key === shown)[1])
   const back = bot ? t('Back to Bots') : room ? t('Back to group chats') : usageFocus ? t('All usage') : null
+  useEscape(() => actions.openSettings(shown), Boolean(bot || room || usageFocus))
   const nav = useGlide(shown, { axis: 'y' })
   // A page enters from the right when it is one level in, from the left when it comes
   // back out, and from below beside it. Usage keeps its own entrance and its data

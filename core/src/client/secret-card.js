@@ -9,6 +9,7 @@ import { contentText, currentPart } from './text.js'
 import { dateLocale, t } from './i18n.js'
 import { SPRING_POP, SPRING_SHAPE, spring } from './motion.js'
 import { useDockHold } from './card-hold.js'
+import { useEscape } from './overlay-hooks.js'
 import { heldCardKey } from './sources.js'
 
 const MIN_VALUE = 4
@@ -106,7 +107,17 @@ export function SecretCard({ sessionId, bot, request, roster, actions, inline = 
   const allow = () => { if (!busy) void run(() => actions.secretAllow(request.id)) }
   const filling = request.kind === 'fill' || replacing
   const warn = insecure() ? h('div', { className: 'bt-secret-warn', role: 'note' }, h(WarnIcon), t('This page is not on HTTPS: the key crosses the network unencrypted.')) : null
-  return h('div', { className: 'bt-q bt-secret', role: 'group', 'aria-describedby': noteId, 'data-kind': request.kind, onFocusCapture: hold, onPointerDownCapture: hold },
+  return h('div', {
+    className: 'bt-q bt-secret', role: 'group', 'aria-describedby': noteId, 'data-kind': request.kind,
+    onFocusCapture: hold, onPointerDownCapture: hold,
+    onKeyDown: (event) => {
+      if (event.key !== 'Escape' || busy) return
+      event.preventDefault()
+      event.stopPropagation()
+      if (request.kind === 'allow' && replacing) setReplacing(false)
+      else void cancel()
+    },
+  },
     h(SecretHead, {
       bot,
       title: request.kind === 'allow' ? t('Let {bot} use {name}?', { bot: bot.name, name: request.name }) : t('{name} needs a key', { name: bot.name }),
@@ -267,6 +278,8 @@ function AddSecret({ actions, run, onDone }) {
 export function SecretsPage({ roster, actions, run, Section }) {
   const [open, setOpen] = useState(null)
   const [adding, setAdding] = useState(false)
+  useEscape(() => setAdding(false), adding)
+  useEscape(() => setOpen(null), open !== null && !adding)
   const secrets = roster.secrets ?? []
   return [
     h('p', { key: 'about', className: 'bt-secret-about' },

@@ -15,6 +15,7 @@ import { turnReasoning, thinkingStep } from './turn-reasoning.js'
 import { FOLD_AT, FOLD_HUGE, stripLongNote, useFold } from './fold.js'
 import { heldCardKey } from './sources.js'
 import { WorkLine } from './work-process.js'
+import { useMenuKeys } from './overlay-hooks.js'
 
 export { clockLabel }
 
@@ -75,7 +76,15 @@ function useDismiss(open, close, refs) {
       if (refs.some(ref => ref.current?.contains(event.target))) return
       close()
     }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); close() } }
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        const trigger = refs[0]?.current?.querySelector('[aria-expanded="true"]')
+        close()
+        trigger?.focus()
+      }
+    }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey, true)
     return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey, true) }
@@ -91,6 +100,7 @@ function MessageTools({ text, name, sessionId, react, actions }) {
   const pop = useRef(null)
   const close = () => setPanel(null)
   useDismiss(panel !== null, close, [tools, pop])
+  useMenuKeys(pop, panel !== null)
   const open = (kind, event) => {
     if (panel === kind) { close(); return }
     const rect = event.currentTarget.getBoundingClientRect()

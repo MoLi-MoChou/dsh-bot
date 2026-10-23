@@ -5,6 +5,7 @@ import { CheckIcon, SlidersIcon } from './icons.js'
 import { BotMark } from './mark.js'
 import { KeyIcon, MaskedInput } from './secret-card.js'
 import { SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.js'
+import { useEscape, useMenuKeys } from './overlay-hooks.js'
 import { hostText, t } from './i18n.js'
 
 const MENU_EXIT_MS = 120
@@ -100,19 +101,30 @@ export const Caret = () => h('svg', { className: 'bt-model-caret', width: 12, he
 
 // A menu that opens under its trigger, or above when the window has no room below. A
 // click outside, Escape, or a scroll outside it closes it.
-export function useAnchoredMenu() {
+export function useAnchoredMenu(onEscape) {
   const [place, setPlace] = useState(null)
   const [shownPlace, leaving] = useLinger(place, MENU_EXIT_MS)
   const button = useRef(null)
   const menu = useRef(null)
+  const escapeRef = useRef(onEscape)
+  escapeRef.current = onEscape
   const close = () => setPlace(null)
+  useMenuKeys(menu, place !== null)
   useEffect(() => {
     if (place === null) return undefined
     const onDown = (event) => {
       if (menu.current?.contains(event.target) || button.current?.contains(event.target)) return
       close()
     }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); close(); button.current?.focus() } }
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        if (escapeRef.current?.() === true) return
+        close()
+        button.current?.focus()
+      }
+    }
     const onScroll = (event) => { if (!menu.current?.contains(event.target)) close() }
     window.addEventListener('mousedown', onDown)
     window.addEventListener('keydown', onKey, true)
@@ -206,6 +218,7 @@ export function ModelMenu({ bot, roster, actions, run, wide = false, onPick, onP
       ref: button, type: 'button', className: 'bt-model-trigger', 'data-wide': wide || undefined,
       'aria-haspopup': 'menu', 'aria-expanded': isOpen, 'aria-label': t('Model: {model}', { model: shown?.name ?? t('none') }),
       'data-missing': shown !== undefined && !shown.served && models.length > 0 ? '' : undefined, onClick: toggle,
+      onKeyDown: (event) => { if (!isOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) { event.preventDefault(); toggle() } },
     },
     h('span', { className: 'bt-model-copy' },
       h('span', { className: 'bt-model-name' }, shown?.name ?? t('Choose a model')),
@@ -333,6 +346,7 @@ export function DeepSeekSignIn({ useUi, actions }) {
 function SignInHost({ entry, actions }) {
   const [ops] = useState(() => entry.inject?.() ?? {})
   const close = () => actions.closeSignIn()
+  useEscape(close)
   const useHook = source => selector => useSyncExternalStore(source.subscribe, () => selector(source.getSnapshot()))
   const [hooks] = useState(() => ({ useAccount: useHook(ops.hooks.account), useTheme: useHook(ops.hooks.theme) }))
   return h(entry.component, {
