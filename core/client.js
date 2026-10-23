@@ -1630,7 +1630,7 @@ function showReconnectNotice(text) {
   document.body.appendChild(notice);
 }
 
-// src/client/sources.js
+// src/client/sources.ts
 function createSource(initial) {
   let value = initial;
   const listeners3 = /* @__PURE__ */ new Set();
@@ -1650,7 +1650,29 @@ function createSource(initial) {
     }
   };
 }
-var EMPTY_ROSTER = { revision: -1, mainBotId: null, mainBotIds: [], bots: [], rooms: [], agents: [], exchangeTurns: {}, questions: {}, secrets: [], capabilities: [], capabilityStatuses: {}, secretRequests: {}, models: [], defaultModel: null, modelsKey: null, prefs: {}, byId: {}, roomsById: {}, agentsById: {}, agentOf: {}, ready: false };
+var EMPTY_ROSTER = {
+  revision: -1,
+  mainBotId: null,
+  mainBotIds: [],
+  bots: [],
+  rooms: [],
+  agents: [],
+  exchangeTurns: {},
+  questions: {},
+  secrets: [],
+  capabilities: [],
+  capabilityStatuses: {},
+  secretRequests: {},
+  models: [],
+  defaultModel: null,
+  modelsKey: null,
+  prefs: {},
+  byId: {},
+  roomsById: {},
+  agentsById: {},
+  agentOf: {},
+  ready: false
+};
 var isMainOf = (roster, id) => id !== void 0 && (roster.mainBotIds ?? []).includes(id);
 function indexRoster(value) {
   const byId = {};
@@ -1669,7 +1691,7 @@ function indexRoster(value) {
 }
 function isAgentSession(roster, cache, sessionId) {
   if (sessionId === void 0 || sessionId === null || sessionId === "") return false;
-  if (roster.ready) return roster.agentOf[sessionId] !== void 0;
+  if (roster.ready === true) return roster.agentOf?.[sessionId] !== void 0;
   return cache.has(sessionId);
 }
 var heldCardKey = (kind, requestId) => JSON.stringify([kind, requestId]);
@@ -3904,7 +3926,7 @@ function RoomAvatar({ room: room2, roster, size = 36 }) {
   );
 }
 
-// src/client/storage.js
+// src/client/storage.ts
 var STORAGE = {
   unread: "ds-bot:unread",
   reactions: "ds-bot:reactions",
@@ -3933,9 +3955,14 @@ var migrateBrowsers = (storage) => {
     try {
       const value = storage.getItem(key);
       if (value === null) continue;
-      const previous = JSON.parse(value) ?? {};
-      const tabs = Object.fromEntries(Object.entries(previous).filter(([, page]) => page && typeof page === "object").map(([botId, page]) => {
-        const tab = { id: `v1-${botId}`, url: page.url ?? "", title: page.title ?? "" };
+      const previous = JSON.parse(value);
+      const pages = previous !== null && typeof previous === "object" && !Array.isArray(previous) ? Object.entries(previous) : [];
+      const tabs = Object.fromEntries(pages.filter(([, page]) => page !== null && typeof page === "object").map(([botId, page]) => {
+        const tab = {
+          id: `v1-${botId}`,
+          url: typeof page.url === "string" ? page.url : "",
+          title: typeof page.title === "string" ? page.title : ""
+        };
         return [botId, { tabs: [tab], active: tab.id }];
       }));
       storage.setItem(STORAGE.browsers, JSON.stringify(tabs));
@@ -3963,9 +3990,9 @@ function migrateStorage(storage = globalThis.localStorage) {
   }
   try {
     const prefs = JSON.parse(storage.getItem(STORAGE.prefs) ?? "null");
-    if (prefs && Object.hasOwn(LEGACY_THEMES, prefs.theme ?? "")) {
-      storage.setItem(STORAGE.prefs, JSON.stringify({ ...prefs, theme: LEGACY_THEMES[prefs.theme] }));
-    }
+    const theme = typeof prefs?.theme === "string" ? prefs.theme : "";
+    const renamed = LEGACY_THEMES[theme];
+    if (prefs !== null && renamed !== void 0) storage.setItem(STORAGE.prefs, JSON.stringify({ ...prefs, theme: renamed }));
   } catch {
   }
 }
@@ -19575,7 +19602,7 @@ ${marked}
 var readPageScript = (limits = READ_LIMITS) => `(${readPage})(${JSON.stringify(limits)})`;
 var READ_PAGE_SCRIPT = readPageScript();
 
-// src/client/shared-map.js
+// src/client/shared-map.ts
 function sharedMap(key, storage = globalThis.localStorage) {
   const read = (fallback = {}) => {
     if (!storage) return fallback;
@@ -19601,18 +19628,18 @@ function sharedMap(key, storage = globalThis.localStorage) {
 function setEntry(map, id, value) {
   if (value === void 0) {
     if (!Object.hasOwn(map, id)) return map;
-    const { [id]: _, ...rest } = map;
+    const { [id]: _dropped, ...rest } = map;
     return rest;
   }
   return { ...map, [id]: value };
 }
 function toggleReaction(reactions, key, index, emoji) {
-  const entry = { ...reactions[key] };
-  const list = entry[index] ?? [];
-  entry[index] = list.includes(emoji) ? list.filter((item) => item !== emoji) : [...list, emoji];
-  if (entry[index].length === 0) delete entry[index];
+  const entry = { ...reactions[key] ?? {} };
+  const list = entry[String(index)] ?? [];
+  entry[String(index)] = list.includes(emoji) ? list.filter((item) => item !== emoji) : [...list, emoji];
+  if (entry[String(index)]?.length === 0) delete entry[String(index)];
   const next = { ...reactions };
-  if (Object.keys(entry).length) next[key] = entry;
+  if (Object.keys(entry).length > 0) next[key] = entry;
   else delete next[key];
   return next;
 }

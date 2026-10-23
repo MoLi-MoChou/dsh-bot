@@ -1,5 +1,5 @@
 import { createElement as h, useEffect, useState } from 'react'
-import { isMainOf } from './sources.js'
+import { isMainOf } from './sources.ts'
 import { PlusIcon, ChevronRightIcon } from './icons.js'
 import { AdminStar, BotAvatar, BotMark, RoomAvatar } from './mark.js'
 import { Card, Row, InlineText, SwitchRow } from './bot-settings.js'

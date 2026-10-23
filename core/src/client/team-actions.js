@@ -1,4 +1,4 @@
-import { countCards, heldCardKey } from './sources.js'
+import { countCards, heldCardKey } from './sources.ts'
 import { noteClientError } from './diagnostics.js'
 
 // The actions every window that draws the Bot views shares: dialogs and panels (the `ui`

@@ -1,6 +1,6 @@
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { FishLogo } from './dsh-primitives.js'
-import { isMainOf } from './sources.js'
+import { isMainOf } from './sources.ts'
 import { currentPart, stripHeader } from './text.js'
 import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.js'
 import { BotAvatar, RoomAvatar } from './mark.js'

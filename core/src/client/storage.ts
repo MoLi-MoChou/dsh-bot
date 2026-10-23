@@ -11,7 +11,9 @@ export const STORAGE = {
   browserWidth: 'ds-bot:browser-width',
   browsers: 'ds-bot.browser.v2',
   sidebarOrder: 'ds-bot:sidebar-order',
-}
+} as const
+
+export type StorageKey = typeof STORAGE[keyof typeof STORAGE]
 
 // Newest legacy name first: when both exist, the more recent value wins.
 const LEGACY_PREFIXES = ['dsh-bot:', 'dsh-bot-team:']
@@ -19,16 +21,19 @@ const LEGACY_PREFIXES = ['dsh-bot:', 'dsh-bot-team:']
 const LEGACY_BROWSER_KEYS = ['ds-bot.browser.v1', 'dsh-bot.browser.v1']
 // The saved theme only paints the first frame before the team loads; it follows the
 // host's rename of the theme ids.
-const LEGACY_THEMES = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
+const LEGACY_THEMES: Record<string, string> = { mono: 'grok', paper: 'claude', moonlight: 'deepseek' }
 
-export function legacyKeys(key) {
+interface LegacyBrowserTab { id: string; url: string; title: string }
+interface LegacyPage { url?: unknown; title?: unknown }
+
+export function legacyKeys(key: string): readonly string[] {
   if (key === STORAGE.browsers) return LEGACY_BROWSER_KEYS
   const name = key.slice(key.indexOf(':') + 1)
   return LEGACY_PREFIXES.map(prefix => `${prefix}${name}`)
 }
 
 // One page per Bot becomes one tab per Bot; a v2 store already present wins.
-const migrateBrowsers = (storage) => {
+const migrateBrowsers = (storage: Storage): void => {
   if (storage.getItem(STORAGE.browsers) !== null) {
     for (const key of LEGACY_BROWSER_KEYS) storage.removeItem(key)
     return
@@ -37,11 +42,18 @@ const migrateBrowsers = (storage) => {
     try {
       const value = storage.getItem(key)
       if (value === null) continue
-      const previous = JSON.parse(value) ?? {}
-      const tabs = Object.fromEntries(Object.entries(previous)
-        .filter(([, page]) => page && typeof page === 'object')
+      const previous = JSON.parse(value) as unknown
+      const pages = previous !== null && typeof previous === 'object' && !Array.isArray(previous)
+        ? Object.entries(previous as Record<string, unknown>)
+        : []
+      const tabs: Record<string, { tabs: LegacyBrowserTab[]; active: string }> = Object.fromEntries(pages
+        .filter(([, page]) => page !== null && typeof page === 'object')
         .map(([botId, page]) => {
-          const tab = { id: `v1-${botId}`, url: page.url ?? '', title: page.title ?? '' }
+          const tab: LegacyBrowserTab = {
+            id: `v1-${botId}`,
+            url: typeof (page as LegacyPage).url === 'string' ? (page as LegacyPage).url as string : '',
+            title: typeof (page as LegacyPage).title === 'string' ? (page as LegacyPage).title as string : '',
+          }
           return [botId, { tabs: [tab], active: tab.id }]
         }))
       storage.setItem(STORAGE.browsers, JSON.stringify(tabs))
@@ -51,7 +63,7 @@ const migrateBrowsers = (storage) => {
   }
 }
 
-export function migrateStorage(storage = globalThis.localStorage) {
+export function migrateStorage(storage: Storage = globalThis.localStorage): void {
   for (const key of Object.values(STORAGE)) {
     if (key === STORAGE.browsers) continue
     for (const legacy of legacyKeys(key)) {
@@ -64,9 +76,9 @@ export function migrateStorage(storage = globalThis.localStorage) {
   }
   try { migrateBrowsers(storage) } catch { /* storage unavailable */ }
   try {
-    const prefs = JSON.parse(storage.getItem(STORAGE.prefs) ?? 'null')
-    if (prefs && Object.hasOwn(LEGACY_THEMES, prefs.theme ?? '')) {
-      storage.setItem(STORAGE.prefs, JSON.stringify({ ...prefs, theme: LEGACY_THEMES[prefs.theme] }))
-    }
+    const prefs = JSON.parse(storage.getItem(STORAGE.prefs) ?? 'null') as { theme?: unknown } | null
+    const theme = typeof prefs?.theme === 'string' ? prefs.theme : ''
+    const renamed = LEGACY_THEMES[theme]
+    if (prefs !== null && renamed !== undefined) storage.setItem(STORAGE.prefs, JSON.stringify({ ...prefs, theme: renamed }))
   } catch { /* storage unavailable or not JSON */ }
 }

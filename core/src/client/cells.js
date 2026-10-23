@@ -13,7 +13,7 @@ import { call } from './api.js'
 import { failureLabel } from './diagnostics.js'
 import { turnReasoning, thinkingStep } from './turn-reasoning.js'
 import { FOLD_AT, FOLD_HUGE, stripLongNote, useFold } from './fold.js'
-import { heldCardKey } from './sources.js'
+import { heldCardKey } from './sources.ts'
 import { WorkLine } from './work-process.js'
 import { useMenuKeys } from './overlay-hooks.js'
 

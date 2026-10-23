@@ -1,5 +1,5 @@
 import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
-import { isMainOf } from './sources.js'
+import { isMainOf } from './sources.ts'
 import { HEADER, currentPart, runStatsOf, stripHeader, usageOf } from './text.js'
 import { PlusIcon, ShareIcon, CloseIcon, ChevronLeftIcon, GearIcon } from './icons.js'
 import { botState, BotMark, BotAvatar } from './mark.js'

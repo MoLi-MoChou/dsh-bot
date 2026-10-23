@@ -9,7 +9,7 @@ interface ShapeEntry {
   wrap?: string
 }
 const SHAPES = SHAPE_DEFS as unknown as Record<string, ShapeEntry>
-import { createSource } from './sources.js'
+import { createSource } from './sources.ts'
 
 export interface ThemeMode {
   bg: string

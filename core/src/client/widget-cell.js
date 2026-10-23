@@ -4,7 +4,7 @@ import { CheckIcon, CloseIcon } from './icons.js'
 import { t } from './i18n.js'
 import { AnsweredCell, keyLetter, useOptionKeys } from './questions.js'
 import { useDockHold } from './card-hold.js'
-import { heldCardKey } from './sources.js'
+import { heldCardKey } from './sources.ts'
 import { checkShownView, normalizeView } from '../shared/views.js'
 
 // -------------------------------------------------------------------------

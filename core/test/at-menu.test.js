@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { formatSessionReferenceMention, parseSessionReferenceText } from '@deepseek-ai/dsh-session-reference'
 import { BOTS_SOURCE, CHATS_SOURCE, atSources, chatRows, mentionRows, sessionMention } from '../src/client/at-menu.js'
-import { indexRoster } from '../src/client/sources.js'
+import { indexRoster } from '../src/client/sources.ts'
 
 const roster = indexRoster({
   bots: [

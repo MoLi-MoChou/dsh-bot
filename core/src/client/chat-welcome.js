@@ -4,7 +4,7 @@
 // carries on from earlier parts is not new, and gets no welcome.
 import { createElement as h } from 'react'
 import { BotAvatar, RoomAvatar } from './mark.js'
-import { isMainOf } from './sources.js'
+import { isMainOf } from './sources.ts'
 import { EmptyState } from './empty-state.js'
 import { t } from './i18n.js'
 

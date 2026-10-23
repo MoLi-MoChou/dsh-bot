@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { STORAGE, legacyKeys, migrateStorage } from '../src/client/storage.js'
+import { STORAGE, legacyKeys, migrateStorage } from '../src/client/storage.ts'
 
 const memoryStorage = (entries = {}) => {
   const map = new Map(Object.entries(entries))

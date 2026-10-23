@@ -1,8 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createBotBrowsers } from '../src/client/bot-browsers.js'
-import { noteLeft, setUnread, sharedMap, toggleReaction } from '../src/client/shared-map.js'
-import { STORAGE } from '../src/client/storage.js'
+import { noteLeft, setUnread, sharedMap, toggleReaction } from '../src/client/shared-map.ts'
+import { STORAGE } from '../src/client/storage.ts'
 
 // One browser storage that two windows (tabs of DSH Web, or Desktop windows) share.
 function sharedStorage() {

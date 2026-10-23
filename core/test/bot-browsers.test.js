@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { browserAddress, createBotBrowsers, PREVIEW_SCRIPT, READ_PAGE_SCRIPT, serveBrowserReads } from '../src/client/bot-browsers.js'
-import { migrateStorage, STORAGE } from '../src/client/storage.js'
+import { migrateStorage, STORAGE } from '../src/client/storage.ts'
 
 function createSource(initial) {
   let value = initial

@@ -6,7 +6,7 @@
 import { createElement as h, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { BotMark } from './mark.js'
-import { STORAGE } from './storage.js'
+import { STORAGE } from './storage.ts'
 import { installStyles } from './styles.js'
 import { EASE_OUT, PANEL_LINGER_MS, PANEL_TAB_EDGES, reducedMotion, SPRING_SHAPE } from './motion.js'
 import { DetailsDrawer } from './details-drawer.js'

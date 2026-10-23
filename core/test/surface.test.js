@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { freePriority, groupsFor, readMode, surfaceGroups, writeMode } from '../src/client/surface.js'
-import { STORAGE } from '../src/client/storage.js'
+import { STORAGE } from '../src/client/storage.ts'
 
 test('Bot mode mounts both groups; Agent mode mounts neither', () => {
   assert.deepEqual(groupsFor({ mode: 'bot' }), { shell: true, conversation: true })

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
-import { createSource, heldCardKey } from '../src/client/sources.js'
+import { createSource, heldCardKey } from '../src/client/sources.ts'
 import { teamActions } from '../src/client/team-actions.js'
 
 // Keep each component's hook state across renders. The tool-cell tests cover where

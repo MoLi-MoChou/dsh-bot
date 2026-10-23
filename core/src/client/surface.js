@@ -1,4 +1,4 @@
-import { STORAGE } from './storage.js'
+import { STORAGE } from './storage.ts'
 
 // The plugin's surface mode: 'bot' paints the whole team interface over the shell,
 // 'agent' withdraws every replacement so the shell's own interface comes back.

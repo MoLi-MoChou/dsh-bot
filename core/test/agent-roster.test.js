@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { EMPTY_ROSTER, indexRoster, isAgentSession } from '../src/client/sources.js'
+import { EMPTY_ROSTER, indexRoster, isAgentSession } from '../src/client/sources.ts'
 import { groupsFor } from '../src/client/surface.js'
 
 const ROSTER_VALUE = {

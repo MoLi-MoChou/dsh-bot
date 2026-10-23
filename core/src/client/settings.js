@@ -1,7 +1,7 @@
 import { createElement as h, useCallback, useEffect, useRef, useState } from 'react'
 import { LEAN } from './lean.ts'
 import { ACCENT_INKS, INKS } from './inks.ts'
-import { isMainOf } from './sources.js'
+import { isMainOf } from './sources.ts'
 import { allThemes, resolveThemeId } from './themes.ts'
 import { CloseIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon, ConnectorIcon, InfoIcon, PeopleIcon, PlugIcon, PlusIcon, SlidersIcon, SETTINGS_ICONS } from './icons.js'
 import { EmptyState } from './empty-state.js'

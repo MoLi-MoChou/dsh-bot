@@ -8,8 +8,8 @@
 // stays the same) but hidden.
 
 import { READ_PAGE_SCRIPT } from './read-page.js'
-import { setEntry, sharedMap } from './shared-map.js'
-import { STORAGE } from './storage.js'
+import { setEntry, sharedMap } from './shared-map.ts'
+import { STORAGE } from './storage.ts'
 
 export { READ_PAGE_SCRIPT }
 

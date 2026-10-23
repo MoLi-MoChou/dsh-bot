@@ -2,7 +2,7 @@ import { createElement as h, useEffect, useId, useRef, useState } from 'react'
 import { CloseIcon, CheckIcon } from './icons.js'
 import { t } from './i18n.js'
 import { useDockHold } from './card-hold.js'
-import { heldCardKey } from './sources.js'
+import { heldCardKey } from './sources.ts'
 
 // -------------------------------------------------------------------------
 // Question cards. `ask_user` cards sit in the transcript and never block the Bot;
