@@ -1,3 +1,50 @@
+import type { DatabaseSync, StatementSync } from 'node:sqlite'
+import type { SessionEvent } from './dsh-types.js'
+import type { HostRuntime } from './runtime.ts'
+
+/** One line of a Bot's own chat, as the index stores it. */
+interface LineRow {
+  readonly text: string
+  readonly session: string
+  readonly seq: number
+  readonly time: number
+  readonly who: string
+}
+
+interface MarkRow {
+  readonly through: number
+  readonly keep: number
+  readonly sealed: number
+  readonly turn: number
+}
+
+interface ChatIndex {
+  readonly db: DatabaseSync
+  readonly mark: StatementSync
+  readonly setMark: StatementSync
+  readonly insert: StatementSync
+  readonly before: StatementSync
+  readonly from: StatementSync
+}
+
+/** One part of a Bot's own chat. */
+interface ChatPart {
+  readonly sessionId: string
+  readonly number: number
+  readonly startedAt: number
+  readonly endedAt?: number | undefined
+}
+
+interface HiddenTurn {
+  readonly session: string | undefined
+  readonly from: number
+}
+
+interface TermQuery {
+  readonly sql: string
+  readonly args: readonly (string | number)[]
+}
+
 // Reading a Bot's own chat: Session history pages, the SQLite FTS5 index, and the
 // search, latest, and around reads behind read_own_chat.
 //
@@ -20,16 +67,16 @@ const INDEX_TIMEOUT_MS = 120_000
 // A part still gets a few events (a title, a late reply) just after it ends.
 const SEAL_AFTER_MS = 60_000
 
-const likeOf = term => `%${term.replace(/[\\%_]/g, char => `\\${char}`)}%`
+const likeOf = (term: string): string => `%${term.replace(/[\\%_]/g, char => `\\${char}`)}%`
 // Each term is a quoted FTS5 phrase when trigrams can match it, else a LIKE filter.
-export function termQuery(terms, sessions, limit, hidden) {
+export function termQuery(terms: readonly string[], sessions: readonly string[], limit: number, hidden: HiddenTurn | undefined): TermQuery {
   const long = terms.filter(term => [...term].length >= 3)
   const short = terms.filter(term => [...term].length < 3)
-  const where = ['session IN (SELECT value FROM json_each(?))']
-  const args = [JSON.stringify(sessions)]
+  const where: string[] = ['session IN (SELECT value FROM json_each(?))']
+  const args: (string | number)[] = [JSON.stringify(sessions)]
   if (hidden !== undefined) {
     where.push('NOT (session = ? AND seq >= ?)')
-    args.push(hidden.session, hidden.from)
+    args.push(hidden.session ?? '', hidden.from)
   }
   if (long.length > 0) {
     where.unshift('lines MATCH ?')
@@ -42,15 +89,15 @@ export function termQuery(terms, sessions, limit, hidden) {
   return { sql: `SELECT text, session, seq, time, who FROM lines WHERE ${where.join(' AND ')} ORDER BY ${long.length > 0 ? 'rank' : 'time DESC'} LIMIT ${limit}`, args }
 }
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, home } = rt
 
   const indexPath = join(home, 'chat-index.sqlite')
-  let chatIndex
-  let indexOpening
+  let chatIndex: ChatIndex | null = null
+  let indexOpening: Promise<ChatIndex | null> | undefined
 
   // A Session's events from newest to oldest, also for an archived part.
-  async function* eventsBackwards(sessionId, signal, maxPages = HISTORY_PAGES_MAX) {
+  async function* eventsBackwards(sessionId: string, signal?: AbortSignal, maxPages = HISTORY_PAGES_MAX): AsyncIterable<SessionEvent> {
     const agent = await rt.resolveAgent(sessionId)
     const throughSeq = Number(agent.session.seq) - 1
     let beforeSeq
@@ -62,16 +109,19 @@ export function install(rt) {
         maxMessages: HISTORY_PAGE,
       }, signal)
       const events = page.records.map(record => record.event)
-      for (let index = events.length - 1; index >= 0; index -= 1) yield events[index]
+      for (let index = events.length - 1; index >= 0; index -= 1) {
+        const item = events[index]
+        if (item !== undefined) yield item
+      }
       if (!page.hasMore || events.length === 0) return
-      beforeSeq = events[0].seq
+      beforeSeq = events[0]?.seq
     }
   }
 
-  function openIndex() {
-    if (chatIndex !== undefined) return Promise.resolve(chatIndex)
+  function openIndex(): Promise<ChatIndex | null> {
+    if (chatIndex !== null) return Promise.resolve(chatIndex)
     const opening = indexOpening ??= (async () => {
-      let DatabaseSync
+      let DatabaseSync: typeof import('node:sqlite').DatabaseSync
       try {
         ({ DatabaseSync } = await import('node:sqlite'))
         await mkdir(home, { recursive: true })
@@ -95,15 +145,17 @@ export function install(rt) {
         index?.db.close()
         return null
       }
-      return chatIndex = index
+      chatIndex = index
+      return chatIndex
     })
     return opening
   }
 
-  function createIndex(db) {
+  function createIndex(db: DatabaseSync): ChatIndex {
     try {
       db.exec('PRAGMA journal_mode = WAL')
-      if (db.prepare('PRAGMA user_version').get().user_version !== INDEX_VERSION) {
+      const version = db.prepare('PRAGMA user_version').get() as { readonly user_version?: number } | undefined
+      if (version?.user_version !== INDEX_VERSION) {
         db.exec(`
           DROP TABLE IF EXISTS lines;
           DROP TABLE IF EXISTS marks;
@@ -126,26 +178,26 @@ export function install(rt) {
   }
   ctx.effect(() => () => {
     chatIndex?.db.close()
-    chatIndex = undefined
+    chatIndex = null
     indexOpening = undefined
   }, 'ds-bot: chat index')
 
   // Adds what a part said since its mark. Reads of one part wait for each other, so no
   // line is added twice.
-  const catchingUp = new Map()
-  function catchUp(index, part) {
+  const catchingUp = new Map<string, Promise<void>>()
+  function catchUp(index: ChatIndex, part: ChatPart): Promise<void> {
     const running = catchingUp.get(part.sessionId)
     if (running) return running
-    const job = (async () => {
-      const mark = index.mark.get(part.sessionId)
+    const job = (async (): Promise<void> => {
+      const mark = index.mark.get(part.sessionId) as MarkRow | undefined
       if (mark?.sealed) return
       const through = mark?.through ?? -1
-      const events = []
+      const events: SessionEvent[] = []
       for await (const event of eventsBackwards(part.sessionId, AbortSignal.timeout(INDEX_TIMEOUT_MS), Infinity)) {
-        if (event.seq <= through) break
+        if ((event.seq ?? 0) <= through) break
         events.push(event)
       }
-      if (events.length > 0 && events.at(-1).seq !== through + 1) throw new Error(`the history of ${part.sessionId} came back with a gap`)
+      if (events.length > 0 && events.at(-1)?.seq !== through + 1) throw new Error(`the history of ${part.sessionId} came back with a gap`)
       events.reverse()
       if (index !== chatIndex) return
       let keep = mark ? mark.keep === 1 : false
@@ -155,16 +207,16 @@ export function install(rt) {
       try {
         let last = through
         for (const event of events) {
-          last = event.seq
-          if (event.type === 'turn/start') turn = event.seq
+          last = event.seq ?? last
+          if (event.type === 'turn/start') turn = event.seq ?? turn
           const entry = rt.historyEntry(event, false)
           if (entry === undefined) continue
           if (entry.answer) {
-            if (keep) index.insert.run(entry.text, part.sessionId, event.seq, event.time ?? 0, 'you')
+            if (keep) index.insert.run(entry.text, part.sessionId, event.seq ?? null, event.time ?? 0, 'you')
             continue
           }
-          keep = entry.keepAnswers
-          if (entry.text !== '') index.insert.run(entry.text, part.sessionId, event.seq, event.time ?? 0, entry.who)
+          keep = entry.keepAnswers === true
+          if (entry.text !== '') index.insert.run(entry.text, part.sessionId, event.seq ?? null, event.time ?? 0, entry.who ?? '')
         }
         index.setMark.run(part.sessionId, last, keep ? 1 : 0, seal ? 1 : 0, turn)
         index.db.exec('COMMIT')
@@ -178,11 +230,11 @@ export function install(rt) {
   }
 
   // A message's anchor: its part (once there are several) and its seq in that part.
-  const anchorOf = (parts, row) => {
+  const anchorOf = (parts: readonly ChatPart[], row: LineRow): string => {
     const part = parts.find(item => item.sessionId === row.session)
     return `${parts.length > 1 ? `part ${part?.number ?? '?'} ` : ''}#${row.seq}`
   }
-  const rowLine = (parts, row, terms = [], max = OWN_CHAT_LINE_MAX) => {
+  const rowLine = (parts: readonly ChatPart[], row: LineRow, terms: readonly string[] = [], max = OWN_CHAT_LINE_MAX): string => {
     const lower = row.text.toLowerCase()
     const wanted = terms.find(term => lower.includes(term)) ?? ''
     const text = row.who === 'user' ? `User: ${row.text}` : row.who === 'you' ? `You: ${row.text}` : row.text
@@ -191,33 +243,34 @@ export function install(rt) {
 
   // Every part, caught up. Asked from the current part, the turn that asks is left out
   // (`hidden`): it is in context, and its own question would match.
-  async function indexedParts(botId, askingId) {
+  async function indexedParts(botId: string, askingId?: string): Promise<{ index: ChatIndex | null; parts: readonly ChatPart[]; hidden: HiddenTurn | undefined }> {
     const index = await openIndex()
-    if (index === null) return { index }
-    const parts = rt.partsOf(botId)
+    if (index === null) return { index, parts: [], hidden: undefined }
+    const parts: readonly ChatPart[] = rt.partsOf(botId)
     // A part that cannot be read now is searched as far as it was indexed.
-    for (const part of parts) await catchUp(index, part).catch(error => rt.warn('ds-bot: indexing %s failed: %s', part.sessionId, error))
-    const turn = askingId !== undefined && askingId === parts.at(-1)?.sessionId ? index.mark.get(askingId)?.turn : undefined
+    for (const part of parts) await catchUp(index, part).catch((error: unknown) => rt.warn('ds-bot: indexing %s failed: %s', part.sessionId, error))
+    const markForAsking = askingId === undefined ? undefined : index.mark.get(askingId) as MarkRow | undefined
+    const turn = askingId !== undefined && askingId === parts.at(-1)?.sessionId ? markForAsking?.turn : undefined
     return { index, parts, hidden: turn === undefined || turn < 0 ? undefined : { session: askingId, from: turn } }
   }
 
   // Messages with all the words, best first; with none of them having all, those with
   // the most of them. Shown oldest first.
-  async function searchOwnChat(botId, query, { askingId, limit = OWN_CHAT_SEARCH } = {}) {
+  async function searchOwnChat(botId: string, query: string, { askingId, limit = OWN_CHAT_SEARCH }: { readonly askingId?: string; readonly limit?: number } = {}): Promise<{ lines: readonly string[]; every: boolean }> {
     const terms = [...new Set(query.toLowerCase().split(/\s+/).filter(Boolean))].slice(0, SEARCH_TERMS_MAX)
     const { index, parts, hidden } = await indexedParts(botId, askingId)
     if (index === null) return { lines: await scanOwnChat(botId, query, limit), every: true }
-    const sessions = parts.map(part => part.sessionId)
-    const run = (wanted, max) => {
+    const sessions = (parts ?? []).map(part => part.sessionId)
+    const run = (wanted: readonly string[], max: number): LineRow[] => {
       const { sql, args } = termQuery(wanted, sessions, max, hidden)
-      return index.db.prepare(sql).all(...args)
+      return index.db.prepare(sql).all(...args) as unknown as LineRow[]
     }
-    const byTime = (a, b) => (a.time - b.time) || (sessions.indexOf(a.session) - sessions.indexOf(b.session)) || (a.seq - b.seq)
+    const byTime = (a: LineRow, b: LineRow): number => (a.time - b.time) || (sessions.indexOf(a.session) - sessions.indexOf(b.session)) || (a.seq - b.seq)
     let rows = run(terms, limit)
     let every = true
     if (rows.length === 0 && terms.length > 1) {
       every = false
-      const found = new Map()
+      const found = new Map<string, { row: LineRow; count: number }>()
       for (const term of terms) {
         for (const row of run([term], ANY_TERM_HITS)) {
           const key = `${row.session}#${row.seq}`
@@ -232,20 +285,20 @@ export function install(rt) {
   }
 
   // The latest messages across all parts, oldest first.
-  async function latestOwnChat(botId, { askingId, limit = OWN_CHAT_READ } = {}) {
+  async function latestOwnChat(botId: string, { askingId, limit = OWN_CHAT_READ }: { readonly askingId?: string; readonly limit?: number } = {}): Promise<readonly string[]> {
     const { index, parts, hidden } = await indexedParts(botId, askingId)
     if (index === null) return scanOwnChat(botId, '', limit)
-    const rows = []
+    const rows: LineRow[] = []
     for (const part of [...parts].reverse()) {
       const below = hidden?.session === part.sessionId ? hidden.from : Number.MAX_SAFE_INTEGER
-      rows.push(...index.before.all(part.sessionId, below, limit - rows.length))
+      rows.push(...(index.before.all(part.sessionId, below, limit - rows.length) as unknown as LineRow[]))
       if (rows.length >= limit) break
     }
     return rows.reverse().map(row => rowLine(parts, row))
   }
 
   // The messages around an anchor, in its part.
-  async function aroundOwnChat(botId, anchor) {
+  async function aroundOwnChat(botId: string, anchor: string): Promise<Record<string, unknown>> {
     const { index, parts } = await indexedParts(botId)
     if (index === null) return { error: 'Anchors need the chat index, which is unavailable here. Search with words instead.' }
     const found = /(?:part\s*)?(\d+)?\s*#\s*(\d+)/i.exec(anchor)
@@ -254,17 +307,17 @@ export function install(rt) {
     const part = parts[number - 1]
     if (part === undefined) return { error: `Your own chat has no part ${number}.` }
     const seq = Number(found[2])
-    const rows = [...index.before.all(part.sessionId, seq, AROUND_LINES).reverse(), ...index.from.all(part.sessionId, seq, AROUND_LINES + 1)]
+    const rows = [...(index.before.all(part.sessionId, seq, AROUND_LINES) as unknown as LineRow[]).reverse(), ...(index.from.all(part.sessionId, seq, AROUND_LINES + 1) as unknown as LineRow[])]
     return { part, exact: rows.some(row => row.seq === seq), lines: rows.map(row => rowLine(parts, row, [], row.seq === seq ? ANCHOR_LINE_MAX : OWN_CHAT_LINE_MAX)) }
   }
 
   // Without the index: what the user, other Bots, and the Bot itself said, across all
   // parts, oldest first, by reading the logs.
-  async function scanOwnChat(botId, query, limit) {
+  async function scanOwnChat(botId: string, query: string, limit: number): Promise<readonly string[]> {
     const wanted = query.toLowerCase()
-    const parts = rt.partsOf(botId)
+    const parts: readonly ChatPart[] = rt.partsOf(botId)
     const signal = AbortSignal.timeout(HISTORY_TIMEOUT_MS)
-    const lines = []
+    const lines: string[] = []
     for (const part of [...parts].reverse()) {
       for await (const line of rt.partLines(part.sessionId, signal)) {
         if (wanted !== '' && !line.text.toLowerCase().includes(wanted)) continue
@@ -277,10 +330,10 @@ export function install(rt) {
   }
 
   // The parts of a Bot's own chat, for the model: when each ran.
-  const partIndex = parts => parts.map(part => `part ${part.number} (${rt.clock(part.startedAt)} – ${part.endedAt === undefined ? 'now' : rt.clock(part.endedAt)})`).join(', ')
+  const partIndex = (parts: readonly ChatPart[]): string => parts.map(part => `part ${part.number} (${rt.clock(part.startedAt)} – ${part.endedAt === undefined ? 'now' : rt.clock(part.endedAt)})`).join(', ')
 
-  async function ownChatBrief(member) {
-    let lines = []
+  async function ownChatBrief(member: { readonly id: string; readonly name: string }): Promise<string> {
+    let lines: readonly string[] = []
     try { lines = await latestOwnChat(member.id, { limit: OWN_CHAT_BRIEF }) } catch (error) { rt.warn('ds-bot: brief for %s failed: %s', member.name, error) }
     return [
       'Your own chat with the user so far (latest messages, oldest first; private, so share only what the group needs):',

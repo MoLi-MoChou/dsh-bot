@@ -15,6 +15,9 @@ export interface HostConfig {
   readonly timeRefreshIntervalMs?: number
   readonly updateCheck?: boolean
   readonly diagnosticsFile?: boolean
+  readonly textOnlyModels?: readonly string[]
+  readonly browser?: boolean
+  readonly ocrModel?: string
   readonly updateRegistry?: string
   readonly github?: Readonly<Record<string, unknown>> | false
   readonly timeZone?: string
@@ -58,7 +61,7 @@ export interface StoredRoom {
 /** One recorded exchange between two Bots, in `state.exchanges`. */
 export interface ExchangeEntry {
   readonly id: string
-  readonly from: string
+  readonly from: string | undefined
   readonly to: string
   readonly text: string
   readonly role?: string
@@ -99,9 +102,11 @@ export interface TurnInfo {
   readonly exchangeId?: string
   readonly work?: string
   readonly senderSessionId?: string | undefined
+  readonly roomId?: string | undefined
   readonly askedBy?: string
   readonly audience?: string
-  readonly senderRoomId?: string
+  readonly senderRoomId?: string | undefined
+  readonly resumed?: boolean | undefined
 }
 
 export interface LiveEntry {
@@ -142,7 +147,32 @@ export interface StoredAgent {
   readonly [key: string]: unknown
 }
 
-/** The team as `state.json` stores it. */
+/** What `deliver` puts into a Session. */
+export interface DeliveryInput {
+  readonly fromId?: string | undefined
+  readonly toId: string
+  readonly sessionId?: string | undefined
+  readonly text: string
+  readonly role: string
+  readonly replyTo?: string | undefined
+  readonly roomId?: string | undefined
+  readonly audience?: string | undefined
+  readonly note?: string | undefined
+  readonly exchangeId?: string | undefined
+  readonly steer?: boolean | undefined
+  readonly deferred?: boolean | undefined
+  readonly resumed?: boolean | undefined
+  readonly retried?: boolean | undefined
+  readonly resent?: boolean | undefined
+  readonly merged?: boolean | undefined
+  readonly askedBy?: string | undefined
+  readonly fromRoomId?: string | undefined
+  readonly files?: readonly AttachmentRef[] | undefined
+  readonly length?: number | undefined
+  readonly work?: string | undefined
+}
+
+
 export interface StoredState {
   revision: number
   bots: Record<string, StoredBot>
@@ -204,6 +234,13 @@ export interface HostRuntime {
   resolveAgent(sessionId: string): Promise<Agent>
   warn(template: string, ...args: readonly unknown[]): void
   save(): Promise<unknown>
+  browserEnabled?: boolean
+  browserChannel?: unknown
+  browserOpen?: (value: unknown) => Record<string, { readonly url: string; readonly title: string }>
+  deliver(args: DeliveryInput): Promise<string>
+  postToRoom(room: StoredRoom, bot: StoredBot, text: string, options: { readonly resumed?: boolean; readonly quiet?: boolean; readonly again?: boolean }): Promise<unknown>
+  unreadOf?(sessionId: string): Iterable<DeliveryInput>
+  forgetDelivery?(exchangeId: string): void
   own<T>(record: Readonly<Record<string, T>>, id: string | undefined): T | undefined
   ensureWorkspace(): Promise<string>
   indexAgents?(): void
@@ -222,10 +259,14 @@ export interface HostRuntime {
   approvalsView?(): readonly { readonly botId: string; readonly sessionId: string; readonly tool?: string; readonly at: number }[]
   switchJobs?(): Iterable<{ readonly botId: string; readonly roomId?: string }>
   doingOf?(entry: LiveEntry): { readonly tool?: string; readonly target?: string; readonly said?: string }
-  unreadOf?(sessionId: string): Iterable<{ readonly fromId: string }>
   catalog(options?: { readonly fresh?: boolean }): Promise<readonly ModelEntry[]>
   missingKeys?(providers: readonly string[]): Promise<ReadonlySet<string>> | ReadonlySet<string>
   dropCatalog(): void
+  ownRequest(options: { readonly sessionId?: string }): boolean
+  partsOf(botId: string): readonly { readonly sessionId: string; readonly number: number; readonly startedAt: number; readonly endedAt?: number | undefined }[]
+  historyEntry(event: SessionEvent, forDisplay: boolean): { readonly text: string; readonly who?: string; readonly answer?: boolean; readonly keepAnswers?: boolean } | undefined
+  clock(time: number | undefined): string
+  partLines(sessionId: string, signal: AbortSignal): AsyncIterable<{ readonly text: string; readonly time: number }>
   defaultRef?(): string | undefined
   tagUsage(messages: readonly unknown[], tag: { readonly sessionId: string; readonly kind: string }): readonly unknown[]
 

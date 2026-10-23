@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createBrowserChannel, pageText, partEnd } from '../src/host/browser.js'
+import { createBrowserChannel, pageText, partEnd } from '../src/host/browser.ts'
 
 const ids = items => items.map(item => item.id)
 

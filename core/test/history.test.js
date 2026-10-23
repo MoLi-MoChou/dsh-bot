@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { termQuery } from '../src/host/chat-index.js'
+import { termQuery } from '../src/host/chat-index.ts'
 import { canonicalHeadings, cardText, historyEntry, questionReply, readReply, replyText } from '../src/host/parts.js'
 
 test('cardText shows a question card as the user saw it', () => {

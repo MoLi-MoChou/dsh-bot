@@ -1,9 +1,79 @@
+import type { HostRuntime } from './runtime.ts'
+
+/** A page the Desktop window reports for one Bot's browser. */
+interface BrowserPage {
+  readonly url?: string
+  readonly title?: string
+  readonly text?: string
+  readonly format?: string
+  readonly description?: string
+  readonly selection?: string
+  readonly truncated?: string
+  readonly items?: readonly BrowserItem[]
+}
+
+interface BrowserItem {
+  readonly value?: unknown
+  readonly checked?: boolean
+  readonly disabled?: boolean
+  readonly href?: string
+  readonly role?: string
+  readonly name?: string
+}
+
+/** What a window says it has open, by Bot id. */
+type OpenPages = Record<string, BrowserPage>
+
+interface PageRef {
+  readonly url?: string
+  readonly title?: string
+}
+
+interface BrowserRequest {
+  readonly [key: string]: unknown
+}
+
+interface ReadResult {
+  readonly page?: BrowserPage | undefined
+  readonly error?: string | undefined
+  readonly absent?: boolean | undefined
+}
+
+interface ChannelOptions {
+  readonly now?: () => number
+  readonly waitMs?: number
+  readonly staleMs?: number
+  readonly readTimeoutMs?: number
+  readonly resendMs?: number
+}
+
+interface WindowClient {
+  open: OpenPages
+  seen: number
+  queue: { readonly id: string; readonly botId: string; sentAt?: number; readonly [key: string]: unknown }[]
+  wake?: (() => void) | undefined
+  end?: (() => void) | undefined
+}
+
+interface PendingRead {
+  readonly client: WindowClient
+  readonly resolve: (value: ReadResult) => void
+  readonly timer: ReturnType<typeof setTimeout>
+}
+
+interface PageTextOptions {
+  readonly from?: number
+  readonly size?: number
+  readonly itemsMax?: number
+}
+
 // Bot browsers (Desktop only). Every Bot owns a browser panel in the Desktop app: an
 // Electron webview in its own storage partition, which the user steers. The page lives in
 // the app window, not here, so `read_browser` reaches it through the window: the client
 // holds a long poll open (`browser-wait`) that reports which Bots have a page open and
 // carries read requests back; the client answers with `browser-result`.
 import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { ToolRunContext } from '@deepseek-ai/dsh-tools'
 import { output } from './tools.js'
 
 // A waiting client counts as present; one that has not polled for this long is gone.
@@ -21,17 +91,15 @@ const ITEMS_MAX = 80
  * The window side of the channel, without dsh: clients come and go, reads wait for one.
  * @param {{ now?: () => number, waitMs?: number, staleMs?: number, readTimeoutMs?: number, resendMs?: number }} [options]
  */
-export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs = CLIENT_STALE_MS, readTimeoutMs = READ_TIMEOUT_MS, resendMs = RESEND_MS } = {}) {
-  /** @type {Map<string, {open: Record<string, {url?:string, title?:string}>, seen:number, queue:{id:string, botId:string, sentAt?:number}[], wake?:() => void, end?:() => void}>} */
-  const clients = new Map()
-  /** @type {Map<string, {client:any, resolve:(value:any) => void, timer:any}>} */
-  const pending = new Map()
+export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs = CLIENT_STALE_MS, readTimeoutMs = READ_TIMEOUT_MS, resendMs = RESEND_MS }: ChannelOptions = {}) {
+  const clients = new Map<string, WindowClient>()
+  const pending = new Map<string, PendingRead>()
   let nextId = 0
 
-  const present = client => client.wake !== undefined || now() - client.seen < staleMs
+  const present = (client: WindowClient): boolean => client.wake !== undefined || now() - client.seen < staleMs
   // The most recently seen window that shows this Bot's browser.
-  const clientFor = (botId) => {
-    let best
+  const clientFor = (botId: string): WindowClient | undefined => {
+    let best: WindowClient | undefined
     for (const [id, client] of clients) {
       if (!present(client)) {
         if (client.queue.length === 0) clients.delete(id)
@@ -42,7 +110,7 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
     return best
   }
   // Requests not handed out within the resend time, marked as handed out now.
-  const due = (client) => {
+  const due = (client: WindowClient): Omit<{ readonly id: string; readonly botId: string; readonly sentAt?: number; readonly [key: string]: unknown }, 'sentAt'>[] => {
     const at = now()
     const items = client.queue.filter(item => item.sentAt === undefined || at - item.sentAt >= resendMs)
     for (const item of items) item.sentAt = at
@@ -54,18 +122,18 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
    * there are some, else when one arrives or a handed-out one is due again, or after
    * `waitMs`. A newer poll from the same window ends the older one empty.
    */
-  function wait(clientId, open) {
-    const client = clients.get(clientId) ?? { open: {}, seen: 0, queue: [] }
+  function wait(clientId: string, open: unknown): Promise<readonly Record<string, unknown>[]> {
+    const client: WindowClient = clients.get(clientId) ?? { open: {}, seen: 0, queue: [] }
     clients.set(clientId, client)
-    client.open = open && typeof open === 'object' ? open : {}
+    client.open = open !== null && typeof open === 'object' ? (open as OpenPages) : {}
     client.seen = now()
     client.end?.()
     const ready = due(client)
     if (ready.length > 0) return Promise.resolve(ready)
     const resend = client.queue.length === 0 ? waitMs
-      : Math.max(0, Math.min(...client.queue.map(item => item.sentAt + resendMs - now())))
+      : Math.max(0, Math.min(...client.queue.map(item => (item.sentAt ?? 0) + resendMs - now())))
     return new Promise((resolve) => {
-      const finish = (items) => {
+      const finish = (items: readonly Record<string, unknown>[]): void => {
         clearTimeout(timer)
         if (client.end === end) client.wake = client.end = undefined
         client.seen = now()
@@ -78,7 +146,7 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
     })
   }
 
-  const settle = (id, value) => {
+  const settle = (id: string, value: ReadResult): boolean => {
     const entry = pending.get(id)
     if (entry === undefined) return false
     pending.delete(id)
@@ -90,7 +158,7 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
   }
 
   /** What a window reports for one request: `{ id, ok, page }` or `{ id, ok: false, error }`. */
-  function result(payload) {
+  function result(payload: { readonly id?: unknown; readonly ok?: unknown; readonly page?: BrowserPage; readonly error?: unknown }): boolean {
     return settle(String(payload?.id ?? ''), payload?.ok === true
       ? { page: payload.page }
       : { error: String(payload?.error ?? 'The page could not be read') })
@@ -100,7 +168,7 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
    * Ask the window that shows this Bot's browser to read its page.
    * @returns {Promise<{page?:any, error?:string, absent?:boolean}>}
    */
-  function read(botId, request = {}) {
+  function read(botId: string, request: BrowserRequest = {}): Promise<ReadResult> {
     const client = clientFor(botId)
     if (client === undefined) return Promise.resolve({ absent: true })
     const id = `read-${++nextId}`
@@ -113,8 +181,8 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
   }
 
   /** Which Bots have a browser page open in a present window, newest report first. */
-  function openPages() {
-    const pages = {}
+  function openPages(): OpenPages {
+    const pages: OpenPages = {}
     for (const client of [...clients.values()].sort((a, b) => b.seen - a.seen)) {
       if (!present(client)) continue
       for (const [botId, page] of Object.entries(client.open)) pages[botId] ??= page
@@ -122,7 +190,7 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
     return pages
   }
 
-  function dispose() {
+  function dispose(): void {
     for (const client of clients.values()) client.end?.()
     for (const id of [...pending.keys()]) settle(id, { error: 'DS Bot stopped before the page was read.' })
     clients.clear()
@@ -131,13 +199,13 @@ export function createBrowserChannel({ now = Date.now, waitMs = WAIT_MS, staleMs
   return { wait, result, read, openPages, dispose }
 }
 
-const clean = (value, max) => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
+const clean = (value: unknown, max: number): string => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
 
 /**
  * Where a part of the text that starts at `start` ends: at a blank line, else a line break,
  * in the last 40% of the part, so a table row or a paragraph is rarely cut in two.
  */
-export function partEnd(text, start, size) {
+export function partEnd(text: string, start: number, size: number): number {
   const hard = Math.min(text.length, start + size)
   if (hard === text.length) return hard
   const floor = start + Math.floor(size * 0.6)
@@ -148,7 +216,7 @@ export function partEnd(text, start, size) {
   return hard
 }
 
-const itemLine = (item, label) => {
+const itemLine = (item: BrowserItem, label: string | number): string => {
   const facts = [
     item.value ? `value "${clean(item.value, 80)}"` : '',
     item.checked ? 'checked' : '',
@@ -165,7 +233,7 @@ const itemLine = (item, label) => {
  * where it sits (`format: 'markdown'`); each part then lists the ones it marks. An older
  * window sends plain text, and the first part lists the first controls.
  */
-export function pageText(page, { from = 0, size = TEXT_PAGE, itemsMax = ITEMS_MAX } = {}) {
+export function pageText(page: BrowserPage | undefined, { from = 0, size = TEXT_PAGE, itemsMax = ITEMS_MAX }: PageTextOptions = {}): string {
   const markdown = page?.format === 'markdown'
   const text = String(page?.text ?? '').replace(/\n{3,}/g, '\n\n').trim()
   const start = Math.max(0, Math.min(Number.isFinite(from) ? Math.floor(from) : 0, text.length))
@@ -215,9 +283,9 @@ const OPEN_MAX = 64
  * forces them on or off. The choice is fixed for the life of the process, so the tool
  * list, and with it the cached prompt prefix, never changes under a running Session.
  */
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, config } = rt
-  const enabled = typeof config.browser === 'boolean' ? config.browser : ctx.get?.('profileContext')?.name === 'desktop'
+  const enabled = typeof config.browser === 'boolean' ? config.browser : ctx.get<{ readonly name?: string }>('profileContext')?.name === 'desktop'
   if (!enabled) {
     Object.assign(rt, { browserEnabled: false, browserChannel: undefined, browserOpen: () => ({}) })
     return
@@ -232,7 +300,7 @@ export function install(rt) {
       from: { type: 'integer', description: 'Where to continue a long page, as the previous result says; omit for the start' },
     },
     output,
-    async execute(args, exec) {
+    async execute(args, exec: ToolRunContext): Promise<string> {
       await rt.load()
       const botId = rt.selfOf(exec.agent?.id)
       if (botId === undefined || rt.botOf(botId) === undefined) return 'Only Bots on the team have a browser.'
@@ -240,15 +308,16 @@ export function install(rt) {
       if (result.absent) return NO_BROWSER
       if (result.error) return `Your browser page could not be read: ${result.error}`
       if (!/^https?:/i.test(String(result.page?.url ?? ''))) return NO_PAGE
-      return pageText(result.page, { from: Number.isInteger(args.from) ? args.from : 0 })
+      const from = typeof args.from === 'number' && Number.isInteger(args.from) ? args.from : 0
+      return pageText(result.page, { from })
     },
   }))
 
   // What a window reports as open: Bot ids on the team, each with a short address and title.
-  const openOf = (value) => {
-    const open = {}
+  const openOf = (value: unknown): Record<string, { readonly url: string; readonly title: string }> => {
+    const open: Record<string, { readonly url: string; readonly title: string }> = {}
     if (value === null || typeof value !== 'object') return open
-    for (const [botId, page] of Object.entries(value).slice(0, OPEN_MAX)) {
+    for (const [botId, page] of Object.entries(value as Record<string, PageRef>).slice(0, OPEN_MAX)) {
       if (rt.botOf(botId) === undefined || typeof page?.url !== 'string') continue
       open[botId] = { url: page.url.slice(0, 2000), title: String(page.title ?? '').slice(0, 300) }
     }

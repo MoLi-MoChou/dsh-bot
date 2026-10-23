@@ -62,7 +62,10 @@ export interface AgentSession {
   readonly seq: number
   readonly header?: SessionHeader
   /** The event at `seq`, when this DSH keeps history in memory. */
+  readonly surface?: { readonly nodes: readonly number[] }
   eventAt?(seq: number): SessionEvent | undefined
+  deriveEventMessage?(event: SessionEvent): { readonly content?: readonly MessageContentBlock[] } | undefined
+  append?(type: string, data: unknown): unknown
   deriveMessages?(): unknown[]
 }
 
@@ -90,6 +93,7 @@ export interface Agent {
 /** `agent/status`: a Bot's agent changed status. */
 export interface AgentStatusEvent {
   readonly agent: Agent
+  readonly status?: string
 }
 
 /** One frame of the reply a model is writing. */
@@ -138,6 +142,7 @@ export interface SessionController {
 
 export interface SessionsService {
   flush(session: unknown): Promise<void>
+  readonly messageProjections: readonly { readonly type: string }[]
   list?: { getSnapshot?(): { readonly byId?: Record<string, unknown> } }
   refreshProjections?(sessionId: string): Promise<void>
 }
@@ -356,6 +361,35 @@ export interface LlmModelInfo {
   readonly name?: string
   readonly inputModalities?: readonly string[]
   readonly reasoning?: LlmReasoning
+}
+
+/** One chunk of a model stream, as `BlockAssembler` takes it. */
+export interface LlmStreamChunk {
+  readonly type?: string
+  readonly [key: string]: unknown
+}
+
+/** A block the assembler collected. */
+export interface LlmBlock {
+  readonly type: string
+  readonly text?: string
+  readonly [key: string]: unknown
+}
+
+/** How a stream ended. */
+export interface LlmStreamFinish {
+  readonly kind: string
+  readonly failure?: { readonly message?: string }
+}
+
+/** The options a `llm/stream` request carries. */
+export interface LlmStreamOptions {
+  readonly provider: string
+  readonly model: string
+  readonly sessionId?: string
+  readonly messages: readonly unknown[]
+  readonly maxTokens?: number
+  readonly signal?: AbortSignal
 }
 
 /** A model selection, as the profile's default model and a Session keep it. */

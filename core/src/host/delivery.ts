@@ -1,30 +1,5 @@
 import type { AttachmentRef, AttachmentsService } from './dsh-types.js'
-import type { ExchangeEntry, HostRuntime } from './runtime.ts'
-
-/** What `deliver` puts into a Session. */
-export interface DeliveryInput {
-  readonly fromId: string
-  readonly toId: string
-  readonly sessionId?: string
-  readonly text: string
-  readonly role: string
-  readonly replyTo?: string
-  readonly roomId?: string
-  readonly audience?: string
-  readonly note?: string
-  readonly exchangeId?: string
-  readonly steer?: boolean
-  readonly deferred?: boolean
-  readonly resumed?: boolean
-  readonly retried?: boolean
-  readonly resent?: boolean
-  readonly merged?: boolean
-  readonly askedBy?: string
-  readonly fromRoomId?: string
-  readonly files?: readonly AttachmentRef[]
-  readonly length?: number
-  readonly work?: string
-}
+import type { DeliveryInput, ExchangeEntry, HostRuntime } from './runtime.ts'
 
 interface HeaderOptions {
   readonly resumed?: boolean

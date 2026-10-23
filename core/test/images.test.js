@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { offloadTargets } from '../src/host/images.js'
+import { offloadTargets } from '../src/host/images.ts'
 
 test('offloadTargets selects live images from prior user and tool messages', () => {
   const events = [

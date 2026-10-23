@@ -14,7 +14,7 @@ import '../../test/harness-resolve.mjs'
 import { READ_PAGE_SCRIPT } from '../../src/client/read-page.js'
 
 // After the resolve hook above: browser.js imports @deepseek-ai/dsh-tools.
-const { pageText } = await import('../../src/host/browser.js')
+const { pageText } = await import('../../src/host/browser.ts')
 
 const offline = process.argv.includes('--offline')
 const [repo, outDir, port = '9422', pagesPort = '8833', botName = 'Chief'] = process.argv.slice(2).filter(arg => arg !== '--offline')
