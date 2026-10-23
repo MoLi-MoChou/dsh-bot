@@ -11650,7 +11650,7 @@ var SIDEBAR_CSS = `
 @media (prefers-reduced-motion:reduce){.bt-agent-sub,.bt-round,.bt-row,.bt-tile,.bt-connect,.bt-update-go{transition:none}.bt-agent-sub .bt-agent-sub-row,.bt-agent-ava.bt-run{animation:none}}
 `;
 
-// src/client/activity-row.js
+// src/client/activity-row.ts
 var import_react15 = require("react");
 var import_react_dom4 = require("react-dom");
 var PHRASE_HOLD_MS = 800;
@@ -11697,8 +11697,9 @@ function useRowEntrances(replacing) {
     let frame = 0;
     const settle = (event) => {
       if (event.target !== event.currentTarget || !/^bt-row/.test(event.animationName)) return;
-      delete event.currentTarget.dataset.btEnter;
-      event.currentTarget.removeEventListener("animationend", settle);
+      const row = event.currentTarget;
+      delete row.dataset.btEnter;
+      row.removeEventListener("animationend", settle);
     };
     const scan = () => {
       frame = 0;
@@ -11742,26 +11743,26 @@ function ActivityIndicator({ sessionId, useRoster, useSessionStatus, useLive, us
   const runAt = (0, import_react15.useRef)(0);
   if (!running) runAt.current = 0;
   else if (runAt.current === 0) runAt.current = Date.now();
-  const liveKey = useLive((state) => JSON.stringify(state[sessionId] ?? {}));
+  const liveKey = useLive?.((state) => JSON.stringify(state[sessionId] ?? {})) ?? "{}";
   const pendingInput = useSession((snapshot) => Math.max(0, ...(snapshot?.pendingSubmissions ?? []).filter((sub) => sub.placement !== "queued").map((sub) => sub.time)));
   const bot = roster.byId[sessionId];
   const room2 = roster.roomsById[sessionId];
   const entries2 = (0, import_react15.useMemo)(() => Object.values(JSON.parse(liveKey)), [liveKey]);
   const streaming = entries2.some((entry) => entry.text);
-  const tools = entries2.filter((entry) => !entry.text && !entry.thinking).sort((a, b) => a.at - b.at);
+  const tools = entries2.filter((entry) => !entry.text && !entry.thinking).sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
   const relaying = tools.some((entry) => entry.relay);
   const visible = running && !streaming && !relaying && (bot !== void 0 || room2 !== void 0);
   const tool = tools.at(-1);
   const inputRef = (0, import_react15.useRef)(0);
   const inputAt = Math.max(inputRef.current, pendingInput);
   inputRef.current = inputAt;
-  const want = !visible ? null : inputAt > (tool?.at ?? 0) ? { key: `input:${inputAt}`, pool: PHRASES.thinking, state: "thinking" } : tool ? { key: tool.label ? `tool:${tool.label}` : "working", label: tool.label, pool: PHRASES.working, state: tool.state ?? "working" } : { key: "thinking", pool: PHRASES.thinking, state: "thinking" };
+  const want = !visible ? null : inputAt > (tool?.at ?? 0) ? { key: `input:${inputAt}`, pool: PHRASES.thinking, state: "thinking" } : tool ? { key: tool.label ? `tool:${tool.label}` : "working", ...tool.label === void 0 ? {} : { label: tool.label }, pool: PHRASES.working, state: tool.state ?? "working" } : { key: "thinking", pool: PHRASES.thinking, state: "thinking" };
   const [shown, setShown] = (0, import_react15.useState)(null);
   const wantKey = want?.key ?? null;
   const markState = (0, import_react15.useRef)("thinking");
   if (want) markState.current = want.state;
   (0, import_react15.useEffect)(() => {
-    if (wantKey === null || shown?.key === wantKey) return void 0;
+    if (wantKey === null || shown?.key === wantKey || want === null) return void 0;
     const make = () => setShown({ key: wantKey, text: want.label ?? drawPhrase(want.pool), at: Date.now() });
     const wait = shown ? shown.at + PHRASE_HOLD_MS - Date.now() : 0;
     if (wait <= 0) {
@@ -11772,10 +11773,11 @@ function ActivityIndicator({ sessionId, useRoster, useSessionStatus, useLive, us
     return () => clearTimeout(timer);
   }, [wantKey, shown]);
   (0, import_react15.useEffect)(() => {
-    if (!shown || wantKey === null || shown.key !== wantKey || want.label || reducedMotion()) return void 0;
+    if (!shown || wantKey === null || want === null || shown.key !== wantKey || want.label || reducedMotion()) return void 0;
+    const pool = want.pool;
     const timer = setTimeout(() => {
-      let text = drawPhrase(want.pool);
-      for (let tries = 0; text === shown.text && tries < 4; tries++) text = drawPhrase(want.pool);
+      let text = drawPhrase(pool);
+      for (let tries = 0; text === shown.text && tries < 4; tries++) text = drawPhrase(pool);
       setShown({ key: wantKey, text, at: Date.now() });
     }, PHRASE_ROTATE_MS);
     return () => clearTimeout(timer);
