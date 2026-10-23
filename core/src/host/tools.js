@@ -112,7 +112,7 @@ export function install(rt) {
   // A tool that throws shows as failed in the chat, instead of as sent or stopped.
   const refuse = (message) => { throw new Error(message) }
 
-  // The works (handoffs.js) the calling turn does: what it answers, and the requests
+  // The works (handoffs.ts) the calling turn does: what it answers, and the requests
   // that joined it.
   const worksOf = (exec) => {
     const turn = rt.live.get(exec.agent?.id)
@@ -538,7 +538,7 @@ export function install(rt) {
       const long = await rt.attachLong(text, `Post from ${sender.name}.txt`)
       if (long === undefined) return tooLong(text)
       // Replies the poster waits for, while it works on what a Bot asked it for, are
-      // work handed on for that request (handoffs.js).
+      // work handed on for that request (handoffs.ts).
       const work = reportBack ? worksOf(exec).find(id => rt.ownsWork(self, id)) : undefined
       const sub = work === undefined ? undefined : randomUUID()
       if (sub !== undefined) rt.openWork(sub, { from: self, room: room.id, parent: work })

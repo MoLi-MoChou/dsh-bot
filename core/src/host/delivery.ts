@@ -91,7 +91,7 @@ export function install(rt: HostRuntime): void {
   // from; the reply goes back to that Session (turns.js). `files` go along as file
   // blocks, which DSH turns into a read-only path the recipient's tools can read.
   // `length`: the whole message's length when it went as a file (attachLong). `work`:
-  // the work (handoffs.js) a result that came back goes on with. `merged`: a request
+  // the work (handoffs.ts) a result that came back goes on with. `merged`: a request
   // that takes in an earlier one its recipient had not read, under that one's exchange.
   async function deliver({
     fromId, toId, sessionId, text, role, replyTo, roomId, audience, note,

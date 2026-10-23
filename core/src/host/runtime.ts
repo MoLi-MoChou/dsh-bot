@@ -31,6 +31,10 @@ export interface StoredBot {
   instructions?: string
   permission?: string
   sessionId?: string
+  model?: string
+  appliedModel?: string
+  effort?: string
+  appliedEffort?: string
   segments?: readonly { readonly sessionId: string }[]
   workDir?: string
   readonly [key: string]: unknown
@@ -64,10 +68,67 @@ export interface ExchangeEntry {
   readonly audience?: string
 }
 
-/** A work item another Bot handed on, in `state.works`. */
+/** One result a Bot handed back for a work item. */
+export interface WorkResult {
+  readonly id: string
+  readonly name: string
+  readonly text: string
+  readonly length?: number
+}
+
+/** A piece of work one Bot gave another, in `state.works`. */
 export interface StoredWork {
-  readonly from?: string
+  from?: string
+  to?: string
+  room?: string
+  parent?: string
+  fromRoom?: string
+  open: string[]
+  results: WorkResult[]
+  at?: number
+  held?: string
   readonly [key: string]: unknown
+}
+
+/** What a running turn is doing, as `rt.live` records it. */
+export interface TurnInfo {
+  readonly kind?: string
+  readonly role?: string
+  readonly exchangeId?: string
+  readonly work?: string
+  readonly senderSessionId?: string | undefined
+  readonly askedBy?: string
+  readonly audience?: string
+  readonly senderRoomId?: string
+}
+
+export interface LiveEntry {
+  readonly since?: number
+  readonly turn?: unknown
+  readonly info?: TurnInfo
+}
+
+export interface ModelReasoningEffort {
+  readonly id: string
+  readonly name: string
+  readonly description?: string
+}
+
+export interface ModelReasoning {
+  readonly efforts: readonly ModelReasoningEffort[]
+  readonly defaultEffort?: string
+}
+
+/** One model a provider serves, as the picker lists it. */
+export interface ModelEntry {
+  ref: string
+  provider?: string
+  providerName?: string
+  id?: string
+  name?: string
+  input?: readonly string[]
+  needsKey?: boolean
+  reasoning?: ModelReasoning
 }
 
 /** The team as `state.json` stores it. */
@@ -80,6 +141,8 @@ export interface StoredState {
   exchanges: ExchangeEntry[]
   connectors?: Record<string, { readonly login?: string | null; readonly connectedAt?: number }>
   works?: Record<string, StoredWork>
+  questions?: Record<string, unknown>
+  views?: Record<string, unknown>
   readonly [key: string]: unknown
 }
 
@@ -104,6 +167,7 @@ export interface HostRuntime {
 
   // --- provided by store.ts
   readonly state: StoredState
+  readonly live: Map<string, LiveEntry>
   readonly chatOwners: Map<string, string>
   readonly groupOwners: Map<string, { readonly botId: string; readonly roomId: string }>
   readonly pastOwners: Map<string, { readonly botId: string; readonly roomId?: string }>
@@ -137,6 +201,15 @@ export interface HostRuntime {
   callDetail?(sessionId: string | undefined, callId?: string): ApprovalDetail
   yieldRoomTurn?(sessionId: string | undefined): void
   noteApproval?(sessionId: string | undefined, note: ApprovalNote | undefined): void
+
+  readOnly(): string | undefined
+  approvalsView?(): readonly { readonly botId: string; readonly sessionId: string; readonly tool?: string; readonly at: number }[]
+  switchJobs?(): Iterable<{ readonly botId: string; readonly roomId?: string }>
+  doingOf?(entry: LiveEntry): { readonly tool?: string; readonly target?: string; readonly said?: string }
+  unreadOf?(sessionId: string): Iterable<{ readonly fromId: string }>
+  catalog(): Promise<readonly ModelEntry[]>
+  defaultRef?(): string | undefined
+  tagUsage(messages: readonly unknown[], tag: { readonly sessionId: string; readonly kind: string }): readonly unknown[]
 
   // --- provided by capabilities.ts and tools.ts
   ensureCapabilities(sessionId: string): Promise<unknown>
