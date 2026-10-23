@@ -4,7 +4,9 @@ import { dayLabel } from './text.js'
 import { colorOf, BotMark } from './mark.js'
 import { Bubbles } from './cells.js'
 import { stripLongNote } from './fold.js'
+import { ChatsIcon } from './icons.js'
 import { useEscape, usePaneLeft } from './overlay-hooks.js'
+import { EmptyState } from './empty-state.js'
 import { t } from './i18n.js'
 
 const SHEET_EXIT_MS = 220
@@ -55,7 +57,7 @@ export function ExchangeDialog({ pair, roster, actions }) {
         atEnd.current = node.scrollHeight - node.scrollTop - node.clientHeight < 2
       } },
         entries === null ? h('div', { className: 'bt-hint' }, t('Loading…'))
-          : entries.length === 0 ? h('div', { className: 'bt-hint' }, t('No messages yet'))
+          : entries.length === 0 ? h(EmptyState, { icon: h(ChatsIcon), title: t('No messages yet'), hint: t('Messages these Bots send each other show up here.') })
             : entries.map((entry) => {
               const bot = roster.byId[entry.from] ?? { id: entry.from, name: t('You'), color: 'gray' }
               const showDay = entry.time - lastDay > 30 * 60 * 1000

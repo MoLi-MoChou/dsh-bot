@@ -1,10 +1,11 @@
-import { createElement as h, Fragment, useEffect, useState } from 'react'
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import { FishLogo } from './dsh-primitives.js'
 import { isMainOf } from './sources.js'
 import { currentPart, stripHeader } from './text.js'
 import { PlusIcon, SearchIcon, PeopleIcon, CloseIcon, GearIcon } from './icons.js'
 import { BotAvatar, RoomAvatar } from './mark.js'
 import { useEscape } from './overlay-hooks.js'
+import { EmptyState } from './empty-state.js'
 import { QUICK_EDGES, useFlip, useGlide } from './motion.js'
 import { t } from './i18n.js'
 
@@ -16,6 +17,7 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
   const [query, setQuery] = useState(start ?? '')
   const [cursor, setCursor] = useState(0)
   const [leaving, setLeaving] = useState(false)
+  const input = useRef(null)
   const wanted = query.trim().toLowerCase()
   const close = () => {
     if (leaving) return
@@ -105,7 +107,7 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
       h('div', { className: 'bt-palette-head' },
         h('span', { className: 'bt-palette-glyph', 'aria-hidden': true }, h(SearchIcon)),
         h('input', {
-          autoFocus: true, value: query, placeholder: t('Search Bots, chats and messages'), 'aria-label': t('Search'),
+          ref: input, autoFocus: true, value: query, placeholder: t('Search Bots, chats and messages'), 'aria-label': t('Search'),
           role: 'combobox', 'aria-expanded': true, 'aria-controls': 'bt-palette-list',
           onChange: (event) => { setQuery(event.target.value); setCursor(0) },
           onKeyDown: (event) => {
@@ -119,10 +121,10 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
       h('div', { ref: listRef, id: 'bt-palette-list', className: 'bt-palette-list', role: 'listbox', 'aria-label': t('Results') },
         h('span', { ref: glide.thumb, className: 'bt-thumb', 'aria-hidden': true }),
         rows.length === 0
-          ? h('div', { className: 'bt-palette-empty' },
-              h('span', { className: 'bt-palette-empty-icon', 'aria-hidden': true }, h(SearchIcon)),
-              h('span', { className: 'bt-palette-empty-label' }, t('No results')),
-              h('span', { className: 'bt-palette-empty-hint' }, t('Try a Bot name or words from a message')))
+          ? h(EmptyState, {
+              icon: h(SearchIcon), title: t('No results for “{query}”', { query: query.trim() }), hint: t('Try a Bot name or words from a message'),
+              action: { label: t('Clear search'), onClick: () => { setQuery(''); setCursor(0); input.current?.focus() } },
+            })
           : sections.map(([title, items]) => h(Fragment, { key: title },
               h('div', { className: 'bt-palette-section', role: 'presentation', 'data-flip': `section:${title}` }, title),
               items.map((row) => {

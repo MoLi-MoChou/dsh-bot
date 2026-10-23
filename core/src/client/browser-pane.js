@@ -10,6 +10,7 @@ import { STORAGE } from './storage.js'
 import { installStyles } from './styles.js'
 import { SPRING_SHAPE, springEasing } from './motion.js'
 import { DetailsDrawer } from './details-drawer.js'
+import { EmptyState } from './empty-state.js'
 import { t } from './i18n.js'
 
 export const PANEL_LINGER_MS = 300
@@ -263,15 +264,17 @@ function BrowserView({ bot, tabId, leaving, landed, actions, useBrowserPages }) 
       page.loading ? h('span', { className: 'bt-browser-progress', 'aria-hidden': true }) : null),
     h('div', { ref: frame, className: 'bt-browser-frame', 'data-guest': showGuest || undefined },
       page.error
-        ? h('div', { className: 'bt-browser-empty' },
-            h('div', { className: 'bt-browser-empty-title' }, t('This page didn’t load')),
-            h('div', { className: 'bt-browser-empty-text' }, t(page.error)),
-            page.url ? h('button', { type: 'button', className: 'bt-browser-retry', onClick: () => { void actions.browserNavigate(tabId, page.url) } }, t('Try again')) : null)
+        ? h('div', { className: 'bt-browser-empty' }, h(EmptyState, {
+            icon: h(GlobeIcon), title: t('This page didn’t load'), hint: t(page.error),
+            action: page.url ? { label: t('Try again'), onClick: () => { void actions.browserNavigate(tabId, page.url) } } : undefined,
+          }))
         : !page.url
-          ? h('div', { className: 'bt-browser-empty' },
-              h(BotMark, { bot, size: 48, state: 'idle', live: true }),
-              h('div', { className: 'bt-browser-empty-title' }, t("{name}'s browser", { name: bot.name })),
-              h('div', { className: 'bt-browser-empty-text' }, t('Open a page here and {name} can read it with you. Logins and cookies stay with {name}; other Bots never see them.', { name: bot.name })))
+          ? h('div', { className: 'bt-browser-empty' }, h(EmptyState, {
+              art: h(BotMark, { bot, size: 48, state: 'idle', live: true }),
+              title: t("{name}'s browser", { name: bot.name }),
+              hint: t('Open a page here and {name} can read it with you. Logins and cookies stay with {name}; other Bots never see them.', { name: bot.name }),
+              action: { label: t('Enter an address'), onClick: () => input.current?.focus() },
+            }))
           : null))
 }
 

@@ -4,6 +4,7 @@ import { GRADIENTS, paintCss } from './inks.js'
 import { BotAvatar, BotMark, RoomAvatar } from './mark.js'
 import { CalendarIcon, ChatsIcon, ChevronLeftIcon, ChevronRightIcon } from './icons.js'
 import { reducedMotion, useGlide } from './motion.js'
+import { EmptyState } from './empty-state.js'
 import { dateLocale, t } from './i18n.js'
 import { DAY_MS, HOUR, HOUR_MS, MODEL, OWNER, RANGES, compact, dayKey, hourMs, mondayOf, percent, spanRange, summarize, tokensOf } from './usage-data.js'
 
@@ -504,10 +505,11 @@ export function UsagePage({ roster, actions, focusId }) {
   }
   if (view.rows.length === 0) {
     return h('div', { className: 'bt-us' },
-      h('div', { className: 'bt-us-empty' },
-        h(BotMark, { look: MAIN_LOOK, size: 56, live: true }),
-        h('b', null, view.scanning ? t('Reading your chats…') : t('No usage yet.')),
-        h('span', null, t('Token usage shows up here after a model is called.'))))
+      h(EmptyState, {
+        art: h(BotMark, { look: MAIN_LOOK, size: 56, live: true }),
+        title: view.scanning ? t('Reading your chats…') : t('No usage yet.'),
+        hint: t('Token usage shows up here after a model is called.'),
+      }))
   }
   const { faces, models, ownerAt, face, keep, all, part, series, tipSeries, fillOf, columns, ranked, isBot, activeDays, oldest } = shaped
   const pick = next => actions.openSettings('usage', `${next.kind}:${next.key}`)
