@@ -7,7 +7,7 @@
 // a classic script; the wrapper mirrors packages/client/tsdown.client.ts in
 // deepseek-harness: `require` resolves the shell-seeded platform modules (react,
 // react-dom, ui-primitives, ...), which therefore stay external.
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build } from 'esbuild'
@@ -15,16 +15,24 @@ import { build } from 'esbuild'
 const PLUGIN = dirname(dirname(fileURLToPath(import.meta.url)))
 const OUTPUT = join(PLUGIN, 'client.js')
 const PLATFORM_MODULES = ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives']
+// The client entry, in the order the migration prefers: TSX/TS first so Phase 2 can rename
+// the entry without touching this script, the current JS entry otherwise.
+const ENTRIES = ['src/client/index.tsx', 'src/client/index.ts', 'src/client/index.jsx', 'src/client/index.js']
+const entry = () => ENTRIES.find(candidate => existsSync(join(PLUGIN, candidate)))
 
 export async function bundleClient() {
+  const entryPoint = entry()
+  if (entryPoint === undefined) throw new Error(`no client entry; expected one of ${ENTRIES.join(', ')}`)
   const result = await build({
     // Region comments name sources relative to the plugin, wherever the script runs from.
     absWorkingDir: PLUGIN,
-    entryPoints: ['src/client/index.js'],
+    entryPoints: [entryPoint],
     bundle: true,
     format: 'cjs',
     platform: 'browser',
     target: 'es2022',
+    // .ts/.tsx are loaded by esbuild's own loaders; the tsconfig supplies JSX settings.
+    tsconfig: join(PLUGIN, 'tsconfig.json'),
     external: PLATFORM_MODULES,
     // Moon Bot patch: the app's version, for the settings line that names it.
     define: { __MOON_BOT_VERSION__: JSON.stringify(JSON.parse(readFileSync(join(PLUGIN, 'package.json'), 'utf8')).version) },

@@ -3,6 +3,7 @@ window.__ModuleLoader__.load({
   id: 'moon-bot-core',
   factory: (require) => {
 const module = { exports: {} }
+"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -2087,7 +2088,7 @@ function registerTheme(id, theme) {
 }
 var allThemes = () => ({ ...THEMES, ...customThemes });
 
-// src/shared/mentions.js
+// src/shared/mentions.runtime.js
 var ALL_WORDS = ["all", "everyone", "所有人", "全体"];
 var USER_NAMES = ["user", "you"];
 var speakerOf = (line) => line.botId !== void 0 && USER_NAMES.includes(String(line.who ?? "").trim().toLowerCase()) ? `Bot "${line.who}"` : line.who;
