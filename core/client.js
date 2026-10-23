@@ -14054,7 +14054,7 @@ function Summary({ owner, view, regenerate }) {
   const failed = view.error && !view.summarizing ? (0, import_react23.createElement)(
     "div",
     { className: "bt-mem-failed", role: "alert" },
-    (0, import_react23.createElement)("span", null, view.summary ? t("The summary is out of date: {reason}", { reason: hostText(view.error) }) : t("The summary could not be written: {reason}", { reason: hostText(view.error) })),
+    (0, import_react23.createElement)("span", null, view.summary ? t("The summary is out of date: {reason}", { reason: hostText(String(view.error ?? "")) }) : t("The summary could not be written: {reason}", { reason: hostText(String(view.error ?? "")) })),
     (0, import_react23.createElement)("button", { type: "button", className: "bt-soft bt-soft-sm", onClick: regenerate }, t("Try again"))
   ) : null;
   if (!view.summary) return (0, import_react23.createElement)(import_react23.Fragment, null, failed, failed ? null : (0, import_react23.createElement)(Skeleton, { label: t("Writing the summary…") }));
@@ -14144,7 +14144,7 @@ function Entries({ owner, view, remove }) {
 }
 function changeLine(change) {
   const text = change.text.length > 120 ? `${change.text.slice(0, 120)}…` : change.text;
-  if (!change.ok) return t("Not changed: {text} ({reason})", { text, reason: hostText(change.error ?? "") });
+  if (!change.ok) return t("Not changed: {text} ({reason})", { text, reason: hostText(String(change.error ?? "")) });
   if (change.op === "remove") return change.scope === "team" ? t("Removed from team memory: {text}", { text }) : t("Removed: {text}", { text });
   if (change.op === "edit") return t("Updated: {text}", { text });
   return change.scope === "team" ? t("Added to team memory: {text}", { text }) : t("Added: {text}", { text });
@@ -14159,7 +14159,7 @@ function Reply({ answer, dismiss }) {
       (0, import_react23.createElement)("span", { className: "bt-mem-reply-asked" }, answer.asked),
       answer.pending ? null : (0, import_react23.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("Dismiss"), onClick: dismiss }, (0, import_react23.createElement)(CloseIcon))
     ),
-    answer.pending ? (0, import_react23.createElement)("div", { className: "bt-mem-reply-text bt-shimmer" }, t("Thinking…")) : answer.error ? (0, import_react23.createElement)("div", { className: "bt-mem-reply-text bt-danger" }, hostText(answer.error)) : (0, import_react23.createElement)(
+    answer.pending ? (0, import_react23.createElement)("div", { className: "bt-mem-reply-text bt-shimmer" }, t("Thinking…")) : answer.error ? (0, import_react23.createElement)("div", { className: "bt-mem-reply-text bt-danger" }, hostText(String(answer.error ?? ""))) : (0, import_react23.createElement)(
       import_react23.Fragment,
       null,
       answer.reply ? (0, import_react23.createElement)("div", { className: "bt-mem-reply-text" }, answer.reply) : null,
