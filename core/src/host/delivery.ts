@@ -1,4 +1,4 @@
-import type { AttachmentRef, AttachmentsService } from './dsh-types.ts'
+import type { AttachmentRef, AttachmentsService } from './dsh-types.js'
 import type { ExchangeEntry, HostRuntime } from './runtime.ts'
 
 /** What `deliver` puts into a Session. */

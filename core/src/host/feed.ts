@@ -6,7 +6,7 @@
 //   stream    the reply a Bot is writing: a start, its text as it comes, an end
 import { clearInterval, setInterval, setTimeout } from 'node:timers'
 import { ROUTE } from './constants.ts'
-import type { AgentStatusEvent, AssistantStreamEvent, SessionEvent } from './dsh-types.ts'
+import type { AgentStatusEvent, AssistantStreamEvent, SessionEvent } from './dsh-types.js'
 import type { HostRuntime } from './runtime.ts'
 
 export const FEED_ROUTE = `${ROUTE}/feed`

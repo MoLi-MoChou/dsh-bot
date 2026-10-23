@@ -1,3 +1,29 @@
+import type { LoaderService, PluginFiber } from './dsh-types.js'
+import type { HostRuntime } from './runtime.ts'
+
+type ConnectorStatus =
+  | { readonly state: 'off' }
+  | { readonly state: 'connecting' }
+  | { readonly state: 'ready' }
+  | { readonly state: 'error'; readonly error: string }
+
+interface ConnectorMount {
+  readonly token: string | undefined
+  readonly fiber?: PluginFiber
+}
+
+interface SignInOptions {
+  readonly api?: string
+  readonly fetch?: typeof fetch
+}
+
+interface ConnectorBody {
+  readonly id?: unknown
+  readonly token?: unknown
+}
+
+type ConnectorEndpoint = (body: ConnectorBody) => Promise<unknown>
+
 // Connectors: outside services every Bot can use. GitHub is the first one. Its tools come
 // from GitHub's MCP server through DSH's own MCP client, mounted on the plugin context,
 // so every Bot and Session gets them as mcp__github__<tool>.
@@ -21,7 +47,7 @@ const CHECK_TIMEOUT_MS = 15_000
 const INSECURE = 'GitHub addresses must start with https://'
 
 // Asks GitHub who the token belongs to. Any token GitHub accepts passes.
-export async function signIn(token, { api = DEFAULTS.api, fetch: request = fetch } = {}) {
+export async function signIn(token: string, { api = DEFAULTS.api, fetch: request = fetch }: SignInOptions = {}): Promise<{ readonly login: string }> {
   let response
   try {
     response = await request(`${api.replace(/\/$/, '')}/user`, {
@@ -33,38 +59,42 @@ export async function signIn(token, { api = DEFAULTS.api, fetch: request = fetch
   }
   if (response.status === 401) throw new Error('GitHub did not accept this token')
   if (!response.ok) throw new Error(`GitHub answered ${response.status}`)
-  const user = await response.json().catch(() => ({}))
-  if (typeof user?.login !== 'string') throw new Error('GitHub did not say who this token belongs to')
+  const user = (await response.json().catch(() => ({}))) as { readonly login?: unknown }
+  if (typeof user.login !== 'string') throw new Error('GitHub did not say who this token belongs to')
   return { login: user.login }
 }
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, state } = rt
   const options = rt.config.github === false ? null : { ...DEFAULTS, ...rt.config.github }
   const insecure = options !== null && [options.url, options.api].some(address => !/^https:\/\//i.test(String(address)))
   // `token` is what the current mount was made with, so a changed secret mounts again.
-  let mount = null
-  let status = { state: 'off' }
-  let queue = Promise.resolve()
+  let mount: ConnectorMount | null = null
+  let status: ConnectorStatus = { state: 'off' }
+  let queue: Promise<unknown> = Promise.resolve()
   let stopped = false
 
-  const unmount = async () => {
+  const unmount = async (): Promise<void> => {
     const fiber = mount?.fiber
     mount = null
     if (fiber !== undefined) await Promise.resolve().then(() => fiber.dispose()).catch(() => {})
   }
 
   // The MCP client wraps the server's answer (a 401, say) as the cause.
-  const reason = (error) => {
-    const text = [error, error?.cause].filter(Boolean).map(part => String(part?.message ?? part)).join(': ')
+  const reason = (error: unknown): string => {
+    const text = [error, (error as { readonly cause?: unknown } | undefined)?.cause].filter(Boolean).map(part => String((part as { readonly message?: unknown } | undefined)?.message ?? part)).join(': ')
     return rt.redactSecrets(text || 'error').slice(0, 300)
   }
 
-  async function reconcile(force) {
+  async function reconcile(force: boolean): Promise<void> {
     const token = options !== null && !stopped ? rt.secretValue(GITHUB_SECRET) : undefined
     if (!force && mount !== null && mount.token === token) return
     await unmount()
     if (token === undefined) {
+      status = { state: 'off' }
+      return
+    }
+    if (options === null) {
       status = { state: 'off' }
       return
     }
@@ -74,7 +104,7 @@ export function install(rt) {
       return
     }
     status = { state: 'connecting' }
-    const loader = ctx.get?.('loader')
+    const loader = ctx.get<LoaderService>('loader')
     if (typeof loader?.import !== 'function' || typeof ctx.plugin !== 'function') {
       mount = { token }
       status = { state: 'error', error: 'This DSH cannot load connectors' }
@@ -82,8 +112,8 @@ export function install(rt) {
     }
     try {
       const exports = await loader.import(MCP_CLIENT)
-      const plugin = loader.unwrapExports?.(exports) ?? exports?.default ?? exports
-      const fiber = ctx.plugin(plugin, {
+      const plugin = loader.unwrapExports?.(exports) ?? (exports as { readonly default?: unknown } | undefined)?.default ?? exports
+      const fiber: PluginFiber = ctx.plugin!(plugin, {
         transport: 'streamable-http',
         serverName: GITHUB,
         url: options.url,
@@ -91,51 +121,54 @@ export function install(rt) {
         failOnStartupError: true,
       })
       mount = { token, fiber }
-      await fiber.await()
+      await fiber.await?.()
       if (mount?.fiber !== fiber) return
       status = { state: 'ready' }
     } catch (error) {
       await unmount()
       mount = { token }
-      status = { state: 'error', error: reason(error) }
-      rt.warn('ds-bot: GitHub connector failed: %s', status.error)
+      const message = reason(error)
+      status = { state: 'error', error: message }
+      rt.warn('ds-bot: GitHub connector failed: %s', message)
     }
   }
 
   // One change at a time; `force` connects again even when the token is the same.
-  const sync = (force = false) => {
-    queue = queue.then(() => reconcile(force)).catch(error => { rt.warn('ds-bot: connectors: %s', reason(error)) })
+  const sync = (force = false): Promise<unknown> => {
+    queue = queue.then(() => reconcile(force)).catch((error: unknown) => { rt.warn('ds-bot: connectors: %s', reason(error)) })
     return queue
   }
 
-  const connectorsView = () => options === null ? [] : [{
+  const connectorsView = (): readonly Record<string, unknown>[] => options === null ? [] : [{
     id: GITHUB,
     name: 'GitHub',
     state: status.state,
-    ...(status.error !== undefined ? { error: status.error } : {}),
+    ...(status.state === 'error' ? { error: status.error } : {}),
     account: rt.secretValue(GITHUB_SECRET) !== undefined ? state.connectors?.[GITHUB]?.login ?? null : null,
   }]
 
-  const known = id => {
+  const known = (id: unknown): void => {
     if (options === null || id !== GITHUB) throw new Error('No such connector')
   }
 
-  const endpoints = {
-    async 'connector-connect'(body) {
+  const endpoints: Record<string, ConnectorEndpoint> = {
+    async 'connector-connect'(body: ConnectorBody): Promise<unknown> {
       known(body.id)
+      const settings = options
+      if (settings === null) throw new Error('No such connector')
       const token = typeof body.token === 'string' ? body.token.trim() : ''
       if (token === '') throw new Error('Paste a token first')
       if (insecure) throw new Error(INSECURE)
       await rt.loadSecrets()
       const kept = rt.secretValue(GITHUB_SECRET) !== undefined
-      const { login } = await signIn(token, { api: options.api })
+      const { login } = await signIn(token, { api: settings.api })
       await rt.secretEndpoint('secret-set', { name: GITHUB_SECRET, value: token, purpose: 'GitHub connector', ...(kept ? {} : { scope: [] }) })
       state.connectors = { ...state.connectors, [GITHUB]: { login, connectedAt: Date.now() } }
       await rt.save()
       await sync()
       return connectorsView()
     },
-    async 'connector-disconnect'(body) {
+    async 'connector-disconnect'(body: ConnectorBody): Promise<unknown> {
       known(body.id)
       await rt.loadSecrets()
       if (rt.secretValue(GITHUB_SECRET) !== undefined) await rt.secretEndpoint('secret-delete', { name: GITHUB_SECRET })
@@ -146,7 +179,7 @@ export function install(rt) {
       await sync()
       return connectorsView()
     },
-    async 'connector-retry'(body) {
+    async 'connector-retry'(body: ConnectorBody): Promise<unknown> {
       known(body.id)
       await rt.loadSecrets()
       await sync(true)
@@ -154,7 +187,11 @@ export function install(rt) {
     },
   }
 
-  const connectorEndpoint = (endpoint, body) => endpoints[endpoint](body ?? {})
+  const connectorEndpoint = (endpoint: string, body: ConnectorBody | undefined): Promise<unknown> => {
+    const handler = endpoints[endpoint]
+    if (handler === undefined) throw new Error()
+    return handler(body ?? {})
+  }
 
   ctx.effect(() => {
     stopped = false

@@ -1,6 +1,6 @@
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { LlmUserMessage } from '@deepseek-ai/dsh-llm'
-import type { Agent } from './dsh-types.ts'
+import type { Agent } from './dsh-types.js'
 import type { HostRuntime } from './runtime.ts'
 
 const SOURCE = 'ds-bot-time-context'

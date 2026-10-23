@@ -4,13 +4,17 @@
 // `install(rt)`. A module both reads what earlier modules put on `rt` and adds its own
 // functions. This interface holds the slice today's TypeScript modules need; it grows a
 // batch at a time as the rest of `src/host` moves over. Nothing here runs: types only.
-import type { Agent, AttachmentRef, DshContext, SessionEvent } from './dsh-types.ts'
+import type { Agent, AttachmentRef, DshContext, SessionEvent } from './dsh-types.js'
+import type { ChildProcess } from 'node:child_process'
 
 export interface HostConfig {
   readonly home?: string
+  readonly workspace?: string
   readonly mainName?: string
   readonly mainRole?: string
   readonly timeRefreshIntervalMs?: number
+  readonly updateCheck?: boolean
+  readonly github?: Readonly<Record<string, unknown>> | false
   readonly timeZone?: string
 }
 
@@ -38,6 +42,7 @@ export interface StoredRoom {
   name: string
   admin?: string
   permission?: string | null
+  members?: readonly string[]
   sessions?: Record<string, string>
   segments?: Record<string, readonly { readonly sessionId: string }[]>
   workDir?: string
@@ -71,7 +76,9 @@ export interface StoredState {
   bots: Record<string, StoredBot>
   rooms: Record<string, StoredRoom>
   exchangeTurns: Record<string, readonly number[]>
+  workspaceId?: string
   exchanges: ExchangeEntry[]
+  connectors?: Record<string, { readonly login?: string | null; readonly connectedAt?: number }>
   works?: Record<string, StoredWork>
   readonly [key: string]: unknown
 }
@@ -120,6 +127,11 @@ export interface HostRuntime {
   resolveAgent(sessionId: string): Promise<Agent>
   warn(template: string, ...args: readonly unknown[]): void
   save(): Promise<unknown>
+  dshSpawn?(command: string, argv: readonly string[], options: { readonly windowsHide?: boolean }): ChildProcess
+  loadSecrets(): Promise<unknown>
+  secretValue(name: string): string | undefined
+  redactSecrets(text: string): string
+  secretEndpoint(endpoint: string, body: Readonly<Record<string, unknown>>): Promise<unknown>
 
   // --- provided by turns.ts, groups.ts and resume.ts
   callDetail?(sessionId: string | undefined, callId?: string): ApprovalDetail

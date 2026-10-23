@@ -4,7 +4,7 @@ import { homedir, hostname, tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { apply } from '../index.js'
-import { dshHomeOf } from '../src/host/folders.js'
+import { dshHomeOf } from '../src/host/folders.ts'
 import { escapeRegExp } from '../src/host/text.ts'
 import { fakeContext } from './fake-ctx.js'
 

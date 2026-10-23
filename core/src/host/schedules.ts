@@ -1,4 +1,4 @@
-import type { Disposer } from './dsh-types.ts'
+import type { Disposer } from './dsh-types.js'
 import type { HostRuntime } from './runtime.ts'
 
 interface ScheduleEntry {

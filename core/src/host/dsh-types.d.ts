@@ -9,6 +9,11 @@
 /** The disposer cordis hands back for anything it registers. */
 export type Disposer = () => void
 
+export interface PluginFiber {
+  await?(): Promise<unknown>
+  dispose(): unknown
+}
+
 export interface Logger {
   debug(...args: unknown[]): void
   info(...args: unknown[]): void
@@ -45,6 +50,11 @@ export interface InboxMessage {
   readonly id: string
   readonly source?: Record<string, unknown>
   readonly content?: unknown
+}
+
+export interface LoaderService {
+  import?(specifier: string): Promise<unknown>
+  unwrapExports?(loaded: unknown): unknown
 }
 
 export interface AgentSession {
@@ -285,16 +295,20 @@ export interface WorkingDirectoryService {
   set(agent: Agent, path: string, signal?: AbortSignal): Promise<void>
 }
 
+export interface DirectoryListing {
+  readonly path: string
+  readonly home: string
+  readonly crumbs: readonly unknown[]
+  readonly entries: readonly unknown[]
+  readonly truncated?: boolean
+}
+
 export interface DirectoryPicker {
-  capability(): { readonly kind: 'native' | 'browse' | string }
-  pick(signal?: AbortSignal): Promise<string>
-  list(path?: string, signal?: AbortSignal): Promise<{
-    readonly path: string
-    readonly home: string
-    readonly crumbs: readonly unknown[]
-    readonly entries: readonly unknown[]
-    readonly truncated?: boolean
-  }>
+  capability(): {
+    readonly kind: 'native' | 'browse' | string
+    pick(signal?: AbortSignal): Promise<string>
+    list(path?: string, signal?: AbortSignal): Promise<DirectoryListing>
+  }
 }
 
 export interface AgentPresetsService {
@@ -333,7 +347,7 @@ export interface DshContext {
   ): Disposer
   emit?(name: string, payload: unknown): void
   effect(execute: () => void | Disposer, label?: string): void
-  plugin?(plugin: unknown, config?: unknown): Disposer
+  plugin?(plugin: unknown, config?: unknown): PluginFiber
   inject?(dependencies: readonly string[], inject: (ctx: DshContext) => void): void
   readonly tools: ToolsService
   readonly llm: LlmService

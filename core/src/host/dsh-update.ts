@@ -1,3 +1,35 @@
+import type { ChildProcess } from 'node:child_process'
+import type { LoaderService } from './dsh-types.js'
+import type { HostRuntime } from './runtime.ts'
+
+interface DshUpdateStatus {
+  current: string | null
+  verified: string | null
+  kind: 'npm' | 'app'
+  blockedBy: string | null
+  checkedAt: number
+  phase: 'idle' | 'installing' | 'installed' | 'failed'
+  installed: string | null
+  error: string | null
+}
+
+interface DshUpdateView {
+  readonly current: string | null
+  readonly verified: string | null
+  readonly kind: 'npm' | 'app'
+  readonly blockedBy: string | null
+  readonly checkedAt: number
+  readonly phase: 'idle' | 'installing' | 'installed' | 'failed'
+  readonly installed: string | null
+  readonly error: string | null
+  readonly available: boolean
+}
+
+interface DshDeclaration {
+  readonly verifiedDsh?: unknown
+  readonly minBot?: unknown
+}
+
 // DSH updates: a released DS Bot may name the DSH release it was verified
 // against (`dsBot.verifiedDsh` in package.json); a release that names none
 // offers nothing. The newest released bot wins: offering that version and
@@ -19,22 +51,22 @@ const PKG = JSON.parse(readFileSync(new URL('../../package.json', import.meta.ur
 const APP_BOOT = '@deepseek-ai/dsh-app-boot'
 const DSH_PACKAGE = '@deepseek-ai/dsh'
 
-export function install(rt) {
+export function install(rt: HostRuntime): void {
   const { ctx, config } = rt
   const enabled = config.updateCheck !== false
 
-  const status = {
+  const status: DshUpdateStatus = {
     current: null, verified: null, kind: 'npm', blockedBy: null,
     checkedAt: 0, phase: 'idle', installed: null, error: null,
   }
-  let target = null
-  let checking = null
-  let running = null
+  let target: { readonly version: string } | null = null
+  let checking: Promise<void> | null = null
+  let running: ChildProcess | null = null
 
   // A newer `minBot` than the running bot gates the offer: the bot goes first.
-  const blocked = () => status.blockedBy !== null && newer(status.blockedBy, PKG.version)
+  const blocked = (): boolean => status.blockedBy !== null && newer(status.blockedBy, PKG.version)
 
-  const view = () => ({
+  const view = (): DshUpdateView => ({
     current: status.current, verified: status.verified, kind: status.kind, blockedBy: status.blockedBy,
     checkedAt: status.checkedAt, phase: status.phase, installed: status.installed, error: status.error,
     // Nothing is offered without a current version to compare against.
@@ -45,12 +77,12 @@ export function install(rt) {
   // The version of the DSH that is running us: the app-boot export, or — where
   // that import cannot see it — the nearest @deepseek-ai package.json above the
   // entry script.
-  async function currentDsh() {
+  async function currentDsh(): Promise<string | null> {
     try {
-      const loader = ctx.get?.('loader')
+      const loader = ctx.get<LoaderService>('loader')
       const loaded = await loader?.import?.(APP_BOOT)
-      const appBoot = loader?.unwrapExports?.(loaded) ?? loaded?.default ?? loaded
-      const version = cleanVersion(appBoot?.getDshRuntimeVersion?.())
+      const appBoot = loader?.unwrapExports?.(loaded) ?? (loaded as { readonly default?: unknown } | undefined)?.default ?? loaded
+      const version = cleanVersion((appBoot as { readonly getDshRuntimeVersion?: () => unknown } | undefined)?.getDshRuntimeVersion?.())
       if (version) return version
     } catch { /* the export is not visible here: read the install instead */ }
     let dir = dirname(String(process.argv[1] ?? ''))
@@ -71,14 +103,14 @@ export function install(rt) {
 
   // A bundled package manager means the runtime came with the app and only the
   // app's own updater can move it.
-  const installKind = () =>
-    typeof ctx.get?.('profileContext')?.packageManager?.command === 'string' ? 'app' : 'npm'
+  const installKind = (): 'npm' | 'app' =>
+    typeof ctx.get<{ readonly packageManager?: { readonly command?: unknown } }>('profileContext')?.packageManager?.command === 'string' ? 'app' : 'npm'
 
   // The newest released DS Bot's `dsBot` block, through the same channel the bot
   // itself updates from: its registry, or the public repo's latest release.
-  async function releasedDeclaration(source) {
+  async function releasedDeclaration(source: { readonly kind?: string }): Promise<DshDeclaration | null> {
     if (source.kind === 'registry') {
-      for (const registry of await registryPlan(config, ctx.get?.('pluginManager'))) {
+      for (const registry of await registryPlan(config, ctx.get<unknown>('pluginManager'))) {
         try {
           const manifest = await fetchJson(`${registry}${encodeName(PKG.name)}/latest`)
           if (manifest?.dsBot?.verifiedDsh) return manifest.dsBot
@@ -97,7 +129,7 @@ export function install(rt) {
     } catch { return null }
   }
 
-  async function runCheck() {
+  async function runCheck(): Promise<void> {
     try {
       status.current = await currentDsh()
       status.kind = installKind()
@@ -105,7 +137,7 @@ export function install(rt) {
       const inApp = process.env.DS_BOT_APP === '1'
       // The release the running package itself verified stays the floor: a bot
       // older than its own declaration has nothing newer to offer.
-      const declared = inApp ? [] : [{ verifiedDsh: PKG.dsBot?.verifiedDsh }]
+      const declared: DshDeclaration[] = inApp ? [] : [{ verifiedDsh: PKG.dsBot?.verifiedDsh }]
       const released = inApp ? null : await releasedDeclaration(sourceOf(await installSpecOf(ctx)))
       if (released) declared.push(released)
       const newestDeclared = declared
@@ -120,7 +152,7 @@ export function install(rt) {
         : null
       status.error = null
     } catch (error) {
-      rt.warn('ds-bot: dsh update check failed: %s', error?.message ?? error)
+      rt.warn('ds-bot: dsh update check failed: %s', error instanceof Error ? error.message : error)
       status.verified = null
       status.blockedBy = null
       target = null
@@ -129,9 +161,9 @@ export function install(rt) {
   }
 
   /** Read current and verified DSH versions; a fresh check ignores the last answer. */
-  async function check({ fresh = false } = {}) {
+  async function check({ fresh = false }: { readonly fresh?: boolean } = {}): Promise<DshUpdateView | undefined> {
     if (!enabled) return view()
-    if (checking) return checking
+    if (checking !== null) return checking.then(() => undefined)
     if (!fresh && Date.now() - status.checkedAt < CHECK_TTL_MS) return view()
     checking = runCheck().finally(() => { checking = null })
     await checking
@@ -139,7 +171,7 @@ export function install(rt) {
   }
 
   /** Swap an npm-installed DSH for the verified version; the answer comes back through `check`. */
-  function start() {
+  function start(): DshUpdateView {
     if (status.phase === 'installing') return view()
     if (target === null || blocked()) throw new Error('No DSH update is available')
     if (status.kind !== 'npm') throw new Error('This DSH updates with its app')
@@ -147,20 +179,21 @@ export function install(rt) {
     Object.assign(status, { phase: 'installing', error: null })
     const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
     const args = ['install', '-g', `${DSH_PACKAGE}@${chosen.version}`]
-    const runner = rt.dshSpawn ?? ((command, argv, options) => spawn(command, argv, options))
-    running = runner(npm, args, { windowsHide: true })
+    const runner = rt.dshSpawn ?? ((command: string, argv: readonly string[], options: { readonly windowsHide?: boolean }) => spawn(command, argv, options))
+    const child = runner(npm, args, { windowsHide: true })
+    running = child
     let output = ''
-    running.stdout?.on?.('data', chunk => { output = `${output}${chunk}`.slice(-4000) })
-    running.stderr?.on?.('data', chunk => { output = `${output}${chunk}`.slice(-4000) })
-    const done = new Promise((resolve, reject) => {
-      running.once?.('error', reject)
-      running.once?.('close', code => (code === 0 ? resolve() : reject(new Error(`npm exited ${code}`))))
+    child.stdout?.on?.('data', (chunk: unknown) => { output = `${output}${String(chunk)}`.slice(-4000) })
+    child.stderr?.on?.('data', (chunk: unknown) => { output = `${output}${String(chunk)}`.slice(-4000) })
+    const done = new Promise<void>((resolve, reject) => {
+      child.once?.('error', reject)
+      child.once?.('close', code => (code === 0 ? resolve() : reject(new Error(`npm exited ${code}`))))
     })
     void done
       .then(() => Object.assign(status, { phase: 'installed', installed: chosen.version }))
       .catch((error) => {
-        rt.warn('ds-bot: dsh update to %s failed: %s', chosen.version, error?.message ?? error)
-        Object.assign(status, { phase: 'failed', error: `${error?.message ?? error}${output ? ` — ${output.trim().slice(-400)}` : ''}`.slice(0, 600) })
+        rt.warn('ds-bot: dsh update to %s failed: %s', chosen.version, error instanceof Error ? error.message : error)
+        Object.assign(status, { phase: 'failed', error: `${error instanceof Error ? error.message : String(error)}${output ? ` — ${output.trim().slice(-400)}` : ''}`.slice(0, 600) })
       })
     return view()
   }

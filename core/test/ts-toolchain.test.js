@@ -64,7 +64,7 @@ test('the shared contract layer exists and names the endpoints both ends share',
 })
 
 test('the host types name the DSH context without importing a DSH install', () => {
-  const types = read('src/host/dsh-types.ts')
+  const types = read('src/host/dsh-types.d.ts')
   assert.match(types, /export interface DshContext/)
   assert.match(types, /sessionController/)
   assert.match(types, /workspaceRegistry/)
