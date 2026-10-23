@@ -16,6 +16,9 @@
 //  4. Test files may not import `.tsx`: Node's type stripping does not handle JSX, so such a
 //     test dies at load time with a confusing extension error. Failing in lint says what to
 //     do instead, before `npm test` crashes.
+//  5. `dsh-types.js` is a type-only contract: a value import of it would load a file that
+//     does not exist, so every reference must be `import type`.
+//  6. A declaration file carries no runtime: no top-level value export in a `.d.ts`.
 //
 // Usage: node scripts/check-gates.mjs [--root <core-like directory>]
 // `--root` exists so the gates can be pointed at the fixtures in test/fixtures/gates.
@@ -94,7 +97,7 @@ for (let index = 0; index < argv.length; index += 1) {
 const sourceRoot = join(root, 'src')
 if (!existsSync(sourceRoot)) usage(`no src directory under ${root}`)
 
-const findings = { boundaries: [], lines: [], floating: [], tsx: [] }
+const findings = { boundaries: [], lines: [], floating: [], tsx: [], typeOnly: [], declarationValues: [] }
 
 // ---------------------------------------------------------------------------
 // Source discovery and path helpers.
@@ -296,6 +299,83 @@ function stripComments(text) {
   return output
 }
 
+
+// Value declarations inside `declare module`/`declare global` describe modules the
+// typesheet does not own (a platform's runtime, a package's API). Those are fine; only a
+// top-level value export makes the declaration file look like it has a runtime.
+function withoutAmbientBlocks(text) {
+  let output = text
+  let index = 0
+  for (;;) {
+    const at = output.indexOf('declare module', index)
+    const global = output.indexOf('declare global', index)
+    const found = at < 0 ? global : global < 0 ? at : Math.min(at, global)
+    if (found < 0) return output
+    const open = output.indexOf('{', found)
+    if (open < 0) return output
+    let depth = 0
+    let end = open
+    for (; end < output.length; end += 1) {
+      if (output[end] === '{') depth += 1
+      else if (output[end] === '}') {
+        depth -= 1
+        if (depth === 0) break
+      }
+    }
+    output = output.slice(0, open + 1) + output.slice(open + 1, end).replace(/[^\n]/g, ' ') + output.slice(end)
+    index = end
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 5. The type-only contract files stay type-only.
+
+// `dsh-types.d.ts` describes DSH; nothing loads it at run time. A value import of it
+// would be a runtime import of a file that does not exist, so every reference must be
+// `import type` (or an `export type`).
+const VALUE_IMPORT_PATTERNS = [
+  { kind: 'import', pattern: /(?:^|[;\n])\s*import\s+(?!type\s)(?:[^'";]*?\sfrom\s*)?(['"])([^'"]+)\1/g },
+  { kind: 'export', pattern: /(?:^|[;\n])\s*export\s+(?!type\s)(?:[^'";]*?\sfrom\s*)(['"])([^'"]+)\1/g },
+  { kind: 'require', pattern: /\brequire\s*\(\s*(['"])([^'"]+)\1\s*\)/g },
+  { kind: 'dynamic import', pattern: /\bimport\s*\(\s*(['"])([^'"]+)\1\s*\)/g },
+]
+
+const TYPE_ONLY_SPECIFIER = /(?:^|\/)dsh-types\.js$/
+
+function checkTypeOnlyImports() {
+  for (const file of sourceFiles()) {
+    if (!/\.tsx?$/.test(file) || file.endsWith('.d.ts')) continue
+    const text = stripComments(readFileSync(file, 'utf8'))
+    for (const { kind, pattern } of VALUE_IMPORT_PATTERNS) {
+      pattern.lastIndex = 0
+      let match
+      while ((match = pattern.exec(text)) !== null) {
+        const specifier = match[2]
+        if (!specifier || !TYPE_ONLY_SPECIFIER.test(specifier)) continue
+        findings.typeOnly.push(
+          `${relPath(file)}:${lineOf(text, match.index + match[0].lastIndexOf(specifier))} - value ${kind} of the type-only contract (${specifier}); it must be \`import type\``,
+        )
+      }
+    }
+  }
+}
+
+// A declaration file carries no runtime. A value export there is either dead or, once
+// something imports it, a module that cannot load.
+const DECLARATION_VALUE = /^\s*export\s+(?:declare\s+)?(const|let|var|function|class|enum)\b/m
+
+function checkDeclarationValues() {
+  for (const file of sourceFiles()) {
+    if (!file.endsWith('.d.ts')) continue
+    const text = withoutAmbientBlocks(stripComments(readFileSync(file, 'utf8')))
+    const match = DECLARATION_VALUE.exec(text)
+    if (match === null) continue
+    findings.declarationValues.push(
+      `${relPath(file)}:${lineOf(text, match.index)} - declaration file exports a value (${match[1]})`,
+    )
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 2. Line counts.
 
@@ -463,8 +543,13 @@ function main() {
   checkLineCounts()
   checkFloatingPromises()
   checkTestTsxImports()
+  checkTypeOnlyImports()
+  checkDeclarationValues()
 
-  const all = [...findings.boundaries, ...findings.lines, ...findings.floating, ...findings.tsx]
+  const all = [
+    ...findings.boundaries, ...findings.lines, ...findings.floating, ...findings.tsx,
+    ...findings.typeOnly, ...findings.declarationValues,
+  ]
   if (all.length === 0) {
     console.log('gates: ok')
     process.exit(0)
@@ -475,6 +560,8 @@ function main() {
     `${findings.lines.length} line-count`,
     `${findings.floating.length} floating-promise`,
     `${findings.tsx.length} tsx-in-test`,
+    `${findings.typeOnly.length} value-import-of-type-contract`,
+    `${findings.declarationValues.length} value-export-in-declaration`,
   ].join(', ')
   console.error(`gates: ${all.length} failure(s) (${summary})`)
   process.exit(1)

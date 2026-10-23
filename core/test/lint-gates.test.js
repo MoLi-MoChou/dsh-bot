@@ -82,6 +82,17 @@ test('a test importing a .tsx module fails with the loader hint', () => {
   assert.match(text, /1 tsx-in-test/)
 })
 
+test('a value import of the type contract and a value export in a declaration file fail', () => {
+  const result = runGates('guards')
+  assert.notEqual(result.status, 0, output(result))
+  const text = output(result)
+  assert.match(text, /src\/host\/uses-types\.ts:3 - value import of the type-only contract/)
+  assert.match(text, /must be .import type./)
+  assert.match(text, /src\/host\/values\.d\.ts:1 - declaration file exports a value \(const\)/)
+  assert.match(text, /1 value-import-of-type-contract/)
+  assert.match(text, /1 value-export-in-declaration/)
+})
+
 test('a clean fixture passes with the one-line success message', () => {
   const result = runGates('clean')
   assert.equal(result.status, 0, output(result))

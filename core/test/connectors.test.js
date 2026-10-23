@@ -20,6 +20,9 @@ test('signIn asks GitHub who owns the token', async () => {
   assert.equal(seen.init.headers.Authorization, `Bearer ${token}`)
   await assert.rejects(signIn(token, { fetch: async () => answer(401, {}) }), /did not accept/)
   await assert.rejects(signIn(token, { fetch: async () => answer(500, {}) }), /GitHub answered 500/)
+  // A 200 with a JSON null body is still our own line: a value read off null would
+  // have been a TypeError instead of this error.
+  await assert.rejects(signIn(token, { fetch: async () => answer(200, null) }), /did not say who this token belongs to/)
   await assert.rejects(signIn(token, { fetch: async () => { throw new Error(`boom ${token}`) } }), /^Error: Could not reach GitHub$/)
 })
 

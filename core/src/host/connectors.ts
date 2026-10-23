@@ -59,8 +59,8 @@ export async function signIn(token: string, { api = DEFAULTS.api, fetch: request
   }
   if (response.status === 401) throw new Error('GitHub did not accept this token')
   if (!response.ok) throw new Error(`GitHub answered ${response.status}`)
-  const user = (await response.json().catch(() => ({}))) as { readonly login?: unknown }
-  if (typeof user.login !== 'string') throw new Error('GitHub did not say who this token belongs to')
+  const user = (await response.json().catch(() => ({}))) as { readonly login?: unknown } | null
+  if (typeof user?.login !== 'string') throw new Error('GitHub did not say who this token belongs to')
   return { login: user.login }
 }
 
