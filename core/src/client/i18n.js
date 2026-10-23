@@ -936,6 +936,8 @@ const ZH = {
   'Open Harness settings': '打开 Harness 设置',
   'New task': '新建任务',
   'No scheduled tasks yet.': '还没有定时任务。',
+  'Hi, I am {name}': '你好，我是 {name}',
+  'Type a message, or pick one of these.': '说一句话，或者点下面的卡片。',
   'No scheduled tasks yet. Add one': '还没有定时任务，去添加',
   'Automation tasks are off in DSH': 'DSH 的「自动化任务」没有打开',
   'No such Bot': '没有这个 Bot',

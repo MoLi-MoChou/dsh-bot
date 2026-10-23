@@ -7,6 +7,7 @@ import { BotAvatar, RoomAvatar } from './mark.js'
 import { useEscape } from './overlay-hooks.js'
 import { QUICK_EDGES, useFlip, useGlide } from './motion.js'
 import { t } from './i18n.js'
+import { EmptyState } from './empty-state.js'
 
 // Search is a command palette: a 560px dialog, a search header, and 49px
 // rows (24px avatar, title, subtitle). Bots and groups match on name and role; past
@@ -119,10 +120,7 @@ export function CommandPalette({ start, token, roster, actions, useSessions }) {
       h('div', { ref: listRef, id: 'bt-palette-list', className: 'bt-palette-list', role: 'listbox', 'aria-label': t('Results') },
         h('span', { ref: glide.thumb, className: 'bt-thumb', 'aria-hidden': true }),
         rows.length === 0
-          ? h('div', { className: 'bt-palette-empty' },
-              h('span', { className: 'bt-palette-empty-icon', 'aria-hidden': true }, h(SearchIcon)),
-              h('span', { className: 'bt-palette-empty-label' }, t('No results')),
-              h('span', { className: 'bt-palette-empty-hint' }, t('Try a Bot name or words from a message')))
+          ? h(EmptyState, { className: 'bt-palette-empty', glyph: h(SearchIcon), title: t('No results'), hint: t('Try a Bot name or words from a message') })
           : sections.map(([title, items]) => h(Fragment, { key: title },
               h('div', { className: 'bt-palette-section', role: 'presentation', 'data-flip': `section:${title}` }, title),
               items.map((row) => {
