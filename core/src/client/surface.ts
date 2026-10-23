@@ -30,7 +30,7 @@ function disposeAll(disposers: readonly (() => void)[], label: string): void {
 // its disposer. A group goes on whole or not at all: when a step throws, the steps
 // before it are withdrawn, so Agent mode never keeps a half-installed Bot skin.
 export function surfaceGroups(
-  install: Record<SurfaceGroup, () => readonly (() => void | undefined)[]>,
+  install: Record<SurfaceGroup, () => readonly (() => (() => void) | undefined)[]>,
   { onError }: { onError?: (group: SurfaceGroup, error: unknown) => void } = {},
 ) {
   const mounted: Record<SurfaceGroup, (() => void)[]> = { shell: [], conversation: [] }

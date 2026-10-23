@@ -59,9 +59,20 @@ interface DshBrowserBridge {
   release(lease: string): Promise<unknown>
   onOpenRequested(lease: string, listener: (url: string) => void): () => void
 }
+// What the Desktop app's own updater reports, beside the plugin's update check.
+interface DshAppUpdate {
+  phase?: string
+  version?: string
+  [key: string]: unknown
+}
+interface DshAppUpdatesBridge {
+  status: () => Promise<DshAppUpdate | undefined>
+  subscribe: (listener: (app: DshAppUpdate | undefined) => void) => (() => void) | undefined
+  open: () => Promise<unknown>
+}
 interface DshDesktopBridge {
   protocolVersion?: number
-  updates?: unknown
+  updates?: DshAppUpdatesBridge
   browser?: DshBrowserBridge
 }
 

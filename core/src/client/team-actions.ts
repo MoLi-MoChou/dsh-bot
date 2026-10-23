@@ -30,6 +30,10 @@ interface RosterSnapshot {
   byId?: Record<string, { id?: string } | undefined>
   roomsById?: Record<string, { id?: string } | undefined>
 }
+// The actions only read the roster; the window that owns it does the writing.
+interface RosterReader {
+  getSnapshot: () => RosterSnapshot
+}
 // One live entry of a turn: a tool or thinking note, with the time it began.
 interface LiveEntry { at?: number; text?: string; thinking?: boolean; relay?: boolean; label?: string; state?: string; [key: string]: unknown }
 type Cards = Record<string, Record<string, number>>
@@ -38,7 +42,7 @@ export interface TeamActionsDeps {
   call: (endpoint: string, payload?: unknown) => Promise<unknown>
   after: (work: Promise<unknown>) => Promise<unknown>
   partFor: (id: string) => string
-  roster: Store<RosterSnapshot>
+  roster: RosterReader
   ui: Store<UiState>
   live: Store<Record<string, Record<string, LiveEntry>>>
   cards: Store<Cards>

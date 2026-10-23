@@ -15,9 +15,8 @@ import { build } from 'esbuild'
 const PLUGIN = dirname(dirname(fileURLToPath(import.meta.url)))
 const OUTPUT = join(PLUGIN, 'client.js')
 const PLATFORM_MODULES = ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives']
-// The client entry, in the order the migration prefers: TSX/TS first so Phase 2 can rename
-// the entry without touching this script, the current JS entry otherwise.
-const ENTRIES = ['src/client/index.tsx', 'src/client/index.ts', 'src/client/index.jsx', 'src/client/index.js']
+// The client entry: the migration moved it to TypeScript, and the build follows it.
+const ENTRIES = ['src/client/index.tsx', 'src/client/index.ts']
 const entry = () => ENTRIES.find(candidate => existsSync(join(PLUGIN, candidate)))
 
 export async function bundleClient() {

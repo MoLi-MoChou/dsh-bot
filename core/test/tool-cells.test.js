@@ -306,7 +306,7 @@ test('the live note follows the running sub-call of a program', () => {
   assert.equal(notes(call('message_bot', 'direct', { args: { to: 'Writer' }, running: true }))[0].entry.label, 'Asking Writer')
 })
 
-// A minimal cards store, as index.js keeps it.
+// A minimal cards store, as index.ts keeps it.
 const cardStore = () => {
   const store = { state: {} }
   store.noteCards = (sessionId, ids, delta) => { store.state = countCards(store.state, sessionId, ids, delta) }

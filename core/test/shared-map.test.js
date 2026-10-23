@@ -14,7 +14,7 @@ function sharedStorage() {
     removeItem: (key) => { items.delete(key) },
   }
 }
-// A window as index.js keeps one: a copy read at load, updated by its own changes.
+// A window as index.ts keeps one: a copy read at load, updated by its own changes.
 function windowOn(storage, key) {
   const store = sharedMap(key, storage)
   let copy = store.read()
