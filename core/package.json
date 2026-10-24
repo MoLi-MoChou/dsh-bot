@@ -34,8 +34,7 @@
   },
   "files": [
     "index.js",
-    "src/host/",
-    "src/shared/",
+    "dist/",
     "client.js",
     "web-search.js",
     "cordis.patch.yml",
@@ -43,13 +42,14 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node scripts/build-client.mjs",
+    "build": "node scripts/build-client.mjs && node scripts/build-host.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "node --import ./test/harness-resolve.mjs --test \"test/*.test.js\"",
     "lint": "node scripts/lint.mjs",
     "harness": "npm install --prefix dev/harness --legacy-peer-deps=false --no-package-lock --no-fund --no-audit",
     "check": "sh dev/check.sh",
-    "test:gate": "node scripts/test-gate.mjs"
+    "test:gate": "node scripts/test-gate.mjs",
+    "build:host": "node scripts/build-host.mjs"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",

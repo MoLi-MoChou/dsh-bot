@@ -13,6 +13,9 @@ RUN apt-get update \
 
 WORKDIR /opt/moon-bot
 COPY core/ core/
+# Host/shared ship as TypeScript sources; Node will not strip types under node_modules.
+# Emit plain JS into core/dist before the app installs moon-bot-core via file:../core.
+RUN cd core  && npm install --no-save --no-audit --no-fund --ignore-scripts esbuild@0.28.2  && node scripts/build-host.mjs  && rm -rf node_modules
 COPY app/package.json app/package-lock.json app/.npmrc app/
 COPY app/scripts/ app/scripts/
 COPY app/engine/ app/engine/
