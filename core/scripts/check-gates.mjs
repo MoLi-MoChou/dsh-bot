@@ -44,7 +44,6 @@ const LINE_EXEMPTIONS = [
   'src/client/i18n/zh.ts', // i18n dictionary table (data, not logic)
   // TODO(phase2 split): existing client modules still over 350 lines; Phase 2 moves the
   // rest to TS and splits these modules. They are pending, not accepted new debt.
-  'src/client/sidebar.ts',
   'src/client/bot-browsers.ts',
 ]
 
