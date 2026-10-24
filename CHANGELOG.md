@@ -4,7 +4,15 @@ All notable changes to DS Bot are listed here. The format follows [Keep a Change
 
 ## [Unreleased]
 
+### Fixed
+
+- Composer: Enter after finishing a CJK composition with Space is no longer swallowed on Chromium/Firefox (WebKit keeps a short stray-Enter window, after open-claude-ui).
+- Escape on the composer +, memory ⋯, model and folder menus goes through the same topmost-layer stack as other overlays (no second capture listener).
+- Long chats: offscreen message placeholder height raised so scrolling back up jumps less when rows paint.
+- About (zh-CN): desktop-update hint names Moon Bot instead of DeepSeek Bot.
+
 ### Changed
+
 
 - The fork is now called Moon Bot: new name in every language, app id `com.molimochou.moonbot`, data folder `~/.moon-bot` (an existing `~/.mochou` or `~/.dsh-bot` is still used), `MOON_BOT_*` settings (the `MOCHOU_*` and `DSH_BOT_*` names still work), plugin folder `core/` and package `moon-bot-core` (profiles that list `ds-bot` or `mochou-core` move over by themselves).
 - The Main Bot is a lilac moon sprite instead of DS Bot's whale (a Chief still wearing the blue whale switches once); the whale is no longer in the avatar picker. The app icon, favicon, login page and About page show the matching Moon Bot tile.

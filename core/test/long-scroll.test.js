@@ -103,5 +103,5 @@ test('styles.js defines offscreen content-visibility virtualization and back-to-
   const styles = readFileSync(new URL('../src/client/styles.js', import.meta.url), 'utf8')
   assert.ok(styles.includes('.bt-to-bottom{'))
   assert.ok(styles.includes('.bt-to-bottom-btn{'))
-  assert.ok(styles.includes('content-visibility:auto;contain-intrinsic-size:auto 64px'))
+  assert.ok(styles.includes('content-visibility:auto;contain-intrinsic-size:auto 120px'))
 })
