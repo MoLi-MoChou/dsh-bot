@@ -1392,7 +1392,7 @@ var ZH = {
   "Update checks are off.": "已关闭更新检查。",
   "Installed from a local folder; update it there.": "从本地文件夹安装，请在那里更新。",
   "Updates are not offered for this install.": "这种安装方式不提供更新。",
-  "Updates come with the DeepSeek Bot app.": "随 DeepSeek Bot 应用一起更新。",
+  "Updates come with the DeepSeek Bot app.": "随 Moon Bot 应用一起更新。",
   Links: "链接",
   "Source code": "源代码",
   "Release notes": "发布说明",
@@ -12978,7 +12978,7 @@ div:has(> nav [class*="_marks"]){display:none!important}
 .bt-to-bottom-btn{display:inline-flex;align-items:center;gap:4px;height:34px;padding:0 14px 0 10px;border:0;border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;line-height:18px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color .12s ease,${spring(SPRING_TAP, "scale")}}
 .bt-to-bottom-btn:hover{background:var(--bt-hover)}
 .bt-to-bottom-btn:active{scale:.95}
-.bt-earlier>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),.bt-dialog-log>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),[class*="_flowItem"][data-chat-flow-kind]:not(:nth-last-child(-n+12)):not(:hover):not(:focus-within){content-visibility:auto;contain-intrinsic-size:auto 64px}
+.bt-earlier>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),.bt-dialog-log>:is(.bt-astack,.bt-urow,.bt-event):not(:hover):not(:focus-within),[class*="_flowItem"][data-chat-flow-kind]:not(:nth-last-child(-n+12)):not(:hover):not(:focus-within){content-visibility:auto;contain-intrinsic-size:auto 120px}
 @media (prefers-reduced-motion:reduce){.bt-news,.bt-to-bottom,[class*="_toBottomSlot"]>button{animation:none}}
 .bt-new-sep{display:flex;align-items:center;gap:8px;margin:14px 0 8px;padding:2px 0;font-size:11px;line-height:14px;font-weight:500;letter-spacing:.02em;text-transform:uppercase;color:var(--bt-accent);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
 .bt-new-sep::before,.bt-new-sep::after{content:"";flex:1;height:1px;background:color-mix(in srgb,var(--bt-accent) 20%,transparent)}
@@ -14266,29 +14266,23 @@ function menuIcons(roster) {
 function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
   const roster = useRoster((value) => value);
   const [open, setOpen] = (0, import_react23.useState)(null);
-  const [shown, leaving] = useLinger(open, 120);
+  const [shown, leaving] = useLinger(open, MENU_EXIT_MS);
   const button = (0, import_react23.useRef)(null);
   const menu = (0, import_react23.useRef)(null);
   useMenuKeys(menu, Boolean(open));
+  useEscape(() => {
+    setOpen(null);
+    button.current?.focus();
+  }, Boolean(open));
   (0, import_react23.useEffect)(() => {
     if (!open) return void 0;
     const onDown = (event) => {
       const target2 = event.target;
       if (![button.current, menu.current].some((node) => node?.contains(target2))) setOpen(null);
     };
-    const onKey = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        setOpen(null);
-        button.current?.focus();
-      }
-    };
     window.addEventListener("mousedown", onDown, true);
-    window.addEventListener("keydown", onKey, true);
     return () => {
       window.removeEventListener("mousedown", onDown, true);
-      window.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
   const target = sessionId === void 0 ? void 0 : roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id;
@@ -15144,8 +15138,13 @@ function installHeaderNavigation(slots, face, component, priority) {
 
 // src/client/ime-guard.ts
 var COMPOSER = "[data-composer-input],[contenteditable=true],textarea";
-var STRAY_MS = 60;
-function installImeGuard(root = document) {
+var WEBKIT_STRAY_MS = 500;
+var isAppleWebKit = () => {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  return /AppleWebKit/i.test(ua) && !/Chrome|Chromium|Edg\//i.test(ua);
+};
+function installImeGuard(root = document, { webkit = isAppleWebKit() } = {}) {
   let endedAt = -Infinity;
   const ended = () => {
     endedAt = performance.now();
@@ -15155,10 +15154,13 @@ function installImeGuard(root = document) {
     if (key.key !== "Enter" && key.keyCode !== 229) return;
     if (!(key.target instanceof Element) || key.target.closest(COMPOSER) === null) return;
     const composing = key.isComposing || key.keyCode === 229;
-    const stray = key.key === "Enter" && performance.now() - endedAt < STRAY_MS;
+    const stray = webkit && key.key === "Enter" && endedAt !== -Infinity && performance.now() - endedAt < WEBKIT_STRAY_MS;
     if (!composing && !stray) return;
     key.stopImmediatePropagation();
-    if (stray) key.preventDefault();
+    if (stray) {
+      endedAt = -Infinity;
+      key.preventDefault();
+    }
   };
   root.addEventListener("compositionend", ended, true);
   root.addEventListener("keydown", keydown, true);
@@ -15505,30 +15507,24 @@ function useAnchoredMenu(onEscape) {
   escapeRef.current = onEscape;
   const close = () => setPlace(null);
   useMenuKeys(menu, place !== null);
+  useEscape(() => {
+    if (escapeRef.current?.() === true) return;
+    close();
+    button.current?.focus();
+  }, place !== null);
   (0, import_react28.useEffect)(() => {
     if (place === null) return void 0;
     const onDown = (event) => {
       if (event.target instanceof Node && (menu.current?.contains(event.target) || button.current?.contains(event.target))) return;
       close();
     };
-    const onKey = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (escapeRef.current?.() === true) return;
-        close();
-        button.current?.focus();
-      }
-    };
     const onScroll = (event) => {
       if (event.target instanceof Node && !menu.current?.contains(event.target)) close();
     };
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey, true);
     window.addEventListener("scroll", onScroll, true);
     return () => {
       window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("scroll", onScroll, true);
     };
   }, [place]);
@@ -16796,7 +16792,6 @@ function BotCapabilitiesCard({ bot, roster, actions, run, Card: Card2, SwitchRow
 // src/client/memory-panel.ts
 var import_react33 = require("react");
 var POLL_MS2 = 1500;
-var MENU_EXIT_MS2 = 120;
 var counts = /* @__PURE__ */ new Map();
 var countListeners = /* @__PURE__ */ new Set();
 function noteCount(id, count) {
@@ -17037,7 +17032,7 @@ function MemoryDialog({ owner, actions, leaving = false }) {
   const { view, error, load, show } = useMemoryView(owner.id, actions);
   const [page, setPage] = (0, import_react33.useState)("summary");
   const [menu, setMenu] = (0, import_react33.useState)(false);
-  const [menuShown, menuLeaving] = useLinger(menu, MENU_EXIT_MS2);
+  const [menuShown, menuLeaving] = useLinger(menu, MENU_EXIT_MS);
   const [text, setText] = (0, import_react33.useState)("");
   const [answer, setAnswer] = (0, import_react33.useState)(null);
   const menuRef = (0, import_react33.useRef)(null);
@@ -17050,6 +17045,10 @@ function MemoryDialog({ owner, actions, leaving = false }) {
     setPage("summary");
     void load({ summarize: true });
   }, page === "entries");
+  useEscape(() => {
+    setMenu(false);
+    dotsRef.current?.focus();
+  }, menu);
   useMenuKeys(menuRef, menu);
   (0, import_react33.useEffect)(() => {
     if (!menu) return void 0;
@@ -17057,18 +17056,9 @@ function MemoryDialog({ owner, actions, leaving = false }) {
       if (menuRef.current?.contains(event.target) || dotsRef.current?.contains(event.target)) return;
       setMenu(false);
     };
-    const onKey = (event) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-        setMenu(false);
-        dotsRef.current?.focus();
-      }
-    };
     window.addEventListener("mousedown", onDown);
-    window.addEventListener("keydown", onKey, true);
     return () => {
       window.removeEventListener("mousedown", onDown);
-      window.removeEventListener("keydown", onKey, true);
     };
   }, [menu]);
   const regenerate = () => {

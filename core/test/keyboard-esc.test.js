@@ -144,6 +144,22 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
     assert.equal(getActive(), a)
   })
 
+
+  it('folds + menu, memory ⋯ menu, and anchored menus into the useEscape stack (no capture Esc)', () => {
+    const composer = readFileSync(join(ROOT, 'src/client/composer.js'), 'utf8')
+    const memory = readFileSync(join(ROOT, 'src/client/memory-panel.js'), 'utf8')
+    const model = readFileSync(join(ROOT, 'src/client/model-menu.js'), 'utf8')
+    assert.match(composer, /useEscape\(\(\) => \{ setOpen\(null\)/)
+    assert.doesNotMatch(composer, /addEventListener\('keydown', onKey, true\)/)
+    assert.match(memory, /useEscape\(\(\) => \{ setMenu\(false\)/)
+    assert.doesNotMatch(memory, /addEventListener\('keydown', onKey, true\)/)
+    assert.match(model, /useEscape\(\(\) => \{[\s\S]*escapeRef\.current/)
+    assert.doesNotMatch(model, /addEventListener\('keydown', onKey, true\)/)
+    assert.doesNotMatch(memory, /const MENU_EXIT_MS = /)
+    assert.match(memory, /MENU_EXIT_MS.*from '\.\/motion\.js'/)
+    assert.match(composer, /MENU_EXIT_MS.*from '\.\/motion\.js'/)
+  })
+
   it('defines visible :focus-visible rings across primary controls, menus, cards, and file preview', () => {
     const designDir = join(ROOT, 'src/client/design')
     const stylesSrc = readdirSync(designDir)

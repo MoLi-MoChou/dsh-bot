@@ -9,10 +9,9 @@ import { EmptyState } from './empty-state.ts'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.ts'
 import { dateLocale, hostText, t } from './i18n.ts'
 import { summaryBlocks } from './text.ts'
-import { useLinger } from './motion.ts'
+import { MENU_EXIT_MS, useLinger } from './motion.ts'
 
 const POLL_MS = 1500
-const MENU_EXIT_MS = 120
 
 export interface MemoryOwner { id: string; name: string; group?: boolean | undefined }
 export interface MemoryEntry { scope: string; topic?: string | undefined; text: string; added?: string | undefined; by?: string | undefined; source?: string | undefined }
@@ -265,6 +264,7 @@ export function MemoryDialog({ owner, actions, leaving = false }: MemoryDialogPr
   const close = useCallback(() => actions.closeMemory(), [])
   useEscape(close)
   useEscape(() => { setPage('summary'); void load({ summarize: true }) }, page === 'entries')
+  useEscape(() => { setMenu(false); dotsRef.current?.focus() }, menu)
   useMenuKeys(menuRef, menu)
   useEffect(() => {
     if (!menu) return undefined
@@ -272,12 +272,9 @@ export function MemoryDialog({ owner, actions, leaving = false }: MemoryDialogPr
       if (menuRef.current?.contains(event.target as Node) || dotsRef.current?.contains(event.target as Node)) return
       setMenu(false)
     }
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.stopPropagation(); setMenu(false); dotsRef.current?.focus() } }
     window.addEventListener('mousedown', onDown)
-    window.addEventListener('keydown', onKey, true)
     return () => {
       window.removeEventListener('mousedown', onDown)
-      window.removeEventListener('keydown', onKey, true)
     }
   }, [menu])
   const regenerate = () => { setMenu(false); setPage('summary'); void load({ regenerate: true }) }

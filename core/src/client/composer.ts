@@ -3,8 +3,8 @@ import { LEAN } from './lean.ts'
 import { createPortal } from 'react-dom'
 import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, WaveIcon } from './icons.ts'
 import { BotMark } from './mark.ts'
-import { useLinger } from './motion.ts'
-import { useMenuKeys } from './overlay-hooks.ts'
+import { MENU_EXIT_MS, useLinger } from './motion.ts'
+import { useEscape, useMenuKeys } from './overlay-hooks.ts'
 import { t } from './i18n.ts'
 
 // -------------------------------------------------------------------------
@@ -133,17 +133,16 @@ export function ComposerPlus({ sessionId, inputActions, useRoster, actions }: {
 }) {
   const roster = useRoster(value => value)
   const [open, setOpen] = useState<{ left: number; bottom: number; files: boolean } | null>(null)
-  const [shown, leaving] = useLinger(open, 120)
+  const [shown, leaving] = useLinger(open, MENU_EXIT_MS)
   const button = useRef<HTMLButtonElement | null>(null)
   const menu = useRef<HTMLDivElement | null>(null)
   useMenuKeys(menu, Boolean(open))
+  useEscape(() => { setOpen(null); button.current?.focus() }, Boolean(open))
   useEffect(() => {
     if (!open) return undefined
     const onDown = (event: MouseEvent) => { const target = event.target as Node | null; if (![button.current, menu.current].some(node => node?.contains(target))) setOpen(null) }
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(null); button.current?.focus() } }
     window.addEventListener('mousedown', onDown, true)
-    window.addEventListener('keydown', onKey, true)
-    return () => { window.removeEventListener('mousedown', onDown, true); window.removeEventListener('keydown', onKey, true) }
+    return () => { window.removeEventListener('mousedown', onDown, true) }
   }, [open])
   const target = sessionId === undefined ? undefined : roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id
   if (sessionId === undefined || target === undefined) return null

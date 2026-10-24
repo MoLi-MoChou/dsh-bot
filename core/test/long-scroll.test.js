@@ -107,5 +107,5 @@ test('the design sheets define offscreen content-visibility virtualization and b
     .join('\n')
   assert.ok(styles.includes('.bt-to-bottom{'))
   assert.ok(styles.includes('.bt-to-bottom-btn{'))
-  assert.ok(styles.includes('content-visibility:auto;contain-intrinsic-size:auto 64px'))
+  assert.ok(styles.includes('content-visibility:auto;contain-intrinsic-size:auto 120px'))
 })

@@ -157,28 +157,23 @@ export function useAnchoredMenu(onEscape?: (() => boolean | void) | undefined): 
   escapeRef.current = onEscape
   const close = (): void => setPlace(null)
   useMenuKeys(menu, place !== null)
+  // Nested folder "browse/type" views return true from onEscape to stay open on the list.
+  useEscape(() => {
+    if (escapeRef.current?.() === true) return
+    close()
+    button.current?.focus()
+  }, place !== null)
   useEffect(() => {
     if (place === null) return undefined
     const onDown = (event: MouseEvent): void => {
       if (event.target instanceof Node && (menu.current?.contains(event.target) || button.current?.contains(event.target))) return
       close()
     }
-    const onKey = (event: KeyboardEvent): void => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        event.stopPropagation()
-        if (escapeRef.current?.() === true) return
-        close()
-        button.current?.focus()
-      }
-    }
     const onScroll = (event: Event): void => { if (event.target instanceof Node && !menu.current?.contains(event.target)) close() }
     window.addEventListener('mousedown', onDown)
-    window.addEventListener('keydown', onKey, true)
     window.addEventListener('scroll', onScroll, true)
     return () => {
       window.removeEventListener('mousedown', onDown)
-      window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('scroll', onScroll, true)
     }
   }, [place])

@@ -52,7 +52,7 @@ const elsewhere = () => new Field(false)
 
 test('Enter that commits a Chinese input method is swallowed, not cancelled', () => {
   const root = createRoot()
-  const stop = installImeGuard(root)
+  const stop = installImeGuard(root, { webkit: false })
   try {
     // Chrome and Firefox mark the Enter that commits a composition as composing, or 229.
     for (const event of [enter(composerField(), { composing: true }), enter(composerField(), { keyCode: 229 })]) {
@@ -64,19 +64,19 @@ test('Enter that commits a Chinese input method is swallowed, not cancelled', ()
   }
 })
 
-test('the plain Enter a browser sends right after compositionend does not send either', () => {
+test('WebKit: the plain Enter a browser sends right after compositionend does not send either', () => {
   const root = createRoot()
-  const stop = installImeGuard(root)
+  const stop = installImeGuard(root, { webkit: true })
   try {
     clock = 1000
     root.fire('compositionend', { target: composerField() })
-    clock = 1000 + 59
+    clock = 1000 + 499
     const stray = enter(composerField())
     root.fire('keydown', stray)
     assert.deepEqual(stray.calls, ['stop', 'prevent'])
 
-    // An Enter the user pressed after the input method finished goes through.
-    clock = 1000 + 60
+    // A deliberate second Enter (or one after the window) goes through.
+    clock = 1000 + 500
     const later = enter(composerField())
     root.fire('keydown', later)
     assert.deepEqual(later.calls, [])
@@ -85,11 +85,46 @@ test('the plain Enter a browser sends right after compositionend does not send e
   }
 })
 
-test('an Enter outside the composer, or with no composition behind it, is left alone', () => {
+test('WebKit: swallowing the stray Enter clears the window so the next Enter sends', () => {
   const root = createRoot()
-  const stop = installImeGuard(root)
+  const stop = installImeGuard(root, { webkit: true })
   try {
     clock = 2000
+    root.fire('compositionend', { target: composerField() })
+    clock = 2000 + 10
+    const stray = enter(composerField())
+    root.fire('keydown', stray)
+    assert.deepEqual(stray.calls, ['stop', 'prevent'])
+
+    clock = 2000 + 20
+    const send = enter(composerField())
+    root.fire('keydown', send)
+    assert.deepEqual(send.calls, [])
+  } finally {
+    stop()
+  }
+})
+
+test('non-WebKit: a plain Enter right after compositionend (Space-commit then send) is left alone', () => {
+  const root = createRoot()
+  const stop = installImeGuard(root, { webkit: false })
+  try {
+    clock = 3000
+    root.fire('compositionend', { target: composerField() })
+    clock = 3000 + 10
+    const send = enter(composerField())
+    root.fire('keydown', send)
+    assert.deepEqual(send.calls, [])
+  } finally {
+    stop()
+  }
+})
+
+test('an Enter outside the composer, or with no composition behind it, is left alone', () => {
+  const root = createRoot()
+  const stop = installImeGuard(root, { webkit: true })
+  try {
+    clock = 4000
     const plain = enter(composerField())
     root.fire('keydown', plain)
     assert.deepEqual(plain.calls, [])
@@ -111,14 +146,14 @@ test('an Enter outside the composer, or with no composition behind it, is left a
 
 test('nothing is heard after the guard is removed', () => {
   const root = createRoot()
-  const stop = installImeGuard(root)
+  const stop = installImeGuard(root, { webkit: true })
   assert.equal(root.count('keydown'), 1)
   assert.equal(root.count('compositionend'), 1)
   stop()
   assert.equal(root.count('keydown'), 0)
   assert.equal(root.count('compositionend'), 0)
 
-  clock = 3000
+  clock = 5000
   const event = enter(composerField(), { composing: true })
   root.fire('keydown', event)
   assert.deepEqual(event.calls, [])
