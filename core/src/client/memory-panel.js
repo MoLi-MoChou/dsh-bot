@@ -8,10 +8,9 @@ import { EmptyState } from './empty-state.js'
 import { ArrowUpIcon, CheckIcon, ChevronLeftIcon, ChevronRightIcon, CloseIcon, DotsIcon, MemoryIcon, TrashIcon } from './icons.js'
 import { dateLocale, hostText, t } from './i18n.js'
 import { summaryBlocks } from './text.js'
-import { useLinger } from './motion.js'
+import { MENU_EXIT_MS, useLinger } from './motion.js'
 
 const POLL_MS = 1500
-const MENU_EXIT_MS = 120
 
 // Entry counts per Bot or group, for the details pane; the dialog updates them as it loads.
 const counts = new Map()
@@ -222,6 +221,7 @@ export function MemoryDialog({ owner, actions, leaving = false }) {
   const close = useCallback(() => actions.closeMemory(), [])
   useEscape(close)
   useEscape(() => { setPage('summary'); void load({ summarize: true }) }, page === 'entries')
+  useEscape(() => { setMenu(false); dotsRef.current?.focus() }, menu)
   useMenuKeys(menuRef, menu)
   useEffect(() => {
     if (!menu) return undefined
@@ -229,12 +229,9 @@ export function MemoryDialog({ owner, actions, leaving = false }) {
       if (menuRef.current?.contains(event.target) || dotsRef.current?.contains(event.target)) return
       setMenu(false)
     }
-    const onKey = (event) => { if (event.key === 'Escape') { event.stopPropagation(); setMenu(false); dotsRef.current?.focus() } }
     window.addEventListener('mousedown', onDown)
-    window.addEventListener('keydown', onKey, true)
     return () => {
       window.removeEventListener('mousedown', onDown)
-      window.removeEventListener('keydown', onKey, true)
     }
   }, [menu])
   const regenerate = () => { setMenu(false); setPage('summary'); void load({ regenerate: true }) }

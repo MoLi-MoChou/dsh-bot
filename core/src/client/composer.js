@@ -3,8 +3,8 @@ import { LEAN } from './lean.js'
 import { createPortal } from 'react-dom'
 import { ChatsIcon, ClockIcon, MicIcon, PaperclipIcon, PeopleIcon, PlusIcon, WaveIcon } from './icons.js'
 import { BotMark } from './mark.js'
-import { useLinger } from './motion.js'
-import { useMenuKeys } from './overlay-hooks.js'
+import { MENU_EXIT_MS, useLinger } from './motion.js'
+import { useEscape, useMenuKeys } from './overlay-hooks.js'
 import { t } from './i18n.js'
 
 // -------------------------------------------------------------------------
@@ -111,17 +111,16 @@ export function menuIcons(roster) {
 export function ComposerPlus({ sessionId, inputActions, useRoster, actions }) {
   const roster = useRoster(value => value)
   const [open, setOpen] = useState(null)
-  const [shown, leaving] = useLinger(open, 120)
+  const [shown, leaving] = useLinger(open, MENU_EXIT_MS)
   const button = useRef(null)
   const menu = useRef(null)
   useMenuKeys(menu, Boolean(open))
+  useEscape(() => { setOpen(null); button.current?.focus() }, Boolean(open))
   useEffect(() => {
     if (!open) return undefined
     const onDown = (event) => { if (![button.current, menu.current].some(node => node?.contains(event.target))) setOpen(null) }
-    const onKey = (event) => { if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); setOpen(null); button.current?.focus() } }
     window.addEventListener('mousedown', onDown, true)
-    window.addEventListener('keydown', onKey, true)
-    return () => { window.removeEventListener('mousedown', onDown, true); window.removeEventListener('keydown', onKey, true) }
+    return () => { window.removeEventListener('mousedown', onDown, true) }
   }, [open])
   const target = roster.byId?.[sessionId]?.id ?? roster.roomsById?.[sessionId]?.id
   if (sessionId === undefined || target === undefined) return null
