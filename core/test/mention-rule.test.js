@@ -11,7 +11,7 @@ const bots = [{ id: 'a', name: '新 Bot' }, { id: 'b', name: '新 Bot 2' }, { id
 
 // The user's bubble is drawn by a module that needs the DSH platform; only its pure part runs here.
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../src/client/user-message.ts', import.meta.url))],
+  entryPoints: [fileURLToPath(new URL('../src/client/user-message.tsx', import.meta.url))],
   bundle: true, format: 'cjs', platform: 'node', write: false,
   external: ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives'],
 })

@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm'
 import { build } from 'esbuild'
 
 const { outputFiles } = await build({
-  entryPoints: [fileURLToPath(new URL('../src/client/permission-picker.ts', import.meta.url))],
+  entryPoints: [fileURLToPath(new URL('../src/client/permission-picker.tsx', import.meta.url))],
   bundle: true, format: 'cjs', platform: 'browser', write: false, logLevel: 'silent',
   external: ['react', 'react-dom', '@deepseek-ai/dsh-client-ui-primitives'],
 })

@@ -1,11 +1,11 @@
 // The records, actions and component props the settings surfaces share. Kept apart from
 // the pages so the settings dialog and the forms it shows describe one contract.
-import type { ModelEntry } from './model-menu.ts'
-import type { SecretActions, SecretEntry, SecretRequest } from './secret-card.ts'
-import type { Connector, ConnectorActions } from './connectors.ts'
-import type { FolderMenuActions } from './folder-menu.ts'
-import type { UsagePageProps } from './usage-page.ts'
-import type { DiagnosticsReport } from './feedback.ts'
+import type { ModelEntry } from './model-menu.tsx'
+import type { SecretActions, SecretEntry, SecretRequest } from './secret-card.tsx'
+import type { Connector, ConnectorActions } from './connectors.tsx'
+import type { FolderMenuActions } from './folder-menu.tsx'
+import type { UsagePageProps } from './usage-page.tsx'
+import type { DiagnosticsReport } from './feedback.tsx'
 import type { ReactNode } from 'react'
 
 // The team records the settings page and its forms read; the rest passes through.

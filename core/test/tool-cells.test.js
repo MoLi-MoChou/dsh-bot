@@ -10,8 +10,8 @@ const { outputFiles } = await build({
   stdin: {
     contents: [
       "export { ToolCell, TriggerCell, callTree, stackReplies, forgetMemoryLines } from './src/client/cells.ts'",
-      "export { QuestionDock } from './src/client/questions.ts'",
-      "export { SecretDock } from './src/client/secret-card.ts'",
+      "export { QuestionDock } from './src/client/questions.tsx'",
+      "export { SecretDock } from './src/client/secret-card.tsx'",
       "export { countCards } from './src/client/sources.ts'",
     ].join('\n'),
     resolveDir: fileURLToPath(new URL('..', import.meta.url)),

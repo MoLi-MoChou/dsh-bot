@@ -1,5 +1,5 @@
 // Types for the Bot browser panel.
-import type { MarkBot } from './mark.ts'
+import type { MarkBot } from './mark.tsx'
 import type { PanelRect } from './bot-browsers.ts'
 
 export type PanelView = 'details' | 'browser'

@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 
 const bundle = await build({
   stdin: {
-    contents: `export { OFF_BOTTOM_PX, isOffBottom, scrollToBottom, followBottom } from './header.ts'\nexport { stackChatItems } from './cells.ts'`,
+    contents: `export { OFF_BOTTOM_PX, isOffBottom, scrollToBottom, followBottom } from './header.tsx'\nexport { stackChatItems } from './cells.ts'`,
     resolveDir: fileURLToPath(new URL('../src/client', import.meta.url)),
   },
   bundle: true, format: 'cjs', platform: 'node', write: false,

@@ -13,9 +13,9 @@ const { outputFiles } = await build({
   stdin: {
     contents: `
       export { EmptyState, EMPTY_STATE_CSS } from './src/client/empty-state.js'
-      export { ChatWelcome, welcomeCopy } from './src/client/chat-welcome.ts'
-      export { CommandPalette } from './src/client/palette.ts'
-      export { TeamSidebar } from './src/client/sidebar.ts'
+      export { ChatWelcome, welcomeCopy } from './src/client/chat-welcome'
+      export { CommandPalette } from './src/client/palette'
+      export { TeamSidebar } from './src/client/sidebar'
       export { installFilesPanel } from './src/client/files-panel.ts'
     `,
     resolveDir: PLUGIN,

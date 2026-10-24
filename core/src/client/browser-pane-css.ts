@@ -1,4 +1,4 @@
-import { EASE_OUT, SPRING_SHAPE } from './motion.ts'
+import { EASE_OUT, SPRING_SHAPE } from './motion.tsx'
 
 export const BROWSER_CSS = `
 .bt-panel{--bt-panel-view-fade:${SPRING_SHAPE.duration}ms}

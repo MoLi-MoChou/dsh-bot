@@ -1,6 +1,6 @@
 // Width and timing constants for the Bot browser panel.
 import { STORAGE } from './storage.ts'
-import { PANEL_LINGER_MS, PANEL_TAB_EDGES } from './motion.ts'
+import { PANEL_LINGER_MS, PANEL_TAB_EDGES } from './motion.tsx'
 import type { PanelPage, PanelTabs } from './browser-pane-types.ts'
 
 export { PANEL_LINGER_MS }

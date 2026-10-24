@@ -15,7 +15,7 @@ const { JSDOM } = createRequire(join(process.env.DSH_HARNESS ?? join(PLUGIN, '..
 // fixtures retain refs across commits and run their layout effects after each render.
 const { outputFiles } = await build({
   stdin: {
-    contents: "export { SHELL_CSS } from './src/client/design/index.ts'\nexport { SIDEBAR_CSS, TeamSidebar } from './src/client/sidebar.ts'",
+    contents: "export { SHELL_CSS } from './src/client/design/index.ts'\nexport { SIDEBAR_CSS, TeamSidebar } from './src/client/sidebar.tsx'",
     resolveDir: PLUGIN,
   },
   bundle: true, format: 'cjs', platform: 'browser', write: false, logLevel: 'silent',

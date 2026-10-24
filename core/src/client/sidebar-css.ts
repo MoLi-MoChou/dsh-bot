@@ -1,4 +1,4 @@
-import { EASE_OUT, SPRING_SHAPE } from './motion.ts'
+import { EASE_OUT, SPRING_SHAPE } from './motion.tsx'
 
 export const RETURN_CSS = `
 .bt-return{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 14px;border:0;border-radius:999px;background:none;color:inherit;font:inherit;font-size:14px;line-height:20px;cursor:pointer;transition:background-color .12s ease}

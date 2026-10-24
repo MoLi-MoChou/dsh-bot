@@ -146,9 +146,9 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
 
 
   it('folds + menu, memory ⋯ menu, and anchored menus into the useEscape stack (no capture Esc)', () => {
-    const composer = readFileSync(join(ROOT, 'src/client/composer.ts'), 'utf8')
-    const memory = readFileSync(join(ROOT, 'src/client/memory-panel.ts'), 'utf8')
-    const model = readFileSync(join(ROOT, 'src/client/model-menu.ts'), 'utf8')
+    const composer = readFileSync(join(ROOT, 'src/client/composer.tsx'), 'utf8')
+    const memory = readFileSync(join(ROOT, 'src/client/memory-panel.tsx'), 'utf8')
+    const model = readFileSync(join(ROOT, 'src/client/model-menu.tsx'), 'utf8')
     assert.match(composer, /useEscape\(\(\) => \{ setOpen\(null\)/)
     assert.doesNotMatch(composer, /addEventListener\('keydown', onKey, true\)/)
     assert.match(memory, /useEscape\(\(\) => \{ setMenu\(false\)/)
@@ -156,8 +156,8 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
     assert.match(model, /useEscape\(\(\) => \{[\s\S]*escapeRef\.current/)
     assert.doesNotMatch(model, /addEventListener\('keydown', onKey, true\)/)
     assert.doesNotMatch(memory, /const MENU_EXIT_MS = /)
-    assert.match(memory, /MENU_EXIT_MS.*from '\.\/motion\.ts'/)
-    assert.match(composer, /MENU_EXIT_MS.*from '\.\/motion\.ts'/)
+    assert.match(memory, /MENU_EXIT_MS.*from '\.\/motion\.tsx'/)
+    assert.match(composer, /MENU_EXIT_MS.*from '\.\/motion\.tsx'/)
   })
 
   it('defines visible :focus-visible rings across primary controls, menus, cards, and file preview', () => {
@@ -185,9 +185,9 @@ describe('Keyboard navigation, Escape stack, and focus-visible rings', () => {
     }
     assert.match(stylesSrc, /:focus-visible\{outline:2px solid var\(--bt-accent\)/)
     assert.match(FILES_PANEL_CSS, /\.bt-fcard-download.*:focus-visible/)
-    const browserSrc = readFileSync(join(ROOT, 'src/client/browser-pane.ts'), 'utf8')
-    const processSrc = readFileSync(join(ROOT, 'src/client/work-process.ts'), 'utf8')
-    const memberSrc = readFileSync(join(ROOT, 'src/client/member-status.ts'), 'utf8')
+    const browserSrc = readFileSync(join(ROOT, 'src/client/browser-pane-css.ts'), 'utf8')
+    const processSrc = readFileSync(join(ROOT, 'src/client/work-process.tsx'), 'utf8')
+    const memberSrc = readFileSync(join(ROOT, 'src/client/member-status.tsx'), 'utf8')
     assert.match(browserSrc, /\.bt-ptab.*:focus-visible/)
     assert.match(processSrc, /\.bt-process-close.*:focus-visible/)
     assert.match(memberSrc, /\.bt-mw-pill.*:focus-visible/)

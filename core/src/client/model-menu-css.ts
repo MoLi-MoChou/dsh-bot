@@ -1,4 +1,4 @@
-import { SPRING_POP, SPRING_SHAPE, spring } from './motion.ts'
+import { SPRING_POP, SPRING_SHAPE, spring } from './motion.tsx'
 
 export const MODEL_CSS = `
 .bt-ctx{display:flex;align-items:center;gap:8px;padding:8px 10px 6px;font-size:12.5px;color:var(--bt-ink-2);font-variant-numeric:tabular-nums}

@@ -4,7 +4,7 @@
 //
 // They sit beside sidebar.ts, as runtime.d.ts does for the host, so the component file
 // stays about the list itself.
-import type { MarkBot } from './mark.ts'
+import type { MarkBot } from './mark.tsx'
 
 /** A Bot as the sidebar lists it. */
 export interface TSidebarBot extends MarkBot {

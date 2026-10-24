@@ -1,4 +1,4 @@
-import { SPRING_POP, SPRING_SHAPE, spring } from './motion.ts'
+import { SPRING_POP, SPRING_SHAPE, spring } from './motion.tsx'
 
 // Styles for secret cards and the secrets settings page.
 export const SECRET_CSS = `

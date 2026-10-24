@@ -7,7 +7,7 @@ import { build } from 'esbuild'
 import { findStyles } from '../scripts/style-debt.mjs'
 
 const bundle = await build({
-  entryPoints: [fileURLToPath(new URL('../src/client/motion.ts', import.meta.url))],
+  entryPoints: [fileURLToPath(new URL('../src/client/motion.tsx', import.meta.url))],
   bundle: true, format: 'cjs', platform: 'node', write: false,
   external: ['react'],
 })
@@ -79,7 +79,7 @@ test('reducedMotion and useLinger respect prefers-reduced-motion', () => {
 })
 
 test('client stylesheets guard sidebar, overlays, panels, and message entry with prefers-reduced-motion', () => {
-  for (const file of ['design/marks.ts', 'design/overlays.ts', 'design/panels.ts', 'design/conversation.ts', 'design/composer.ts', 'sidebar.ts', 'browser-pane.ts', 'work-process.ts']) {
+  for (const file of ['design/marks.ts', 'design/overlays.ts', 'design/panels.ts', 'design/conversation.ts', 'design/composer.ts', 'sidebar-css.ts', 'browser-pane-css.ts', 'work-process.tsx']) {
     const text = readFileSync(new URL(`../src/client/${file}`, import.meta.url), 'utf8')
     assert.ok(text.includes('@media (prefers-reduced-motion:reduce)'), `${file} should include prefers-reduced-motion guard`)
   }

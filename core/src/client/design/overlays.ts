@@ -1,6 +1,6 @@
 // Menus and overlays: context menus, the command palette, the avatar popover, and the
 // theme, motion and appearance pickers they open.
-import { DIALOG_EXIT_MS, EASE_IN, MENU_EXIT_MS, spring, SPRING_SHAPE, SPRING_TAP } from '../motion.ts'
+import { DIALOG_EXIT_MS, EASE_IN, MENU_EXIT_MS, spring, SPRING_SHAPE, SPRING_TAP } from '../motion.tsx'
 
 // Menus, palette, popovers, and the settings pickers.
 export const OVERLAYS_CSS = `
