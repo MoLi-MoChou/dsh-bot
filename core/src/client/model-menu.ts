@@ -1,15 +1,13 @@
-import { createElement as h, Fragment, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+// Model menu: picker, thinking levels, and context gauge.
+import { createElement as h, Fragment, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ElementType } from 'react'
 import { createPortal } from 'react-dom'
-import { currentPart, formatTokens } from './text.ts'
+import { formatTokens } from './text.ts'
 import { CheckIcon, SlidersIcon } from './icons.ts'
-import { BotMark } from './mark.ts'
-import { KeyIcon, MaskedInput } from './secret-card.ts'
-import { MENU_EXIT_MS, SPRING_POP, SPRING_SHAPE, spring, useLinger } from './motion.ts'
+import { MENU_EXIT_MS, useLinger } from './motion.ts'
 import { useEscape, useMenuKeys } from './overlay-hooks.ts'
-import { hostText, t } from './i18n.ts'
-
-// -------------------------------------------------------------------------
+import { t } from './i18n.ts'
+import { manageModels } from './model-menu-manage.ts'
 // A Bot's model: the picker in its details panel and settings, and the message its
 // chat opens on while it has none. Models come from DeepSeek Harness, grouped by provider.
 
@@ -50,7 +48,7 @@ export function groupModels(models: readonly ModelEntry[] | undefined): ModelGro
   })
 }
 
-const servedOf = (roster: { models?: readonly ModelEntry[] | undefined }, ref: string | undefined): ModelEntry | undefined => (roster.models ?? []).find(model => model.ref === ref)
+export const servedOf = (roster: { models?: readonly ModelEntry[] | undefined }, ref: string | undefined): ModelEntry | undefined => (roster.models ?? []).find(model => model.ref === ref)
 
 // What a Bot runs on, for display: the chosen model, else the one it last ran on.
 export function modelOf(bot: { model?: string | undefined; appliedModel?: string | undefined }, roster: { models?: readonly ModelEntry[] | undefined }): ModelInfo | undefined {
@@ -64,7 +62,7 @@ export function modelOf(bot: { model?: string | undefined; appliedModel?: string
 // The thinking levels of one model, `{efforts, defaultEffort?}` or undefined when it
 // has none. The catalog carries them for models Bots use; any other ref asks the host.
 const effortCache = new Map<string, ModelReasoning | null>()
-function useEfforts(served: ModelEntry | undefined, ref: string | undefined, actions: ModelMenuOptionalActions): ModelReasoning | null | undefined {
+export function useEfforts(served: ModelEntry | undefined, ref: string | undefined, actions: ModelMenuOptionalActions): ModelReasoning | null | undefined {
   const [fetched, setFetched] = useState<ModelReasoning | null | undefined>(undefined)
   useEffect(() => {
     setFetched(undefined)
@@ -96,7 +94,7 @@ interface EffortRowsProps {
   current: string | undefined
   onPick: (effort: string | undefined) => void
 }
-function EffortRows({ reasoning, current, onPick }: EffortRowsProps) {
+export function EffortRows({ reasoning, current, onPick }: EffortRowsProps) {
   return h(Fragment, null,
     h('div', { className: 'bt-menu-sep', role: 'separator' }),
     h('div', { className: 'bt-model-group', role: 'presentation' }, t('Thinking level')),
@@ -113,7 +111,7 @@ interface ModelRowsProps {
   current: string | undefined
   onPick: (ref: string) => void
 }
-function ModelRows({ roster, current, onPick }: ModelRowsProps) {
+export function ModelRows({ roster, current, onPick }: ModelRowsProps) {
   return groupModels(roster.models).map(([provider, list]) => h(Fragment, { key: list[0]?.provider ?? provider },
     h('div', { className: 'bt-model-group', role: 'presentation' }, provider),
     list.map(model => h('button', {
@@ -350,193 +348,3 @@ export function ModelMenu(props: ModelMenuProps) {
       manage ? h('div', { className: 'bt-menu-sep', role: 'separator' }) : null,
       manage ? h('button', { type: 'button', role: 'menuitem', onClick: () => { close(); manage() } }, h(SlidersIcon), h('span', { className: 'bt-menu-label' }, t('Models and providers…'))) : null), document.body) : null)
 }
-
-export interface ModelChoiceBot {
-  id: string
-  name: string
-  model?: string | undefined
-  appliedModel?: string | undefined
-}
-export interface ModelChoiceRoster extends ModelMenuRoster {
-  ready: boolean
-  byId: Record<string, ModelChoiceBot | undefined>
-}
-export interface ModelChoiceActions extends ModelMenuOptionalActions { updateBot: UpdateBot }
-export interface ModelChoiceDockProps {
-  sessionId: string
-  useRoster: <T>(select: (roster: ModelChoiceRoster) => T) => T
-  actions: ModelChoiceActions
-}
-
-// The card a Bot's chat opens on while the Bot has no model, or has one that is no
-// longer served. The first Main Bot greets the user only after a pick.
-export function ModelChoiceDock({ sessionId, useRoster, actions }: ModelChoiceDockProps) {
-  const roster = useRoster(value => value)
-  const bot = roster.byId[sessionId]
-  const [busy, setBusy] = useState('')
-  const [error, setError] = useState('')
-  const shown = bot !== undefined && currentPart(bot) === sessionId && roster.ready
-  useEffect(() => { if (shown) void actions.refreshModels?.() }, [shown, sessionId])
-  if (!bot || currentPart(bot) !== sessionId || !roster.ready) return null
-  const models = roster.models ?? []
-  // A model whose provider has no API key fails every turn, so it is no choice.
-  const usable = models.filter(model => !model.needsKey)
-  const lost = bot.model ? !models.some(model => model.ref === bot.model) : false
-  // An unknown catalog (none listed) cannot tell a lost model from a slow provider.
-  if (bot.model && (!lost || models.length === 0)) return null
-  // A window without DSH's own settings takes the missing key here.
-  const keyFor = usable.length === 0 && actions.setProviderKey ? models.find(model => model.needsKey) : undefined
-  const manage = manageModels(actions)
-  const pick = (ref: string): void => {
-    setBusy(ref)
-    setError('')
-    void Promise.resolve(actions.updateBot(bot.id, { model: ref }))
-      .catch((failure: unknown) => { setError(failureMessage(failure)); void actions.refreshModels?.() })
-      .finally(() => setBusy(''))
-  }
-  // The pick reads as the Bot's own first message, with the choices as replies under it.
-  const text = lost
-    ? t('{model} is not available anymore. Pick another model for me.', { model: (bot.model ?? '').split('/').slice(1).join('/') })
-    : keyFor
-      ? t("Hi, I'm {name}. I need a {provider} API key before I can start.", { name: bot.name, provider: keyFor.providerName ?? keyFor.provider })
-      : usable.length === 0
-        ? t("Hi, I'm {name}. I don't have a model yet. How do you want to set one up?", { name: bot.name })
-        : t("Hi, I'm {name}. Pick a model for me first. You can change it later in my details.", { name: bot.name })
-  const choices = usable.length === 0
-    ? setupChoices(actions).map(([label, run]) => h('button', { key: label, type: 'button', className: 'bt-model-chip', onClick: run }, label))
-    : [
-        ...groupModels(usable).map(([provider, list]) => h('div', { key: list[0]?.provider ?? provider, className: 'bt-model-choice-group', role: 'group', 'aria-label': provider },
-          h('div', { className: 'bt-model-choice-provider', 'aria-hidden': true }, provider),
-          h('div', { className: 'bt-model-choice-chips' }, list.map(model => h('button', {
-            key: model.ref, type: 'button', className: 'bt-model-chip', disabled: busy !== '', 'aria-busy': busy === model.ref || undefined,
-            'aria-label': `${model.name} · ${provider}`,
-            title: model.ref === roster.defaultModel ? `${model.ref} · ${t('Harness default')}` : model.ref,
-            onClick: () => pick(model.ref),
-          }, model.name, busy === model.ref ? h('span', { className: 'bt-model-spin', 'aria-label': t('Saving…') }) : null))))),
-        manage ? h('button', { key: 'manage', type: 'button', className: 'bt-model-chip bt-model-chip-quiet', onClick: manage }, h(SlidersIcon), t('Manage models')) : null,
-      ]
-  return h('div', { className: 'bt-model-dock' },
-    h('div', { className: 'bt-astack', 'data-lead': '' },
-      h('div', { className: 'bt-msg' },
-        h('div', { className: 'bt-msg-line' },
-          h(BotMark, { bot, size: 22 }),
-          h('div', { className: 'bt-bubble' }, text)))),
-    keyFor
-      ? h(ModelKeyCard, { key: keyFor.provider, model: keyFor, actions })
-      : h('div', { className: 'bt-model-chips', role: 'group', 'aria-label': t('Choose a model') }, choices),
-    error ? h('div', { className: 'bt-secret-error bt-model-error', role: 'alert' }, error) : null)
-}
-
-// The provider's API key, saved through the host; once it is set, the provider's
-// models become the choices.
-function ModelKeyCard({ model, actions }: { model: ModelEntry; actions: ModelChoiceActions }) {
-  const [value, setValue] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const label = t('{provider} API key', { provider: model.providerName ?? model.provider })
-  const ready = value.trim() !== '' && !busy
-  const save = (): void => {
-    if (!ready || actions.setProviderKey === undefined) return
-    setBusy(true)
-    setError('')
-    void Promise.resolve(actions.setProviderKey(model.provider, value))
-      .then(() => setValue(''), (failure: unknown) => setError(hostText(failureMessage(failure))))
-      .finally(() => setBusy(false))
-  }
-  return h('div', { className: 'bt-q bt-model-key', role: 'group', 'aria-label': label },
-    h('div', { className: 'bt-model-key-title' }, h(KeyIcon), label),
-    h('label', { className: 'bt-q-field bt-secret-field' }, h(MaskedInput, { value, onChange: setValue, onEnter: save, label, autoFocus: true })),
-    error ? h('div', { className: 'bt-secret-error', role: 'alert' }, error) : null,
-    h('div', { className: 'bt-q-foot' },
-      actions.openModels ? h('button', { type: 'button', className: 'bt-q-btn bt-model-key-other', onClick: actions.openModels }, t('Another provider')) : null,
-      h('button', { type: 'button', className: 'bt-q-submit', disabled: !ready, onClick: save }, busy ? t('Saving…') : t('Save'))))
-}
-
-// Where the providers are set up: the window's own Models page, else DSH's settings.
-const manageModels = (actions: ModelMenuOptionalActions): (() => void) | undefined => actions.openModels ?? actions.openHarnessSettings
-
-// Ways to get a first model. The DeepSeek sign-in exists only where the shell carries
-// its account plugin (the Desktop); the API key and custom models use the shell's
-// own editors.
-function setupChoices(actions: ModelMenuOptionalActions): [string, () => unknown][] {
-  const choices: ([string, () => unknown] | null)[] = [
-    actions.canSignIn?.() ? [t('Sign in to DeepSeek'), () => actions.signIn?.()] : null,
-    actions.openHarnessOnboarding ? [t('Enter a DeepSeek API key'), () => actions.openHarnessOnboarding?.('deepseek-official')] : null,
-    actions.openHarnessSettings ? [t('Open settings to set up a custom model'), () => actions.openHarnessSettings?.('models')] : null,
-  ]
-  return choices.filter((choice): choice is [string, () => unknown] => choice !== null)
-}
-
-// The shell's own DeepSeek sign-in dialog, borrowed from its account plugin: the
-// plugin's model sign-in entry renders here with the plugin's own operations.
-export function DeepSeekSignIn({ useUi, actions }: { useUi: <T>(select: (state: { signIn?: number | null | undefined }) => T) => T; actions: ModelMenuOptionalActions }) {
-  const open = useUi(state => state.signIn)
-  const entry = open ? actions.signInEntry?.() ?? null : null
-  if (!entry) return null
-  return h(SignInHost, { key: String(open), entry, actions })
-}
-
-function SignInHost({ entry, actions }: { entry: SignInEntry; actions: ModelMenuOptionalActions }) {
-  const [ops] = useState<SignInOps>(() => (entry.inject?.() ?? {}) as SignInOps)
-  const close = (): void => actions.closeSignIn?.()
-  useEscape(close)
-  const useHook = (source: SignInSource) => <T>(selector: (state: unknown) => T): T => useSyncExternalStore(source.subscribe, () => selector(source.getSnapshot()))
-  const [hooks] = useState(() => ({ useAccount: useHook(ops.hooks.account), useTheme: useHook(ops.hooks.theme) }))
-  return h(entry.component, {
-    ...ops,
-    ...hooks,
-    t: actions.accountT?.(),
-    complete: close,
-    useApiKey: () => { close(); actions.openHarnessOnboarding?.('deepseek-official') },
-  })
-}
-
-const failureMessage = (failure: unknown): string => (failure as { message?: string } | null)?.message ?? String(failure)
-
-export const MODEL_CSS = `
-.bt-ctx{display:flex;align-items:center;gap:8px;padding:8px 10px 6px;font-size:12.5px;color:var(--bt-ink-2);font-variant-numeric:tabular-nums}
-.bt-ctx svg{flex:none;color:var(--bt-accent)}
-.bt-ctx[data-tone=mid] svg{color:var(--bt-warn)}
-.bt-ctx[data-tone=high] svg{color:var(--bt-danger)}
-.bt-ctx-arc{transition:stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1)}
-.bt-ctx-n{margin-left:auto;color:var(--bt-ink-3)}
-.bt-model-trigger{display:inline-flex;align-items:center;gap:8px;max-width:100%;min-width:0;height:auto;min-height:32px;padding:4px 8px 4px 10px;border:0;border-radius:8px;background:var(--bt-hover);color:var(--bt-ink);font:inherit;text-align:left;cursor:pointer;transition:background-color .12s ease}
-.bt-model-trigger:hover,.bt-model-trigger[aria-expanded=true]{background:var(--bt-active)}
-.bt-model-trigger:focus-visible{outline:2px solid var(--bt-accent);outline-offset:1px}
-.bt-model-trigger[data-missing] .bt-model-provider{color:var(--bt-danger)}
-.bt-model-trigger[data-wide]{display:flex;width:100%;min-height:48px;padding:7px 12px;justify-content:space-between;border-radius:12px;background:var(--bt-card);box-shadow:inset 0 0 0 1px var(--bt-line)}
-.bt-model-trigger[data-wide]:hover,.bt-model-trigger[data-wide][aria-expanded=true]{background:var(--bt-hover)}
-.bt-model-copy{display:flex;flex-direction:column;min-width:0}
-.bt-model-name{font-size:13px;line-height:18px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bt-model-provider{font-size:11px;line-height:14px;color:var(--bt-ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.bt-model-caret{flex:none;color:var(--bt-ink-3);transition:${spring(SPRING_SHAPE, 'transform')}}
-.bt-model-trigger[aria-expanded=true] .bt-model-caret{transform:rotate(180deg)}
-.bt-model-menu{overflow-y:auto;scrollbar-width:thin}
-.bt-model-group{flex:none;padding:8px 8px 2px;font-size:11px;line-height:14px;font-weight:500;color:var(--bt-ink-3);text-transform:none}
-.bt-model-group:first-child{padding-top:2px}
-.bt-model-tick{flex:none;width:16px;height:16px;display:inline-flex;color:var(--bt-ink-2)}
-.bt-model-tick svg{animation:bt-check-pop ${SPRING_POP.duration}ms ${SPRING_POP.easing} 60ms backwards}
-.bt-model-none{padding:8px;font-size:13px;line-height:18px;color:var(--bt-ink-2)}
-.bt-model-dock{width:100%;max-width:var(--dsh-chat-content-width,748px);margin:0 auto;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:0 0 10px;box-sizing:border-box;animation:bt-model-in ${SPRING_POP.duration}ms ${SPRING_POP.easing} backwards}
-.bt-model-chips{display:flex;flex-wrap:wrap;gap:6px;margin-left:30px;max-width:min(560px,calc(100% - 30px));max-height:min(240px,36vh);overflow-y:auto;scrollbar-width:thin}
-.bt-model-choice-group{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0}
-.bt-model-choice-provider{padding-top:4px;font-size:12px;line-height:16px;font-weight:500;color:var(--bt-ink-2);overflow-wrap:anywhere}
-.bt-model-choice-chips{display:flex;flex-wrap:wrap;gap:6px}
-.bt-model-chip{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:5px 12px;border:.5px solid var(--bt-line-2);border-radius:999px;background:var(--bt-surface,transparent);color:var(--bt-ink);font:inherit;font-size:13px;line-height:18px;cursor:pointer;transition:background-color .12s ease,border-color .12s ease}
-.bt-model-chip:hover:not(:disabled){background:var(--bt-hover)}
-.bt-model-chip:focus-visible{outline:2px solid var(--bt-accent);outline-offset:1px}
-.bt-model-chip-quiet{color:var(--bt-ink-2)}
-.bt-model-chip svg{width:14px;height:14px}
-.bt-model-chip:disabled{cursor:default}
-.bt-model-chip:disabled:not([aria-busy]){opacity:.5}
-.bt-model-error{margin-left:30px}
-.bt-q.bt-model-key{margin:0 0 0 30px;width:min(480px,calc(100% - 30px));gap:10px}
-.bt-model-key-title{display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;font-weight:500;color:var(--bt-ink-2)}
-.bt-model-key-title svg{flex:none;width:16px;height:16px}
-.bt-model-key .bt-q-foot{margin-top:2px}
-.bt-model-key-other{margin-right:auto}
-@keyframes bt-model-in{from{opacity:0;transform:translateY(6px)}}
-.bt-model-spin{flex:none;width:14px;height:14px;border-radius:50%;border:1.5px solid var(--bt-line-2);border-top-color:var(--bt-ink-2);animation:bt-model-spin .7s linear infinite}
-@keyframes bt-model-spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.bt-model-dock{animation:none}.bt-model-spin{animation-duration:2s}.bt-model-caret{transition:none}.bt-model-tick svg{animation:none}}
-`
