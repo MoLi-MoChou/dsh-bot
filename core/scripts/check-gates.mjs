@@ -42,9 +42,6 @@ const LINE_EXEMPTIONS = [
   '**/*.d.ts',
   // UI copy is a dictionary table (data), not a logic file.
   'src/client/i18n/zh.ts', // i18n dictionary table (data, not logic)
-  // TODO(phase2 split): existing client modules still over 350 lines; Phase 2 moves the
-  // rest to TS and splits these modules. They are pending, not accepted new debt.
-  'src/client/bot-browsers.ts',
 ]
 
 const DEFAULT_COMPILER_OPTIONS = {

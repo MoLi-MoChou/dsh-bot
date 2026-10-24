@@ -1,173 +1,23 @@
-// Bot browsers in the Desktop app: per Bot, a tab strip of pages. Each tab is one
-// Electron webview in the Bot's own storage partition (`dshDesktop.browser.acquire(
-// 'bot:<id>')` — the same key always yields the same partition, so cookies and logins
-// never cross Bots while a Bot may hold several pages). Moving a webview to another
-// parent reloads its guest, so every webview lives in one body-level layer for its
-// whole life: the panel reports a rectangle, the shown tab's webview is placed over
-// it, and the others stay at the same size (their layout, and so what a read sees,
-// stays the same) but hidden.
-
+// Bot browsers in the Desktop app: per Bot, a tab strip of pages.
 import { READ_PAGE_SCRIPT } from './read-page.ts'
 import { setEntry, sharedMap } from './shared-map.ts'
-import { STORAGE } from './storage.ts'
-import type { Source } from './sources.ts'
-
-export { READ_PAGE_SCRIPT }
-
-// What one tab's guest shows, as the strip and the drawer read it.
-export interface BrowserPage {
-  url: string
-  title: string
-  favicon: string | null
-  loading: boolean
-  canGoBack: boolean
-  canGoForward: boolean
-  error: string | null
-  live: boolean
-  excerpt: string
-  readAt?: number | undefined
-}
-export type BrowserPages = Record<string, BrowserPage>
-
-// The tabs of one Bot: their ids in strip order and the shown one.
-export interface BrowserTabs {
-  ids: string[]
-  active: string | null
-}
-export type BrowserTabsMap = Record<string, BrowserTabs>
-
-// The rectangle a shown guest covers, in viewport pixels.
-export interface PanelRect {
-  left: number
-  top: number
-  width: number
-  height: number
-}
-
-// The reader's result, from `read-page.ts` running inside the guest.
-export interface BrowserReadItem {
-  role: string
-  href?: string
-  value?: string
-  checked?: boolean
-  disabled?: boolean
-}
-export interface BrowserRead {
-  url: string
-  title: string
-  lang: string
-  description: string
-  selection: string
-  format: string
-  text: string
-  items: readonly BrowserReadItem[]
-  stats: { nodes: number; frames: number; ms: number }
-  truncated?: string
-}
-
-// A read the host hands this window: it answers with `browser-result`.
-export interface BrowserReadRequest {
-  id: string
-  botId: string
-}
-export type BrowserReadAnswer =
-  | { id: string; ok: true; page: BrowserRead }
-  | { id: string; ok: false; error: string }
-
-interface SavedTab { id: string; url: string; title: string }
-interface SavedBot { tabs: SavedTab[]; active: string | null }
-type SavedBots = Record<string, SavedBot>
-
-interface GuestEntry {
-  botId: string
-  tabId: string
-  element: WebviewElement
-  lease: string
-  ready: boolean
-  fresh: boolean
-  pending: string | undefined
-  usedAt: number
-  stop: () => void
-}
-
-export interface CreateBotBrowsersOptions {
-  bridge: DshBrowserBridge
-  createSource: <T>(initial: T) => Source<T>
-  storage?: Storage | undefined
-  document?: Document | undefined
-}
-
-export interface BotBrowsers {
-  tabs: Source<BrowserTabsMap>
-  pages: Source<BrowserPages>
-  /** Restore a Bot's saved strip (or an empty one) so the panel can render it. */
-  ensureTabs(botId: string): void
-  openTab(botId: string, url?: string): string
-  closeTab(botId: string, tabId: string): Promise<void>
-  activate(botId: string, tabId: string): void
-  preview(tabId: string): Promise<boolean>
-  show(tabId: string | null, box?: PanelRect | null): Promise<void>
-  navigate(tabId: string, input: string): Promise<boolean>
-  command(tabId: string, name: string): void
-  focus(tabId: string): void
-  /** Pages a read can reach: each Bot's active tab, live and showing a document. */
-  openPages(): Record<string, { url: string; title: string }>
-  /** A Bot's read reaches its active tab. */
-  read(botId: string): Promise<BrowserRead>
-  noteRead(botId: string): void
-  release(tabId: string): Promise<void>
-  forget(botId: string): Promise<void>
-  /** Forget every Bot outside `botIds`, as when Bots were deleted from another window. */
-  retain(botIds: readonly string[]): Promise<unknown>
-  dispose(): void
-}
-
-const STORE_KEY = STORAGE.browsers
-// Each live guest is a renderer process; past this many across every Bot and tab,
-// the least recently shown one is released (its address and excerpt are kept and
-// it reloads when it is shown again).
-const MAX_LIVE = 6
-const READ_TIMEOUT_MS = 10_000
-const PREVIEW_TIMEOUT_MS = 3000
-const RESIZE_LATER_MS = 200
-const SEARCH_URL = 'https://www.bing.com/search?q='
-// The drawer cards preview a page by its own words: its description, else its first
-// real paragraph. Webview capturePage() is not used: on Windows a failed capture
-// (UnknownVizError) takes the whole app renderer down.
-export const PREVIEW_SCRIPT = `(() => {
-  const meta = key => document.querySelector('meta[name="' + key + '"],meta[property="' + key + '"]')?.content ?? ''
-  const paragraph = [...document.querySelectorAll('main p, article p, p')].map(node => node.innerText ?? '').find(text => text.trim().length > 40) ?? ''
-  const text = meta('description') || meta('og:description') || paragraph || document.body?.innerText || ''
-  return text.replace(/\\s+/g, ' ').trim().slice(0, 200)
-})()`
-
-const EMPTY: BrowserPage = { url: '', title: '', favicon: null, loading: false, canGoBack: false, canGoForward: false, error: null, live: false, excerpt: '' }
-// Local and LAN pages open; cloud metadata services do not, since on a cloud machine they
-// hand out account credentials. The Desktop shell already refuses its own host port.
-const METADATA_HOST = /^(169\.254\.\d+\.\d+|\[fd00:ec2::254\]|metadata\.google\.internal)$/i
-const BLOCKED = 'Cloud metadata addresses do not open here.'
-export const blockedAddress = (url: string): boolean => URL.canParse(url) && METADATA_HOST.test(new URL(url).hostname)
-
-/**
- * An address-bar entry as a URL: an explicit http(s) URL, a host (local and private
- * addresses over http), or else a web search.
- */
-export function browserAddress(input: unknown): string | null {
-  const text = String(input ?? '').trim()
-  if (text === '') return null
-  if (/^[a-z][a-z\d+.-]*:\/\//i.test(text)) return /^https?:\/\//i.test(text) && URL.canParse(text) ? new URL(text).href : null
-  if (/^(about|javascript|data|file|blob|chrome|devtools|view-source):/i.test(text)) return null
-  const host = text.split(/[/?#]/)[0] ?? ''
-  const local = /^(localhost|127(\.\d+){3}|10(\.\d+){3}|192\.168(\.\d+){2}|172\.(1[6-9]|2\d|3[01])(\.\d+){2}|\[[\da-f:]+\])(:\d+)?$/i.test(host)
-  const looksLikeHost = !/\s/.test(text) && (local || /^[^\s.]+(\.[^\s.]+)+(:\d+)?$/.test(host))
-  if (looksLikeHost && URL.canParse(`http://${text}`)) return new URL(`${local ? 'http' : 'https'}://${text}`).href
-  return `${SEARCH_URL}${encodeURIComponent(text)}`
-}
-
-/**
- * @param options the Desktop bridge, the store factory the sources come from, and where
- * tabs are saved.
- */
+import type {
+  BotBrowsers, BrowserPage, BrowserPages, BrowserRead, BrowserTabsMap, CreateBotBrowsersOptions,
+  GuestEntry, PanelRect, SavedBot, SavedBots, SavedTab,
+} from './bot-browsers-types.ts'
+import {
+  BLOCKED, EMPTY, MAX_LIVE, PREVIEW_SCRIPT, PREVIEW_TIMEOUT_MS, READ_TIMEOUT_MS,
+  RESIZE_LATER_MS, STORE_KEY, blockedAddress, browserAddress,
+} from './bot-browsers-address.ts'
+import { createGuest } from './bot-browsers-guest.ts'
+export { READ_PAGE_SCRIPT } from './read-page.ts'
+export type {
+  BotBrowsers, BrowserPage, BrowserPages, BrowserRead, BrowserReadItem, BrowserReadRequest,
+  BrowserReadAnswer, BrowserTabs, BrowserTabsMap, CreateBotBrowsersOptions, PanelRect,
+} from './bot-browsers-types.ts'
+export { PREVIEW_SCRIPT, blockedAddress, browserAddress } from './bot-browsers-address.ts'
+export { serveBrowserReads } from './bot-browsers-serve.ts'
+export type { ServeBrowserReadsOptions } from './bot-browsers-serve.ts'
 export function createBotBrowsers({ bridge, createSource, storage = globalThis.localStorage, document: doc = globalThis.document }: CreateBotBrowsersOptions): BotBrowsers {
   const views = new Map<string, GuestEntry>()
   /** tabId -> owning Bot id */
@@ -189,7 +39,6 @@ export function createBotBrowsers({ bridge, createSource, storage = globalThis.l
   let resizeLater: ReturnType<typeof setTimeout> | undefined
   let disposed = false
   let serial = 0
-
   const savedTab = (botId: string | undefined, tabId: string): SavedTab | undefined => (botId === undefined ? undefined : saved[botId]?.tabs.find(entry => entry.id === tabId))
   const publish = (tabId: string, patch: Partial<BrowserPage>): void => pages.set((state) => {
     const botId = owner.get(tabId)
@@ -269,78 +118,12 @@ export function createBotBrowsers({ bridge, createSource, storage = globalThis.l
   }
 
   async function create(tabId: string): Promise<GuestEntry | undefined> {
-    const botId = owner.get(tabId) ?? ''
-    const reservation = await bridge.acquire(`bot:${botId}`)
-    if (disposed) { await bridge.release(reservation.lease).catch(() => {}); return undefined }
-    const element = doc.createElement('webview')
-    // The shell forwards app shortcuts from a focused webview that carries these
-    // attributes, as it does for its own Sidebar browser.
-    element.dataset.sidebarBrowserFrame = 'webview'
-    Object.assign(element.style, { position: 'fixed', display: 'flex', border: '0', pointerEvents: 'auto', background: '#fff' })
-    element.dataset.btBrowser = tabId
-    element.setAttribute('name', reservation.lease)
-    element.setAttribute('partition', reservation.partition)
-    element.setAttribute('allowpopups', '')
-    element.setAttribute('src', `about:blank#${reservation.lease}`)
-    const lifetime = new AbortController()
-    const entry: GuestEntry = {
-      botId, tabId, element, lease: reservation.lease, ready: false, fresh: true,
-      pending: pages.getSnapshot()[tabId]?.url || savedTab(botId, tabId)?.url, usedAt: Date.now(),
-      stop: () => lifetime.abort(),
-    }
-    const { signal } = lifetime
-    // A page that asks for a new window gets a new tab in the same Bot, activated.
-    const unsubscribe = bridge.onOpenRequested(reservation.lease, url => void openTab(botId, url))
-    signal.addEventListener('abort', unsubscribe, { once: true })
-    element.addEventListener('dom-ready', () => {
-      entry.ready = true
-      observe(entry)
-      if (entry.pending) {
-        const url = entry.pending
-        entry.pending = undefined
-        void element.loadURL(url).catch(() => {})
-      }
-    }, { signal })
-    for (const name of ['did-navigate', 'did-navigate-in-page', 'did-start-loading', 'did-stop-loading', 'page-title-updated']) {
-      element.addEventListener(name, () => observe(entry), { signal })
-    }
-    element.addEventListener('did-stop-loading', () => { void preview(tabId) }, { signal })
-    element.addEventListener('page-favicon-updated', (event) => {
-      const favicon = event.favicons?.[0]
-      // The tab strip renders in the outer renderer, outside the Bot's webview
-      // partition; only self-contained icons may load there, the rest stay globes.
-      if (typeof favicon === 'string' && favicon.startsWith('data:')) publish(tabId, { favicon })
-    }, { signal })
-    element.addEventListener('did-start-navigation', (event) => {
-      if (!event.isMainFrame) return
-      if (blockedAddress(event.url)) {
-        element.stop()
-        publish(tabId, { loading: false, error: BLOCKED })
-        return
-      }
-      publish(tabId, { loading: true, error: null })
-    }, { signal })
-    element.addEventListener('did-fail-load', (event) => {
-      // -3 is an aborted load: another navigation replaced it.
-      if (event.isMainFrame && event.errorCode !== -3) publish(tabId, { loading: false, error: event.errorDescription || `Error ${event.errorCode}` })
-    }, { signal })
-    element.addEventListener('render-process-gone', () => {
-      // A gone renderer while the entry is still live is a crash: drop the guest
-      // and leave a retryable error, since the open effect will not fire again
-      // for an unchanged tab. (Closing a tab removes the entry first, so its own
-      // teardown never lands here.)
-      if (views.get(tabId) === undefined) return
-      void release(tabId)
-      publish(tabId, { loading: false, error: 'The page crashed.' })
-    }, { signal })
-    views.set(tabId, entry)
-    ensureLayer().append(element)
-    place(entry)
-    publish(tabId, { live: true, loading: Boolean(entry.pending) })
-    return entry
+    return createGuest(tabId, {
+      bridge, doc, views, owner, pages, publish, savedTab, observe, preview, openTab, ensureLayer, place, release,
+      getDisposed: () => disposed,
+    })
   }
 
-  // One acquisition at a time per tab.
   const opening = new Map<string, Promise<GuestEntry | undefined>>()
   function open(tabId: string): Promise<GuestEntry | undefined> {
     const entry = views.get(tabId)
@@ -563,75 +346,3 @@ export function createBotBrowsers({ bridge, createSource, storage = globalThis.l
   }
 }
 
-const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms))
-
-export interface ServeBrowserReadsOptions {
-  browsers: BotBrowsers
-  post: <T>(endpoint: string, payload: unknown, signal?: AbortSignal) => Promise<T>
-  clientId?: string | undefined
-  retryMs?: number | undefined
-}
-
-/**
- * Answers `read_browser` for this window: a long poll (`browser-wait`) reports which Bots
- * have a page open here and brings back read requests, each answered with
- * `browser-result`. A change in the open pages ends the poll so the host learns at once.
- * Returns the stop function.
- */
-export function serveBrowserReads({ browsers, post, clientId = globalThis.crypto.randomUUID(), retryMs = 1000 }: ServeBrowserReadsOptions): () => void {
-  let stopped = false
-  let poll: AbortController | undefined
-  let reported = ''
-  // The host hands a request out again until the result lands; the job is cached
-  // the moment it starts, so a resend during a slow read shares it, and a resend
-  // after a failed submit posts the cached answer again.
-  const answered = new Map<string, Promise<BrowserReadAnswer>>()
-  const answer = async ({ id, botId }: BrowserReadRequest): Promise<void> => {
-    let job = answered.get(id)
-    if (job === undefined) {
-      job = (async (): Promise<BrowserReadAnswer> => {
-        try {
-          const result: BrowserReadAnswer = { id, ok: true, page: await browsers.read(botId) }
-          browsers.noteRead(botId)
-          return result
-        } catch (error) {
-          return { id, ok: false, error: error instanceof Error ? error.message : String(error) }
-        }
-      })()
-      answered.set(id, job)
-      if (answered.size > 200) {
-        const oldest = answered.keys().next().value
-        if (oldest !== undefined) answered.delete(oldest)
-      }
-    }
-    await post('browser-result', await job).catch(error => console.warn('[ds-bot] browser result', error))
-  }
-  const loop = async (): Promise<void> => {
-    let failures = 0
-    while (!stopped) {
-      const controller = new AbortController()
-      poll = controller
-      const open = browsers.openPages()
-      reported = JSON.stringify(open)
-      try {
-        const requests = await post<readonly BrowserReadRequest[]>('browser-wait', { clientId, open }, controller.signal)
-        failures = 0
-        for (const request of Array.isArray(requests) ? requests : []) void answer(request)
-      } catch {
-        if (stopped) return
-        if (controller.signal.aborted) continue
-        failures += 1
-        await sleep(Math.min(30_000, retryMs * 2 ** Math.min(failures, 5)))
-      }
-    }
-  }
-  const offPages = browsers.pages.subscribe(() => {
-    if (JSON.stringify(browsers.openPages()) !== reported) poll?.abort()
-  })
-  void loop()
-  return () => {
-    stopped = true
-    offPages()
-    poll?.abort()
-  }
-}
